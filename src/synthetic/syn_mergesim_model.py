@@ -227,7 +227,6 @@ class MergeSimModel(SimModel):
                 # noinspection PyTypeChecker
                 n_correct = torch.count_nonzero(preds == labels).item()
 
-                # loss.backward()
                 # adjust gradients
                 # adjusted_grad = {name: torch.zeros_like(param) for name, param in model.named_parameters()}
                 # for i in range(losses.shape[0]):
