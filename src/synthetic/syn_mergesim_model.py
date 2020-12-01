@@ -160,7 +160,7 @@ class MergeSimModel(SimModel):
 
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
                                   num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
-        num_features = next(iter(train_loader))[0].shape[1] - 1     # remove similarity
+        num_features = next(iter(train_loader))[0].shape[1]
 
         print("Prepare for training")
         if self.task == 'binary_cls':
@@ -197,7 +197,7 @@ class MergeSimModel(SimModel):
         train_labels = train_dataset.data1_labels.detach().cpu().int().numpy()
         answer_all = dict(zip(train_idx, train_labels))
         print("Start training")
-        summary(self.model, next(iter(train_loader))[0][:, 1:].to(self.device).float())
+        summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
         print(str(self))
         for epoch in range(self.num_epochs):
             # train
@@ -211,7 +211,7 @@ class MergeSimModel(SimModel):
                 data = data.to(self.device).float()
                 labels = labels.to(self.device).float()
                 sim_scores = data[:, 0]
-                data = data[:, 1:]
+                # data = data[:, 1:]
                 optimizer.zero_grad()
 
                 outputs = model(data)
@@ -333,7 +333,7 @@ class MergeSimModel(SimModel):
                 data = data.to(self.device).float()
                 labels = labels.to(self.device).float()
                 sim_scores = data[:, 0]
-                data = data[:, 1:]
+                # data = data[:, 1:]
 
                 outputs = self.model(data)
 
