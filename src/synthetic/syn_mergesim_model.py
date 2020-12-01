@@ -21,6 +21,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torchlars
 from tqdm import tqdm
 from torchsummaryX import summary
+from torchviz import make_dot
 
 from .syn_two_party_model import SimModel
 from .model import MLP
@@ -92,9 +93,30 @@ class AvgMergeDataset(Dataset):
         return self.data[idx], self.labels[idx], self.weights[idx], self.data_idx[idx]
 
 
+class SimScoreModel(nn.Module):
+    def __init__(self, num_features):
+        super().__init__()
+        self.fc1 = nn.Linear(num_features, 10)
+        self.fc2 = nn.Linear(10, 1)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, X):
+        out = self.fc1(X)
+        out = self.dropout(out)
+        out = torch.relu(out)
+        out = self.fc2(out)
+        out = torch.sigmoid(out)
+        return out
+
+
 class MergeSimModel(SimModel):
-    def __init__(self, num_common_features, **kwargs):
+    def __init__(self, num_common_features, sim_hidden_sizes=None, **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.sim_model = None
+        if sim_hidden_sizes is None:
+            self.sim_hidden_sizes = [10]
+        else:
+            self.sim_hidden_sizes = sim_hidden_sizes
 
     @staticmethod
     def var_collate_fn(batch):
@@ -115,11 +137,13 @@ class MergeSimModel(SimModel):
                 self.split_data(data1, labels, val_rate=self.val_rate, test_rate=self.test_rate)
             print("Matching training set")
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
-            train_Xs, train_y, train_idx = self.match(train_data1, data2, train_labels, idx=train_idx1, preserve_key=self.drop_key)
+            train_Xs, train_y, train_idx = self.match(train_data1, data2, train_labels, idx=train_idx1,
+                                                      preserve_key=self.drop_key)
             print("Matching validation set")
             val_Xs, val_y, val_idx = self.match(val_data1, data2, val_labels, idx=val_idx1, preserve_key=self.drop_key)
             print("Matching test set")
-            test_Xs, test_y, test_idx = self.match(test_data1, data2, test_labels, idx=test_idx1, preserve_key=self.drop_key)
+            test_Xs, test_y, test_idx = self.match(test_data1, data2, test_labels, idx=test_idx1,
+                                                   preserve_key=self.drop_key)
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
@@ -147,8 +171,8 @@ class MergeSimModel(SimModel):
 
     def merge_pred(self, pred_all: list):
         pred_array = np.array(pred_all).T
-        # weights = pred_array[1] + 1e-6        # prevent zero-division
-        avg_pred = np.average(pred_array[0])
+        weights = pred_array[1] + 1e-6  # prevent zero-division
+        avg_pred = np.average(pred_array[0], weights=weights)
         if self.task == 'binary_cls':
             return avg_pred > 0.5
         else:
@@ -160,24 +184,26 @@ class MergeSimModel(SimModel):
 
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
                                   num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
-        num_features = next(iter(train_loader))[0].shape[1]
+        num_features = next(iter(train_loader))[0].shape[1] - 1
 
         print("Prepare for training")
+        # self.sim_model = MLP(input_size=1, hidden_sizes=self.sim_hidden_sizes, output_size=1, activation='sigmoid')
+        self.sim_model = SimScoreModel(num_features=1)
+        self.sim_model.to(self.device)
         if self.task == 'binary_cls':
-            model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=1,
-                        activation='sigmoid')
+            self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=1,
+                             activation='sigmoid')
             criterion = nn.BCELoss(reduction='none')
             val_criterion = nn.BCELoss()
         elif self.task == 'multi_cls':
-            model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=self.n_classes,
-                        activation=None)
+            self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=self.n_classes,
+                             activation=None)
             criterion = nn.BCELoss(reduction='none')
             val_criterion = nn.CrossEntropyLoss()
         else:
             assert False, "Unsupported task"
-        model = model.to(self.device)
-        self.model = model
-        optimizer = torchlars.LARS(optim.Adam(model.parameters(),
+        self.model = self.model.to(self.device)
+        optimizer = torchlars.LARS(optim.Adam(self.model.parameters(),
                                               lr=self.learning_rate, weight_decay=self.weight_decay))
         if self.use_scheduler:
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=self.sche_factor,
@@ -205,16 +231,17 @@ class MergeSimModel(SimModel):
             train_sample_correct = 0
             train_total_samples = 0
             n_train_batches = 0
-            model.train()
+            self.model.train()
+            self.sim_model.train()
             for data, labels, weights, idx in tqdm(train_loader, desc="Train"):
                 weights = weights.to(self.device).float()
                 data = data.to(self.device).float()
                 labels = labels.to(self.device).float()
                 sim_scores = data[:, 0]
-                # data = data[:, 1:]
+                data = data[:, 1:]
                 optimizer.zero_grad()
 
-                outputs = model(data)
+                outputs = self.model(data)
                 if self.task == 'binary_cls':
                     outputs = outputs.flatten()
                     losses = criterion(outputs, labels)
@@ -237,7 +264,8 @@ class MergeSimModel(SimModel):
                 # for name, param in model.named_parameters():
                 #     param.grad = adjusted_grad[name]
 
-                loss = torch.mean(losses * weights)
+                sim_weight = self.sim_model(sim_scores.reshape(-1, 1))
+                loss = torch.mean(losses * weights * sim_weight)
                 loss.backward()
 
                 optimizer.step()
@@ -248,12 +276,12 @@ class MergeSimModel(SimModel):
                 n_train_batches += 1
 
                 # calculate final prediction
-                sim_scores = sim_scores.detach().cpu().numpy()
+                sim_weight = sim_weight.detach().cpu().numpy().flatten()
                 # noinspection PyUnboundLocalVariable
                 idx = idx.detach().cpu().numpy()
                 outputs = outputs.detach().cpu().numpy()
                 # noinspection PyUnboundLocalVariable
-                for i, score, out in zip(idx, sim_scores, outputs):
+                for i, score, out in zip(idx, sim_weight, outputs):
                     # noinspection PyUnboundLocalVariable
                     if i in train_pred_all:
                         train_pred_all[i].append((out, score))
@@ -328,14 +356,16 @@ class MergeSimModel(SimModel):
         n_val_batches = 0
         with torch.no_grad():
             self.model.eval()
+            self.sim_model.eval()
             for data, labels, weights, idx in tqdm(val_loader, desc=name):
 
                 data = data.to(self.device).float()
                 labels = labels.to(self.device).float()
                 sim_scores = data[:, 0]
-                # data = data[:, 1:]
+                data = data[:, 1:]
 
                 outputs = self.model(data)
+                sim_weights = self.sim_model(sim_scores.reshape(-1, 1))
 
                 if self.task == 'binary_cls':
                     outputs = outputs.flatten()
@@ -357,11 +387,11 @@ class MergeSimModel(SimModel):
                 n_val_batches += 1
 
                 # calculate final predictions
-                sim_scores = sim_scores.detach().cpu().numpy()
+                sim_weights = sim_weights.detach().cpu().numpy().flatten()
                 idx = idx.detach().cpu().numpy()
                 outputs = outputs.detach().cpu().numpy()
                 # noinspection PyUnboundLocalVariable
-                for i, score, out in zip(idx, sim_scores, outputs):
+                for i, score, out in zip(idx, sim_weights, outputs):
                     # noinspection PyUnboundLocalVariable
                     if i in val_pred_all:
                         val_pred_all[i].append((out, score))
