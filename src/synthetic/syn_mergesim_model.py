@@ -237,7 +237,7 @@ class MergeSimModel(SimModel):
                 # for name, param in model.named_parameters():
                 #     param.grad = adjusted_grad[name]
 
-                loss = torch.mean(losses * weights * sim_scores[0])
+                loss = torch.mean(losses * weights)
                 loss.backward()
 
                 optimizer.step()
