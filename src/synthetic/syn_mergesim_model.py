@@ -147,8 +147,8 @@ class MergeSimModel(SimModel):
 
     def merge_pred(self, pred_all: list):
         pred_array = np.array(pred_all).T
-        weights = pred_array[1] + 1e-6        # prevent zero-division
-        avg_pred = np.average(pred_array[0], weights=weights)
+        # weights = pred_array[1] + 1e-6        # prevent zero-division
+        avg_pred = np.average(pred_array[0])
         if self.task == 'binary_cls':
             return avg_pred > 0.5
         else:
