@@ -4,13 +4,10 @@ import time
 import random
 import argparse
 import numpy as np
-import pandas as pd
-import pickle
 from torchlars import LARS
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchsummaryX import summary
 
@@ -20,9 +17,7 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-from align.cal_sim_score import cal_sim_score
-from align.sim_align_game import sim_align_game
-from preprocess.split_data import split_df
+from preprocess.steam_ign.split_data import split_df
 
 print("Calculate similarity scores for train, val & test")
 os.chdir(sys.path[0] + "/../")  # change working directory

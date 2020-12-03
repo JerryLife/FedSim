@@ -5,8 +5,8 @@ from datetime import datetime
 import numpy as np
 from joblib import Parallel, delayed
 
-from synthetic.syn_two_party_model import ThresholdSimModel
-from synthetic.syn_data_generator import TwoPartyClsMany2ManyGenerator
+from model.vertical_fl.ThresholdSimModel import ThresholdSimModel
+from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 

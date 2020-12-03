@@ -4,8 +4,8 @@ from datetime import datetime
 
 import numpy as np
 
-from synthetic.syn_one_party_model import OnePartyModel
-from synthetic.syn_data_generator import TwoPartyClsMany2ManyGenerator
+from model.vertical_fl.OnePartyModel import OnePartyModel
+from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 

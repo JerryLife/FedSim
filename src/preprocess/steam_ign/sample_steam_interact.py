@@ -53,7 +53,7 @@ def sample_steam_interact(interact_path, game_path, out_interact_sample_path, se
 
 
 if __name__ == '__main__':
-    os.chdir(sys.path[0] + "/../../")     # change working directory
+    os.chdir(sys.path[0] + "/../../../")     # change working directory
     root = "data/"
     steam_interact_path = root + "steam_interact.csv"
     steam_game_path = root + "steam_game_clean.csv"

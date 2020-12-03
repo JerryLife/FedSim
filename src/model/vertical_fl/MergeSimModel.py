@@ -1,30 +1,19 @@
 import os
-import sys
-import abc
 import pickle
-import random
-from datetime import datetime
 
 import numpy as np
-import pandas as pd
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-from sklearn.cluster import KMeans, MiniBatchKMeans
-from sklearn.preprocessing import MinMaxScaler
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import TensorDataset, DataLoader, Dataset
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader, Dataset
 
 import torchlars
 from tqdm import tqdm
 from torchsummaryX import summary
-from torchviz import make_dot
 
-from .syn_two_party_model import SimModel
-from .model import MLP
+from .SimModel import SimModel
+from model.base.MLP import MLP
 
 
 class AvgMergeDataset(Dataset):

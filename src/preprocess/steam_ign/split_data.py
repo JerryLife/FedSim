@@ -35,7 +35,7 @@ def split_df(data_path, val_rate=0.1, test_rate=0.2, seed=0, save=False):
 
 
 if __name__ == '__main__':
-    os.chdir(sys.path[0] + "/../../")  # change working directory
+    os.chdir(sys.path[0] + "/../../../")  # change working directory
     root = "data/"
     steam_data_path = root + "steam_data.csv"
     split_df(steam_data_path, val_rate=0.1, test_rate=0.2, save=True)

@@ -30,8 +30,3 @@ class MLP(nn.Module):
         else:
             assert False
         return out
-
-
-class MergeSimMLP(nn.Module):
-    def __init__(self):
-        super().__init__()

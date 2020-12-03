@@ -2,8 +2,8 @@ import os
 import sys
 from datetime import datetime
 
-from synthetic.syn_mergesim_model import MergeSimModel
-from synthetic.syn_data_generator import TwoPartyClsMany2ManyGenerator
+from model.vertical_fl.MergeSimModel import MergeSimModel
+from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 

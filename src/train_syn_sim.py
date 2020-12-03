@@ -2,8 +2,8 @@ import os
 import sys
 from datetime import datetime
 
-from synthetic.syn_two_party_model import SimModel
-from synthetic.syn_data_generator import TwoPartyClsMany2ManyGenerator
+from model.vertical_fl.SimModel import SimModel
+from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 

@@ -1,12 +1,6 @@
 import pandas as pd
-import pickle
 import os
 import sys
-import numpy as np
-
-from synthetic.syn_data_generator import TwoPartyClsOne2OneGenerator
-from sklearn.cluster import KMeans, MiniBatchKMeans
-from sklearn.preprocessing import MinMaxScaler
 
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
@@ -93,27 +87,37 @@ root = "data/"
 # # filter similarity scores (last column) by a threshold
 # sim_scores = sim_scores[sim_scores[:, -1] > 0]
 
-sim_scores = pd.read_pickle("cache/sim_scores.pkl")
+# sim_scores = pd.read_pickle("cache/sim_scores.pkl")
+#
+# print("Summarize")
+# matched = {}
+# for idx1, idx2, score in sim_scores:
+#     idx1, idx2 = int(idx1), int(idx2)
+#     if idx1 in matched:
+#         matched[idx1].append((idx2, score))
+#     else:
+#         matched[idx1] = [(idx2, score)]
+#
+# print("Sort")
+# ranks = []
+# for k, v in matched.items():
+#     new_v = list(sorted(v, key=lambda x: x[1], reverse=True))
+#     matched[k] = new_v
+#     try:
+#         rank = next(i for i, (idx2, score) in enumerate(new_v) if idx2 == k)
+#     except StopIteration:
+#         rank = -1
+#     ranks.append(rank)
+#
+# print("Ranks:" + str(ranks))
+# print("Done")
 
-print("Summarize")
-matched = {}
-for idx1, idx2, score in sim_scores:
-    idx1, idx2 = int(idx1), int(idx2)
-    if idx1 in matched:
-        matched[idx1].append((idx2, score))
-    else:
-        matched[idx1] = [(idx2, score)]
+import pickle
+from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
+import preprocess
 
-print("Sort")
-ranks = []
-for k, v in matched.items():
-    new_v = list(sorted(v, key=lambda x: x[1], reverse=True))
-    matched[k] = new_v
-    try:
-        rank = next(i for i, (idx2, score) in enumerate(new_v) if idx2 == k)
-    except StopIteration:
-        rank = -1
-    ranks.append(rank)
-
-print("Ranks:" + str(ranks))
-print("Done")
+sys.modules['synthetic'] = preprocess.sklearn
+obj = pickle.load(open('data/syn_cls_many2many_generator.pkl', 'rb'))
+del sys.modules['synthetic']
+obj.__class__ = preprocess.sklearn.syn_data_generator.TwoPartyClsMany2ManyGenerator
+pickle.dump(obj, open('data/syn_cls_many2many_generator.pkl', 'wb'))
