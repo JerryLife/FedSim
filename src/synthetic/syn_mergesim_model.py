@@ -36,11 +36,12 @@ class AvgMergeDataset(Dataset):
         grouped_data1 = {}
         grouped_data2 = {}
         for i in range(data_idx.shape[0]):
-            idx1 = data_idx[i]
+            idx1, idx2 = data_idx[i]
+            new_data2 = np.concatenate([idx2.reshape(1, 1), data2[i].reshape(1, -1)], axis=1)
             if idx1 in grouped_data2:
-                grouped_data2[idx1] = np.concatenate([grouped_data2[idx1], data2[i].reshape(1, -1)], axis=0)
+                grouped_data2[idx1] = np.concatenate([grouped_data2[idx1], new_data2], axis=0)
             else:
-                grouped_data2[idx1] = data2[i].reshape(1, -1)
+                grouped_data2[idx1] = new_data2
             grouped_data1[idx1] = data1_labels[i]
 
         group1_data_idx = np.array(list(grouped_data1.keys()))
@@ -70,13 +71,16 @@ class AvgMergeDataset(Dataset):
             d1 = self.data1[i]
             for j in range(data2[i].shape[0]):
                 d2 = torch.from_numpy(data2[i][j])
+                idx2 = d2[0].item()
+                d2 = d2[1:]
                 weight = 1 / data2[i].shape[0]
+                # d_line: sim_score, data1, data2
                 d_line = torch.cat([d2[0].reshape(1), d1, d2[1:]], dim=0)
 
                 final_data.append(d_line)
                 final_weights.append(weight)
                 final_labels.append(self.data1_labels[i])
-                final_idx.append(self.data1_idx[i])
+                final_idx.append((self.data1_idx[i], idx2))
 
         self.data = torch.stack(final_data)
         self.weights = torch.tensor(final_weights)
@@ -90,7 +94,7 @@ class AvgMergeDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        return self.data[idx], self.labels[idx], self.weights[idx], self.data_idx[idx]
+        return self.data[idx], self.labels[idx], self.weights[idx], self.data_idx[idx, 0], self.data_idx[idx, 1]
 
 
 class SimScoreModel(nn.Module):
@@ -138,12 +142,16 @@ class MergeSimModel(SimModel):
             print("Matching training set")
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
             train_Xs, train_y, train_idx = self.match(train_data1, data2, train_labels, idx=train_idx1,
-                                                      preserve_key=self.drop_key)
+                                                      preserve_key=self.drop_key, grid_min=self.grid_min,
+                                                      grid_max=self.grid_max, grid_width=self.grid_width)
             print("Matching validation set")
-            val_Xs, val_y, val_idx = self.match(val_data1, data2, val_labels, idx=val_idx1, preserve_key=self.drop_key)
+            val_Xs, val_y, val_idx = self.match(val_data1, data2, val_labels, idx=val_idx1, preserve_key=self.drop_key,
+                                                grid_min=self.grid_min, grid_max=self.grid_max,
+                                                grid_width=self.grid_width)
             print("Matching test set")
             test_Xs, test_y, test_idx = self.match(test_data1, data2, test_labels, idx=test_idx1,
-                                                   preserve_key=self.drop_key)
+                                                   preserve_key=self.drop_key, grid_min=self.grid_min,
+                                                   grid_max=self.grid_max, grid_width=self.grid_width)
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
@@ -158,9 +166,9 @@ class MergeSimModel(SimModel):
                 test_X[test_indices] = np.take(col_mean, test_indices[1])
                 print("Test done.")
 
-            train_dataset = AvgMergeDataset(train_Xs[0], train_Xs[1], train_y, train_idx[:, 0])
-            val_dataset = AvgMergeDataset(val_Xs[0], val_Xs[1], val_y, val_idx[:, 0])
-            test_dataset = AvgMergeDataset(test_Xs[0], test_Xs[1], test_y, test_idx[:, 0])
+            train_dataset = AvgMergeDataset(train_Xs[0], train_Xs[1], train_y, train_idx)
+            val_dataset = AvgMergeDataset(val_Xs[0], val_Xs[1], val_y, val_idx)
+            test_dataset = AvgMergeDataset(test_Xs[0], test_Xs[1], test_y, test_idx)
 
             if data_cache_path:
                 print("Saving data to cache")
@@ -169,7 +177,7 @@ class MergeSimModel(SimModel):
 
         return train_dataset, val_dataset, test_dataset
 
-    def merge_pred(self, pred_all: list):
+    def merge_pred(self, pred_all: list, idx=None):
         pred_array = np.array(pred_all).T
         weights = pred_array[1] + 1e-6  # prevent zero-division
         avg_pred = np.average(pred_array[0], weights=weights)
@@ -233,7 +241,7 @@ class MergeSimModel(SimModel):
             n_train_batches = 0
             self.model.train()
             self.sim_model.train()
-            for data, labels, weights, idx in tqdm(train_loader, desc="Train"):
+            for data, labels, weights, idx1, idx2 in tqdm(train_loader, desc="Train"):
                 weights = weights.to(self.device).float()
                 data = data.to(self.device).float()
                 labels = labels.to(self.device).float()
@@ -251,7 +259,6 @@ class MergeSimModel(SimModel):
                     preds = torch.argmax(outputs, dim=1)
                 else:
                     assert False, "Unsupported task"
-                # noinspection PyTypeChecker
                 n_correct = torch.count_nonzero(preds == labels).item()
 
                 # adjust gradients
@@ -277,23 +284,21 @@ class MergeSimModel(SimModel):
 
                 # calculate final prediction
                 sim_weight = sim_weight.detach().cpu().numpy().flatten()
-                # noinspection PyUnboundLocalVariable
-                idx = idx.detach().cpu().numpy()
+                idx1 = idx1.detach().cpu().numpy()
+                idx2 = idx2.detach().cpu().numpy()
                 outputs = outputs.detach().cpu().numpy()
-                # noinspection PyUnboundLocalVariable
-                for i, score, out in zip(idx, sim_weight, outputs):
-                    # noinspection PyUnboundLocalVariable
-                    if i in train_pred_all:
-                        train_pred_all[i].append((out, score))
+                for i1, i2, score, out in zip(idx1, idx2, sim_weight, outputs):
+                    if i1 in train_pred_all:
+                        train_pred_all[i1].append((out, score, i2))
                     else:
-                        train_pred_all[i] = [(out, score)]
+                        train_pred_all[i1] = [(out, score, i2)]
 
             train_loss /= n_train_batches
             train_sample_acc = train_sample_correct / train_total_samples
 
             train_correct = 0
             for i, pred_all in train_pred_all.items():
-                pred = self.merge_pred(pred_all)
+                pred = self.merge_pred(pred_all, i)
                 # noinspection PyUnboundLocalVariable
                 if answer_all[i] == pred:
                     train_correct += 1
@@ -357,7 +362,7 @@ class MergeSimModel(SimModel):
         with torch.no_grad():
             self.model.eval()
             self.sim_model.eval()
-            for data, labels, weights, idx in tqdm(val_loader, desc=name):
+            for data, labels, weights, idx1, idx2 in tqdm(val_loader, desc=name):
 
                 data = data.to(self.device).float()
                 labels = labels.to(self.device).float()
@@ -388,23 +393,32 @@ class MergeSimModel(SimModel):
 
                 # calculate final predictions
                 sim_weights = sim_weights.detach().cpu().numpy().flatten()
-                idx = idx.detach().cpu().numpy()
+                idx1 = idx1.detach().cpu().numpy()
+                idx2 = idx2.detach().cpu().numpy()
                 outputs = outputs.detach().cpu().numpy()
                 # noinspection PyUnboundLocalVariable
-                for i, score, out in zip(idx, sim_weights, outputs):
+                for i1, i2, score, out in zip(idx1, idx2, sim_weights, outputs):
                     # noinspection PyUnboundLocalVariable
-                    if i in val_pred_all:
-                        val_pred_all[i].append((out, score))
+                    if i1 in val_pred_all:
+                        val_pred_all[i1].append((out, score, i2))
                     else:
-                        val_pred_all[i] = [(out, score)]
+                        val_pred_all[i1] = [(out, score, i2)]
 
         val_correct = 0
+        only = 0
+        include = 0
         for i, pred_all in val_pred_all.items():
-            pred = self.merge_pred(pred_all)
-            # noinspection PyUnboundLocalVariable
+            pred = self.merge_pred(pred_all, i)
             if answer_all[i] == pred:
                 val_correct += 1
+
+            idx2 = np.array(pred_all).T[-1]
+            if i in idx2:
+                include += 1
+            if idx2.shape[0] == 0 and idx2.item() == i:
+                only += 1
         val_acc = val_correct / len(val_pred_all)
+        print("Only {}, include {}".format(only / len(val_pred_all), include / len(val_pred_all)))
 
         val_sample_acc = val_sample_correct / val_total_samples
         if loss_criterion is not None:
