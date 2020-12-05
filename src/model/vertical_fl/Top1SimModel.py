@@ -21,7 +21,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torchlars
 from tqdm import tqdm
 
-from .TwoPartyModel import SimModel
+from .SimModel import SimModel
 
 
 # class Top1GroupDataset(Dataset):

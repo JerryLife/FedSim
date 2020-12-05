@@ -14,10 +14,12 @@ from .OnePartyModel import BaseModel
 
 
 class TwoPartyBaseModel(abc.ABC, BaseModel):
-    def __init__(self, num_common_features, drop_key=True, grid_min=-3., grid_max=3.01, grid_width=0.2, **kwargs):
+    def __init__(self, num_common_features, drop_key=True, grid_min=-3., grid_max=3.01, grid_width=0.2,
+                 dataset_type='syn', **kwargs):
 
         super().__init__(**kwargs)
 
+        self.dataset_type = dataset_type
         self.grid_min = grid_min
         self.grid_max = grid_max
         self.grid_width = grid_width
@@ -51,16 +53,26 @@ class TwoPartyBaseModel(abc.ABC, BaseModel):
             print("Splitting data")
             train_data1, val_data1, test_data1, train_labels, val_labels, test_labels, train_idx1, val_idx1, test_idx1 = \
                 self.split_data(data1, labels, val_rate=self.val_rate, test_rate=self.test_rate)
+            if self.dataset_type == 'syn':
+                train_data2 = data2[train_idx1]
+                val_data2 = data2[val_idx1]
+                test_data2 = data2[test_idx1]
+            elif self.dataset_type == 'real':
+                train_data2 = data2
+                val_data2 = data2
+                test_data2 = data2
+            else:
+                assert False, "Not supported dataset type"
             print("Matching training set")
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
-            train_Xs, train_y, train_idx = self.match(train_data1, data2, train_labels, idx=train_idx1,
+            train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
                                                       preserve_key=False, grid_min=self.grid_min, grid_max=self.grid_max,
                                                       grid_width=self.grid_width)
             print("Matching validation set")
-            val_Xs, val_y, val_idx = self.match(val_data1, data2, val_labels, idx=val_idx1, preserve_key=False,
+            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1, preserve_key=False,
                                                 grid_min=self.grid_min, grid_max=self.grid_max, grid_width=self.grid_width)
             print("Matching test set")
-            test_Xs, test_y, test_idx = self.match(test_data1, data2, test_labels, idx=test_idx1, preserve_key=False,
+            test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1, preserve_key=False,
                                                    grid_min=self.grid_min, grid_max=self.grid_max, grid_width=self.grid_width)
 
             train_X = np.concatenate(train_Xs, axis=1)

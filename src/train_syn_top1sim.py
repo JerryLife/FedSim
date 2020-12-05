@@ -15,6 +15,7 @@ syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(root + "syn_cls_many2m
 [X1, X2], y = syn_generator.get_parties()
 name = "syn_sim_top1_combine"
 model = Top1SimModel(num_common_features=num_common_features,
+                     dataset_type='syn',
                      task='binary_cls',
                      n_classes=2,
                      grid_min=-10.0,

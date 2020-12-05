@@ -103,8 +103,10 @@ class SimScoreModel(nn.Module):
 
 
 class MergeSimModel(SimModel):
-    def __init__(self, num_common_features, sim_hidden_sizes=None, **kwargs):
+    def __init__(self, num_common_features, sim_hidden_sizes=None, merge_mode='sim_model_avg', **kwargs):
         super().__init__(num_common_features, **kwargs)
+        assert merge_mode in ['sim_model_avg', 'avg', 'sim_avg']
+        self.merge_mode = merge_mode
         self.sim_model = None
         if sim_hidden_sizes is None:
             self.sim_hidden_sizes = [10]
@@ -128,17 +130,27 @@ class MergeSimModel(SimModel):
             print("Splitting data")
             train_data1, val_data1, test_data1, train_labels, val_labels, test_labels, train_idx1, val_idx1, test_idx1 = \
                 self.split_data(data1, labels, val_rate=self.val_rate, test_rate=self.test_rate)
+            if self.dataset_type == 'syn':
+                train_data2 = data2[train_idx1]
+                val_data2 = data2[val_idx1]
+                test_data2 = data2[test_idx1]
+            elif self.dataset_type == 'real':
+                train_data2 = data2
+                val_data2 = data2
+                test_data2 = data2
+            else:
+                assert False, "Not supported dataset type"
             print("Matching training set")
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
-            train_Xs, train_y, train_idx = self.match(train_data1, data2, train_labels, idx=train_idx1,
+            train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
                                                       preserve_key=self.drop_key, grid_min=self.grid_min,
                                                       grid_max=self.grid_max, grid_width=self.grid_width)
             print("Matching validation set")
-            val_Xs, val_y, val_idx = self.match(val_data1, data2, val_labels, idx=val_idx1, preserve_key=self.drop_key,
+            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1, preserve_key=self.drop_key,
                                                 grid_min=self.grid_min, grid_max=self.grid_max,
                                                 grid_width=self.grid_width)
             print("Matching test set")
-            test_Xs, test_y, test_idx = self.match(test_data1, data2, test_labels, idx=test_idx1,
+            test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
                                                    preserve_key=self.drop_key, grid_min=self.grid_min,
                                                    grid_max=self.grid_max, grid_width=self.grid_width)
 
@@ -250,18 +262,17 @@ class MergeSimModel(SimModel):
                     assert False, "Unsupported task"
                 n_correct = torch.count_nonzero(preds == labels).item()
 
-                # adjust gradients
-                # adjusted_grad = {name: torch.zeros_like(param) for name, param in model.named_parameters()}
-                # for i in range(losses.shape[0]):
-                #     losses[i].backward(retain_graph=True)
-                #     for name, param in model.named_parameters():
-                #         adjusted_grad[name] += param.grad * weights[i] * sim_scores[0] / losses.shape[0]
-                #     model.zero_grad()
-                # for name, param in model.named_parameters():
-                #     param.grad = adjusted_grad[name]
-
-                sim_weight = self.sim_model(sim_scores.reshape(-1, 1))
-                loss = torch.mean(losses * weights * sim_weight)
+                if self.merge_mode == 'sim_model_avg':
+                    sim_weight = self.sim_model(sim_scores.reshape(-1, 1))
+                    loss = torch.mean(losses * weights * sim_weight)
+                elif self.merge_mode == 'avg':
+                    sim_weight = sim_scores
+                    loss = torch.mean(losses * weights)
+                elif self.merge_mode == 'sim_avg':
+                    sim_weight = sim_scores
+                    loss = torch.mean(losses * weights * sim_weight)
+                else:
+                    assert False
                 loss.backward()
 
                 optimizer.step()

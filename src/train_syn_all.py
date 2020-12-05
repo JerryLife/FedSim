@@ -29,8 +29,7 @@ num_common_features = 5
 # syn_generator.to_pickle(root + "syn_cls_many2many_generator.pkl")
 
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(root + "syn_cls_many2many_generator.pkl")
-(X1, X2), y = syn_generator.get_parties()
-X = np.concatenate([X1[:, :-num_common_features], X2[:, num_common_features:]], axis=1)
+X, y = syn_generator.get_global()
 print("X got {} dimensions".format(X.shape[1]))
 name = "syn_all"
 model = OnePartyModel(model_name=name + "_" + now_string,
@@ -44,7 +43,7 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       test_batch_size=4096,
                       num_epochs=100,
                       learning_rate=1e-3,
-                      weight_decay=1e-5,
+                      weight_decay=1e-4,
                       num_workers=4 if sys.gettrace() is None else 0,
                       use_scheduler=False,
                       sche_factor=0.1,
