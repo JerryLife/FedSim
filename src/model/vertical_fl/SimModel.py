@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.neighbors import KDTree
 
 from tqdm import tqdm
 import deprecation
@@ -14,10 +15,14 @@ from .TwoPartyModel import TwoPartyBaseModel
 
 
 class SimModel(TwoPartyBaseModel):
-    def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5, **kwargs):
+    def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
+                 blocking_method='grid',  **kwargs):
         super().__init__(num_common_features, **kwargs)
+
+        self.blocking_method = blocking_method
         self.center_threshold = center_threshold
         self.n_clusters = n_clusters
+
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -97,6 +102,14 @@ class SimModel(TwoPartyBaseModel):
         return res
 
     def cal_sim_score_grid(self, key1, key2, grid_min=-3., grid_max=3.01, grid_width=0.2):
+        """
+        :param key1: Common features in party 1
+        :param key2: Common features in party 2
+        :param grid_min: min value of grid
+        :param grid_max: min value of grid
+        :param grid_width: width of grid
+        :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
+        """
         print("Quantization")
         bins = np.arange(grid_min, grid_max, grid_width)
         quantized_key1 = np.digitize(key1, bins)
@@ -134,10 +147,78 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
-    def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0,
-              grid_min=-3., grid_max=3.01, grid_width=0.2):
+    def cal_sim_score_knn(self, key1, key2, knn_k=3, kd_tree_leaf_size=40):
+        """
+        :param kd_tree_leaf_size: leaf size to build kd-tree
+        :param knn_k: number of nearest neighbors to be calculated
+        :param radius: only the distance with radius will be returned
+        :param key1: Common features in party 1
+        :param key2: Common features in party 2
+        :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
+        """
+        print("Build KD-tree")
+        tree = KDTree(key2, leaf_size=kd_tree_leaf_size)
+
+        print("Query KD-tree")
+        dists, idx2 = tree.query(key1, k=knn_k, return_distance=True)
+
+        print("Calculate sim_scores")
+        idx1 = np.repeat(np.arange(key1.shape[0]), knn_k)
+        sim_scores = np.vstack([idx1, idx2.flatten(), -dists.flatten()]).T
+        if self.sim_scaler is not None:
+            # use train scaler
+            sim_scores[:, -1] = self.sim_scaler.transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+        else:
+            # generate train scaler
+            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            sim_scores[:, -1] = self.sim_scaler.fit_transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+        print("Done scaling")
+
+        return sim_scores
+
+    def cal_sim_score_radius(self, key1, key2, radius=3, kd_tree_leaf_size=40):
+        """
+        :param kd_tree_leaf_size: leaf size to build kd-tree
+        :param radius: only the distance with radius will be returned
+        :param key1: Common features in party 1
+        :param key2: Common features in party 2
+        :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
+        """
+        print("Build KD-tree")
+        tree = KDTree(key2, leaf_size=kd_tree_leaf_size)
+
+        print("Query KD-tree")
+        idx2, dists = tree.query_radius(key1, r=radius, return_distance=True)
+
+        print("Calculate sim_scores")
+        repeat_times = [x.shape[0] for x in idx2]
+        non_empty_idx = [x > 0 for x in repeat_times]
+        idx1 = np.repeat(np.arange(key1.shape[0]), repeat_times)
+        idx2 = np.concatenate(idx2[np.array(repeat_times) > 0])
+        sims = -np.concatenate(dists[np.array(repeat_times) > 0])
+        sim_scores = np.vstack([idx1, idx2, sims]).T
+        if self.sim_scaler is not None:
+            # use train scaler
+            sim_scores[:, -1] = self.sim_scaler.transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+        else:
+            # generate train scaler
+            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            sim_scores[:, -1] = self.sim_scaler.fit_transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+        print("Done scaling")
+
+        return sim_scores
+
+    def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0, grid_min=-3., grid_max=3.01,
+              grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1):
         """
         Match data1 and data2 according to common features
+        :param radius:
+        :param radius:
+        :param knn_k:
+        :param kd_tree_leaf_size:
+        :param blocking_method: method of blocking before matching
+        :param knn_k: number of nearest neighbors to be calculated
+        :param kd_tree_leaf_size: leaf size to build kd-tree
         :param idx: Index of training data1, not involved in linkage
         :param sim_threshold: sim_threshold: threshold of similarity score.
                Everything below the threshold will be removed
@@ -154,8 +235,15 @@ class SimModel(TwoPartyBaseModel):
         key2 = data2[:, :self.num_common_features]
 
         # calculate similarity scores
-        sim_scores = self.cal_sim_score_grid(key1, key2, grid_min=grid_min, grid_max=grid_max,
-                                             grid_width=grid_width)
+        if self.blocking_method == 'grid':
+            sim_scores = self.cal_sim_score_grid(key1, key2, grid_min=grid_min, grid_max=grid_max,
+                                                 grid_width=grid_width)
+        elif self.blocking_method == 'knn':
+            sim_scores = self.cal_sim_score_knn(key1, key2, knn_k=knn_k, kd_tree_leaf_size=kd_tree_leaf_size)
+        elif self.blocking_method == 'radius':
+            sim_scores = self.cal_sim_score_radius(key1, key2, radius=radius, kd_tree_leaf_size=kd_tree_leaf_size)
+        else:
+            assert False, "Unsupported blocking method"
 
         if preserve_key:
             remain_data1 = data1

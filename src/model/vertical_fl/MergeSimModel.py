@@ -22,6 +22,7 @@ class AvgMergeDataset(Dataset):
         # remove similarity scores in data1 (at column 0)
         data1_labels = np.concatenate([data1[:, 1:], labels.reshape(-1, 1)], axis=1)
 
+        print("Grouping data")
         grouped_data1 = {}
         grouped_data2 = {}
         for i in range(data_idx.shape[0]):
@@ -32,12 +33,14 @@ class AvgMergeDataset(Dataset):
             else:
                 grouped_data2[idx1] = new_data2
             grouped_data1[idx1] = data1_labels[i]
+        print("Done")
 
         group1_data_idx = np.array(list(grouped_data1.keys()))
         group1_data1_labels = np.array(list(grouped_data1.values()))
         group2_data_idx = np.array(list(grouped_data2.keys()))
         group2_data2 = np.array(list(grouped_data2.values()), dtype='object')
 
+        print("Sorting data")
         group1_order = group1_data_idx.argsort()
         group2_order = group2_data_idx.argsort()
 
@@ -46,6 +49,7 @@ class AvgMergeDataset(Dataset):
         group2_data_idx = group2_data_idx[group2_order]
         group2_data2 = group2_data2[group2_order]
         assert (group1_data_idx == group2_data_idx).all()
+        print("Done")
 
         self.data1_idx: torch.Tensor = torch.from_numpy(group1_data_idx)
         self.data1: torch.Tensor = torch.from_numpy(group1_data1_labels[:, :-1])
@@ -56,10 +60,11 @@ class AvgMergeDataset(Dataset):
         final_weights = []
         final_labels = []
         final_idx = []
+        print("Retrieve data")
         for i in range(self.data1.shape[0]):
             d1 = self.data1[i]
             for j in range(data2[i].shape[0]):
-                d2 = torch.from_numpy(data2[i][j])
+                d2 = torch.from_numpy(data2[i][j].astype(np.float))
                 idx2 = d2[0].item()
                 d2 = d2[1:]
                 weight = 1 / data2[i].shape[0]
@@ -70,6 +75,7 @@ class AvgMergeDataset(Dataset):
                 final_weights.append(weight)
                 final_labels.append(self.data1_labels[i])
                 final_idx.append((self.data1_idx[i], idx2))
+        print("Done")
 
         self.data = torch.stack(final_data)
         self.weights = torch.tensor(final_weights)
@@ -144,15 +150,23 @@ class MergeSimModel(SimModel):
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
             train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
                                                       preserve_key=self.drop_key, grid_min=self.grid_min,
-                                                      grid_max=self.grid_max, grid_width=self.grid_width)
+                                                      grid_max=self.grid_max, grid_width=self.grid_width,
+                                                      knn_k=self.knn_k, kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                      radius=self.kd_tree_radius)
+            assert self.sim_scaler is not None
             print("Matching validation set")
-            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1, preserve_key=self.drop_key,
-                                                grid_min=self.grid_min, grid_max=self.grid_max,
-                                                grid_width=self.grid_width)
+            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1,
+                                                preserve_key=self.drop_key, grid_min=self.grid_min,
+                                                grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
+                                                kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                radius=self.kd_tree_radius)
+            assert self.sim_scaler is not None
             print("Matching test set")
             test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
                                                    preserve_key=self.drop_key, grid_min=self.grid_min,
-                                                   grid_max=self.grid_max, grid_width=self.grid_width)
+                                                   grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
+                                                   kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                   radius=self.kd_tree_radius)
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
@@ -227,7 +241,6 @@ class MergeSimModel(SimModel):
         best_train_acc = 0
         best_val_acc = 0
         best_test_acc = 0
-        train_pred_all = {}
         train_idx = train_dataset.data1_idx.detach().cpu().numpy()
         train_labels = train_dataset.data1_labels.detach().cpu().int().numpy()
         answer_all = dict(zip(train_idx, train_labels))
@@ -240,6 +253,7 @@ class MergeSimModel(SimModel):
             train_sample_correct = 0
             train_total_samples = 0
             n_train_batches = 0
+            train_pred_all = {}
             self.model.train()
             self.sim_model.train()
             for data, labels, weights, idx1, idx2 in tqdm(train_loader, desc="Train"):

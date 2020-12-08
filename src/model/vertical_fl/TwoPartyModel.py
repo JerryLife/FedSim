@@ -15,24 +15,30 @@ from .OnePartyModel import BaseModel
 
 class TwoPartyBaseModel(abc.ABC, BaseModel):
     def __init__(self, num_common_features, drop_key=True, grid_min=-3., grid_max=3.01, grid_width=0.2,
+                 knn_k=3, kd_tree_leaf_size=40, kd_tree_radius=0.1,
                  dataset_type='syn', **kwargs):
 
         super().__init__(**kwargs)
-
+        assert dataset_type in ['syn', 'real']
         self.dataset_type = dataset_type
+        self.drop_key = drop_key
+        self.num_common_features = num_common_features
+        self.kd_tree_radius = kd_tree_radius
+        self.kd_tree_leaf_size = kd_tree_leaf_size
+        self.knn_k = knn_k
         self.grid_min = grid_min
         self.grid_max = grid_max
         self.grid_width = grid_width
-        self.drop_key = drop_key
-        self.num_common_features = num_common_features
-
         self.sim_scaler = None
 
     @abc.abstractmethod
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0,
-              grid_min=-3., grid_max=3.01, grid_width=0.2) -> tuple:
+              grid_min=-3., grid_max=3.01, grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1) -> tuple:
         """
         Match the data of two parties, return the matched data
+        :param radius:
+        :param knn_k:
+        :param kd_tree_leaf_size:
         :param idx: Index of data1, only for evaluation. It should not be involved in linkage.
         :param sim_threshold: threshold of similarity score, everything below the threshold will be removed
         :param data1: data in party 1
@@ -66,14 +72,22 @@ class TwoPartyBaseModel(abc.ABC, BaseModel):
             print("Matching training set")
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
             train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
-                                                      preserve_key=False, grid_min=self.grid_min, grid_max=self.grid_max,
-                                                      grid_width=self.grid_width)
+                                                      preserve_key=False, grid_min=self.grid_min,
+                                                      grid_max=self.grid_max, grid_width=self.grid_width,
+                                                      knn_k=self.knn_k, kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                      radius=self.kd_tree_radius)
             print("Matching validation set")
             val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1, preserve_key=False,
-                                                grid_min=self.grid_min, grid_max=self.grid_max, grid_width=self.grid_width)
+                                                grid_min=self.grid_min, grid_max=self.grid_max,
+                                                grid_width=self.grid_width, knn_k=self.knn_k,
+                                                kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                radius=self.kd_tree_radius)
             print("Matching test set")
-            test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1, preserve_key=False,
-                                                   grid_min=self.grid_min, grid_max=self.grid_max, grid_width=self.grid_width)
+            test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
+                                                   preserve_key=False, grid_min=self.grid_min, grid_max=self.grid_max,
+                                                   grid_width=self.grid_width, knn_k=self.knn_k,
+                                                   kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                   radius=self.kd_tree_radius)
 
             train_X = np.concatenate(train_Xs, axis=1)
             val_X = np.concatenate(val_Xs, axis=1)
