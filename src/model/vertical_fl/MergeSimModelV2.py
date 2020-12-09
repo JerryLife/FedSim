@@ -14,6 +14,7 @@ from torchsummaryX import summary
 
 from .SimModel import SimModel
 from model.base.MLP import MLP
+from .MergeSimModel import AvgMergeDataset as AvgMergeDatasetV1
 
 
 class AvgMergeDataset(Dataset):
@@ -52,44 +53,26 @@ class AvgMergeDataset(Dataset):
         print("Done")
 
         self.data1_idx: torch.Tensor = torch.from_numpy(group1_data_idx)
-        self.data1: torch.Tensor = torch.from_numpy(group1_data1_labels[:, :-1])
-        self.data1_labels: torch.Tensor = torch.from_numpy(group1_data1_labels[:, -1])
+        data1: np.ndarray = group1_data1_labels[:, :-1]
+        self.labels: torch.Tensor = torch.from_numpy(group1_data1_labels[:, -1])
         data2: list = group2_data2
 
-        final_data = []
-        final_weights = []
-        final_labels = []
-        final_idx = []
-        print("Retrieve data")
-        for i in range(self.data1.shape[0]):
-            d1 = self.data1[i]
-            for j in range(data2[i].shape[0]):
-                d2 = torch.from_numpy(data2[i][j].astype(np.float))
-                idx2 = d2[0].item()
-                d2 = d2[1:]     # remove index
-                weight = 1 / data2[i].shape[0]
-                # d_line: sim_score, data1, data2
-                d_line = torch.cat([d2[0].reshape(1), d1, d2[1:]], dim=0)
-
-                final_data.append(d_line)
-                final_weights.append(weight)
-                final_labels.append(self.data1_labels[i])
-                final_idx.append((self.data1_idx[i], idx2))
-        print("Done")
-
-        self.data = torch.stack(final_data)
-        self.weights = torch.tensor(final_weights)
-        self.labels = torch.tensor(final_labels)
-        self.data_idx = torch.tensor(final_idx)
+        data_list = []
+        for i in range(self.data1_idx.shape[0]):
+            d2 = torch.from_numpy(data2[i].astype(np.float)[:, 1:])   # remove index
+            d1 = torch.from_numpy(np.repeat(data1[i].reshape(1, -1), d2.shape[0], axis=0))
+            d = torch.cat([d2[:, 0].reshape(-1, 1), d1, d2[:, 1:]], dim=1)    # move similarity to index 0
+            data_list.append(d)
+        self.data_list = np.array(data_list, dtype='object')
 
     def __len__(self):
-        return len(self.data_idx)
+        return self.data1_idx.shape[0]
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        return self.data[idx], self.labels[idx], self.weights[idx], self.data_idx[idx, 0], self.data_idx[idx, 1]
+        return self.data_list[idx], self.labels[idx], self.data1_idx[idx]
 
 
 class SimScoreModel(nn.Module):
@@ -101,7 +84,7 @@ class SimScoreModel(nn.Module):
 
     def forward(self, X):
         out = self.fc1(X)
-        out = self.dropout(out)
+        # out = self.dropout(out)
         out = torch.relu(out)
         out = self.fc2(out)
         out = torch.sigmoid(out)
@@ -124,11 +107,10 @@ class MergeSimModel(SimModel):
 
     @staticmethod
     def var_collate_fn(batch):
-        data1 = torch.stack([item[0] for item in batch])
-        data2 = [item[1] for item in batch]
-        labels = torch.stack([item[2] for item in batch])
-        idx = torch.stack([item[3] for item in batch])
-        return data1, data2, labels, idx
+        data = np.array([item[0] for item in batch], dtype='object')
+        labels = torch.stack([item[1] for item in batch])
+        idx = torch.stack([item[2] for item in batch])
+        return data, labels, idx
 
     def prepare_train_combine(self, data1, data2, labels, data_cache_path=None):
         if data_cache_path and os.path.isfile(data_cache_path):
@@ -186,13 +168,14 @@ class MergeSimModel(SimModel):
                 print("Test done.")
 
             train_dataset = AvgMergeDataset(train_Xs[0], train_Xs[1], train_y, train_idx)
-            val_dataset = AvgMergeDataset(val_Xs[0], val_Xs[1], val_y, val_idx)
-            test_dataset = AvgMergeDataset(test_Xs[0], test_Xs[1], test_y, test_idx)
+            val_dataset = AvgMergeDatasetV1(val_Xs[0], val_Xs[1], val_y, val_idx)
+            test_dataset = AvgMergeDatasetV1(test_Xs[0], test_Xs[1], test_y, test_idx)
 
             if data_cache_path:
                 print("Saving data to cache")
                 with open(data_cache_path, 'wb') as f:
                     pickle.dump([train_dataset, val_dataset, test_dataset], f)
+                print("Saved")
 
         return train_dataset, val_dataset, test_dataset
 
@@ -210,8 +193,9 @@ class MergeSimModel(SimModel):
             self.prepare_train_combine(data1, data2, labels, data_cache_path)
 
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
-                                  num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
-        num_features = next(iter(train_loader))[0].shape[1] - 1
+                                  num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context,
+                                  collate_fn=self.var_collate_fn)
+        num_features = next(iter(train_loader))[0][0].shape[1] - 1
         self.data1_shape = data1.shape
         self.data2_shape = data2.shape
 
@@ -220,12 +204,12 @@ class MergeSimModel(SimModel):
         if self.task == 'binary_cls':
             self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=1,
                              activation='sigmoid')
-            criterion = nn.BCELoss(reduction='none')
+            criterion = nn.BCELoss()
             val_criterion = nn.BCELoss()
         elif self.task == 'multi_cls':
             self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=self.n_classes,
                              activation=None)
-            criterion = nn.BCELoss(reduction='none')
+            criterion = nn.BCELoss()
             val_criterion = nn.CrossEntropyLoss()
         else:
             assert False, "Unsupported task"
@@ -255,9 +239,6 @@ class MergeSimModel(SimModel):
         best_train_acc = 0
         best_val_acc = 0
         best_test_acc = 0
-        train_idx = train_dataset.data1_idx.detach().cpu().numpy()
-        train_labels = train_dataset.data1_labels.detach().cpu().int().numpy()
-        answer_all = dict(zip(train_idx, train_labels))
         print("Start training")
         summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
         print(str(self))
@@ -270,75 +251,46 @@ class MergeSimModel(SimModel):
             train_pred_all = {}
             self.model.train()
             self.sim_model.train()
-            for data, labels, weights, idx1, idx2 in tqdm(train_loader, desc="Train"):
-                weights = weights.to(self.device).float()
-                data = data.to(self.device).float()
-                labels = labels.to(self.device).float()
-                sim_scores = data[:, 0]
-                data = data[:, 1:]
-                optimizer.zero_grad()
+            for data_batch, labels, idx1 in tqdm(train_loader, desc="Train"):
 
-                outputs = self.model(data)
+                labels = labels.to(self.device).float()
+                outputs_batch = torch.zeros([1, 0]).to(self.device)
+                for data in data_batch:
+                    data = data.to(self.device).float()
+                    sim_scores = data[:, 0]
+                    data = data[:, 1:]
+                    optimizer.zero_grad()
+
+                    outputs = self.model(data)
+                    if self.merge_mode == 'sim_model_avg':
+                        sim_weights = self.sim_model(sim_scores.reshape(-1, 1))
+                    else:
+                        assert False, "Unsupported merge mode"
+                    output = torch.sum(outputs * sim_weights) / torch.sum(sim_weights)
+                    outputs_batch = torch.cat([outputs_batch, output.reshape(-1, 1)], dim=1)
+
                 if self.task == 'binary_cls':
-                    outputs = outputs.flatten()
-                    losses = criterion(outputs, labels)
-                    preds = outputs > 0.5
+                    outputs_batch = outputs_batch.flatten()
+                    loss = criterion(outputs_batch, labels)
+                    preds = outputs_batch > 0.5
                 elif self.task == 'multi_cls':
-                    losses = criterion(outputs, labels.long())
-                    preds = torch.argmax(outputs, dim=1)
+                    loss = criterion(outputs_batch, labels.long())
+                    preds = torch.argmax(outputs_batch, dim=1)
                 else:
                     assert False, "Unsupported task"
                 n_correct = torch.count_nonzero(preds == labels).item()
 
-                if self.merge_mode == 'sim_model_avg':
-                    sim_weights = self.sim_model(sim_scores.reshape(-1, 1))
-                    loss = torch.mean(losses * weights * sim_weights)
-                elif self.merge_mode == 'avg':
-                    sim_weights = weights
-                    loss = torch.mean(losses * weights)
-                elif self.merge_mode == 'sim_avg':
-                    sim_weights = sim_scores
-                    loss = torch.mean(losses * weights * sim_weights)
-                elif self.merge_mode == 'common_model_avg':
-                    assert self.drop_key is False, "Not common keys to train"
-                    common_features = data[:, data1.shape[1] - self.num_common_features:
-                                              data1.shape[1] + self.num_common_features]
-                    dists = common_features[:, :self.num_common_features] - common_features[:, self.num_common_features:]
-                    sim_weights = self.sim_model(dists)
-                    loss = torch.mean(losses * weights * sim_weights)
-                else:
-                    assert False
                 loss.backward()
 
                 optimizer.step()
 
-                train_loss += torch.mean(losses).item()
+                train_loss += loss.item()
                 train_sample_correct += n_correct
-                train_total_samples += data.shape[0]
+                train_total_samples += data_batch.shape[0]
                 n_train_batches += 1
 
-                # calculate final prediction
-                sim_weights = sim_weights.detach().cpu().numpy().flatten()
-                idx1 = idx1.detach().cpu().numpy()
-                idx2 = idx2.detach().cpu().numpy()
-                outputs = outputs.detach().cpu().numpy()
-                for i1, i2, score, out in zip(idx1, idx2, sim_weights, outputs):
-                    if i1 in train_pred_all:
-                        train_pred_all[i1].append((out, score, i2))
-                    else:
-                        train_pred_all[i1] = [(out, score, i2)]
-
             train_loss /= n_train_batches
-            train_sample_acc = train_sample_correct / train_total_samples
-
-            train_correct = 0
-            for i, pred_all in train_pred_all.items():
-                pred = self.merge_pred(pred_all, i)
-                # noinspection PyUnboundLocalVariable
-                if answer_all[i] == pred:
-                    train_correct += 1
-                assert len(answer_all) == len(train_pred_all)
-            train_acc = train_correct / len(train_pred_all)
+            train_acc = train_sample_acc = train_sample_correct / train_total_samples
 
             # validation and test
             val_loss, val_sample_acc, val_acc = self.eval_merge_score(val_dataset, val_criterion, 'Val')
@@ -383,7 +335,8 @@ class MergeSimModel(SimModel):
         assert self.model is not None, "Model has not been initialized"
 
         val_loader = DataLoader(val_dataset, batch_size=self.test_batch_size, shuffle=False,
-                                num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
+                                num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context,
+                                )
 
         val_idx = val_dataset.data1_idx.detach().cpu().numpy()
         val_labels = val_dataset.data1_labels.detach().cpu().int().numpy()

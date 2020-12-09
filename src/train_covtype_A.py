@@ -17,7 +17,8 @@ num_common_features = 4
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_loader.pkl")
 (X1, X2), y = data_loader.load_parties()
-X = X1[:, :-num_common_features]
+# X = X1[:, :-num_common_features]
+X = X1
 print("X got {} dimensions".format(X.shape[1]))
 name = "covtype_a"
 model = OnePartyModel(model_name=name + "_" + now_string,

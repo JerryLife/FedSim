@@ -71,21 +71,24 @@ class TwoPartyBaseModel(abc.ABC, BaseModel):
                 assert False, "Not supported dataset type"
             print("Matching training set")
             self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
+            preserve_key = not self.drop_key
             train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
-                                                      preserve_key=False, grid_min=self.grid_min,
+                                                      preserve_key=preserve_key, grid_min=self.grid_min,
                                                       grid_max=self.grid_max, grid_width=self.grid_width,
                                                       knn_k=self.knn_k, kd_tree_leaf_size=self.kd_tree_leaf_size,
                                                       radius=self.kd_tree_radius)
             print("Matching validation set")
-            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1, preserve_key=False,
+            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1,
+                                                preserve_key=preserve_key,
                                                 grid_min=self.grid_min, grid_max=self.grid_max,
                                                 grid_width=self.grid_width, knn_k=self.knn_k,
                                                 kd_tree_leaf_size=self.kd_tree_leaf_size,
                                                 radius=self.kd_tree_radius)
             print("Matching test set")
             test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
-                                                   preserve_key=False, grid_min=self.grid_min, grid_max=self.grid_max,
-                                                   grid_width=self.grid_width, knn_k=self.knn_k,
+                                                   preserve_key=preserve_key, grid_min=self.grid_min,
+                                                   grid_max=self.grid_max, grid_width=self.grid_width,
+                                                   knn_k=self.knn_k,
                                                    kd_tree_leaf_size=self.kd_tree_leaf_size,
                                                    radius=self.kd_tree_radius)
 
