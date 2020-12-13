@@ -231,15 +231,14 @@ class MergeSimModel(SimModel):
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
         if self.merge_mode == 'common_model_avg':
-            self.sim_model = SimScoreModel(num_features=self.num_common_features)
+            self.sim_model = SimScoreModel(num_features=self.num_common_features).to(self.device)
             params = list(self.model.parameters()) + list(self.sim_model.parameters())
         elif self.merge_mode == 'sim_model_avg':
-            self.sim_model = SimScoreModel(num_features=1)
+            self.sim_model = SimScoreModel(num_features=1).to(self.device)
             params = list(self.model.parameters()) + list(self.sim_model.parameters())
         else:
             self.sim_model = None
             params = list(self.model.parameters())
-        self.sim_model = self.sim_model.to(self.device)
         optimizer = torchlars.LARS(optim.Adam(params,
                                               lr=self.learning_rate, weight_decay=self.weight_decay))
         if self.use_scheduler:
@@ -269,7 +268,8 @@ class MergeSimModel(SimModel):
             n_train_batches = 0
             train_pred_all = {}
             self.model.train()
-            self.sim_model.train()
+            if self.sim_model:
+                self.sim_model.train()
             for data, labels, weights, idx1, idx2 in tqdm(train_loader, desc="Train"):
                 weights = weights.to(self.device).float()
                 data = data.to(self.device).float()
@@ -396,7 +396,8 @@ class MergeSimModel(SimModel):
         n_val_batches = 0
         with torch.no_grad():
             self.model.eval()
-            self.sim_model.eval()
+            if self.sim_model:
+                self.sim_model.eval()
             for data, labels, weights, idx1, idx2 in tqdm(val_loader, desc=name):
 
                 data = data.to(self.device).float()

@@ -10,8 +10,10 @@ now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 num_common_features = 5
+noise_scale = 0
 
-syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(root + "syn_cls_many2many_generator.pkl")
+syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
+    root + "syn_cls_many2many_generator_noise_{}.pkl".format(noise_scale))
 [X1, X2], y = syn_generator.get_parties()
 name = "syn_sim_top1_combine"
 model = Top1SimModel(num_common_features=num_common_features,
@@ -40,4 +42,4 @@ model = Top1SimModel(num_common_features=num_common_features,
                      writer_path="runs/{}_{}".format(name, now_string),
                      model_save_path="ckp/{}_{}.pth".format(name, now_string)
                      )
-model.train_combine(X1, X2, y, data_cache_path="cache/{}_data_60k.pkl".format(name))
+model.train_combine(X1, X2, y, data_cache_path="cache/{}_scale_{}.pkl".format(name, noise_scale))

@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 
-from model.vertical_fl.MergeSimModel import MergeSimModel
+from model.vertical_fl.MergeSimModelV1 import MergeSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')

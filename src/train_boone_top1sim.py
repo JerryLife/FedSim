@@ -45,4 +45,4 @@ model = Top1SimModel(num_common_features=num_common_features,
                      writer_path="runs/{}_{}".format(name, now_string),
                      model_save_path="ckp/{}_{}.pth".format(name, now_string)
                      )
-model.train_combine(X1, X2, y, data_cache_path="cache/{}_data_60k.pkl".format(name))
+model.train_combine(X1, X2, y, data_cache_path="cache/{}_data.pkl".format(name))
