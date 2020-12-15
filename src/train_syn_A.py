@@ -12,7 +12,8 @@ root = "data/"
 num_common_features = 5
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(root + "syn_cls_many2many_generator.pkl")
 (X1, X2), y = syn_generator.get_parties()
-X = X1[:, :-num_common_features]
+# X = X1[:, :-num_common_features]
+X = X1
 print("X got {} dimensions".format(X.shape[1]))
 name = "syn_single_a"
 model = OnePartyModel(model_name=name + "_" + now_string,

@@ -12,25 +12,24 @@ now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 num_common_features = 5
-noise_scale = 0
+noise_scale = 0.1
 
-# syn_generator = TwoPartyClsMany2ManyGenerator(num_samples=60000,
-#                                               num_features_per_party=[50, 50],
-#                                               num_common_features=num_common_features,
-#                                               common_feature_noise_scale=noise_scale,
-#                                               common_feature_noise_bias=0.0,
-#                                               n_informative=10,
-#                                               n_redundant=10,
-#                                               n_clusters_per_class=3,
-#                                               class_sep=0.3,
-#                                               n_classes=2,
-#                                               seed=512
-#                                               )
-# syn_generator.get_parties()
-# syn_generator.to_pickle(root + "syn_cls_many2many_generator_noise_{}.pkl".format(noise_scale))
+syn_generator = TwoPartyClsMany2ManyGenerator(num_samples=60000,
+                                              num_features_per_party=[50, 50],
+                                              num_common_features=num_common_features,
+                                              common_feature_noise_scale=noise_scale,
+                                              common_feature_noise_bias=0.0,
+                                              n_informative=20,
+                                              n_redundant=0,
+                                              n_clusters_per_class=3,
+                                              class_sep=0.3,
+                                              n_classes=2,
+                                              seed=512
+                                              )
+syn_generator.get_parties()
+syn_generator.to_pickle(root + "syn_cls_many2many_generator.pkl")
 
-syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
-    root + "syn_cls_many2many_generator_noise_{}.pkl".format(noise_scale))
+syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(root + "syn_cls_many2many_generator.pkl")
 X, y = syn_generator.get_global()
 print("X got {} dimensions".format(X.shape[1]))
 name = "syn_all"
@@ -45,7 +44,7 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       test_batch_size=4096,
                       num_epochs=100,
                       learning_rate=1e-3,
-                      weight_decay=1e-4,
+                      weight_decay=1e-5,
                       num_workers=4 if sys.gettrace() is None else 0,
                       use_scheduler=False,
                       sche_factor=0.1,

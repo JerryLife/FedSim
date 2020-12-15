@@ -17,13 +17,13 @@ dataset = "MiniBooNE_PID.txt"
 num_features = 50
 num_common_features = 4
 
-# data_loader = TwoPartyLoader(num_features=num_features,
-#                              num_common_features=num_common_features,
-#                              common_feature_noise_scale=0.2,
-#                              data_fmt=load_miniboone, dataset_name=dataset, n_classes=2,
-#                              seed=0)
-# data_loader.load_parties(root + dataset)
-# data_loader.to_pickle(root + dataset + "_loader.pkl")
+data_loader = TwoPartyLoader(num_features=num_features,
+                             num_common_features=num_common_features,
+                             common_feature_noise_scale=0.3,
+                             data_fmt=load_miniboone, dataset_name=dataset, n_classes=2,
+                             seed=0)
+data_loader.load_parties(root + dataset)
+data_loader.to_pickle(root + dataset + "_loader.pkl")
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_loader.pkl")
 X, y = data_loader.load_dataset()

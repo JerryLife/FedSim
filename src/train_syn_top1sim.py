@@ -13,7 +13,7 @@ num_common_features = 5
 noise_scale = 0
 
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
-    root + "syn_cls_many2many_generator_noise_{}.pkl".format(noise_scale))
+    root + "syn_cls_many2many_generator.pkl")
 [X1, X2], y = syn_generator.get_parties()
 name = "syn_sim_top1_combine"
 model = Top1SimModel(num_common_features=num_common_features,
@@ -26,7 +26,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      model_name=name + "_" + now_string,
                      val_rate=0.1,
                      test_rate=0.2,
-                     drop_key=True,
+                     drop_key=False,
                      device='cuda:0',
                      hidden_sizes=[100, 100],
                      train_batch_size=4096,
@@ -34,7 +34,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      num_epochs=100,
                      learning_rate=1e-3,
                      weight_decay=1e-5,
-                     num_workers=4 if sys.gettrace() is None else 0,
+                     num_workers=8 if sys.gettrace() is None else 0,
                      use_scheduler=False,
                      sche_factor=0.1,
                      sche_patience=10,
@@ -42,4 +42,4 @@ model = Top1SimModel(num_common_features=num_common_features,
                      writer_path="runs/{}_{}".format(name, now_string),
                      model_save_path="ckp/{}_{}.pth".format(name, now_string)
                      )
-model.train_combine(X1, X2, y, data_cache_path="cache/{}_scale_{}.pkl".format(name, noise_scale))
+model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
