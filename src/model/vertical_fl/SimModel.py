@@ -1,6 +1,7 @@
 import os
 import abc
 import pickle
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -16,13 +17,13 @@ from .TwoPartyModel import TwoPartyBaseModel
 
 class SimModel(TwoPartyBaseModel):
     def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
-                 blocking_method='grid',  **kwargs):
+                 blocking_method='grid', feature_wise_sim=False, **kwargs):
         super().__init__(num_common_features, **kwargs)
 
+        self.feature_wise_sim = feature_wise_sim
         self.blocking_method = blocking_method
         self.center_threshold = center_threshold
         self.n_clusters = n_clusters
-
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -80,17 +81,20 @@ class SimModel(TwoPartyBaseModel):
             idx2 = indices2[np.argwhere(labels2 == label2).item()]
             for i in idx1:
                 for j in idx2:
-                    score = -np.linalg.norm(key1[i] - key2[j])  # reverse distance
-                    sim_scores.append([i, j, score])
+                    if self.feature_wise_sim:
+                        score = -(key1[i] - key2[j]) ** 2
+                    else:
+                        score = -np.linalg.norm(key1[i] - key2[j])  # reverse distance
+                    sim_scores.append(np.concatenate([np.array([i, j]), np.array(score)], axis=0))
         print("Done calculating similarity scores")
 
         # scale similarity scores to [0, 1]
-        sim_scores = np.array(sim_scores)
+        sim_scores = np.stack(sim_scores)
         if self.sim_scaler is not None:
-            sim_scores[:, -1] = self.sim_scaler.transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+            sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
             self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
-            sim_scores[:, -1] = self.sim_scaler.fit_transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+            sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
         return np.array(sim_scores)
@@ -132,17 +136,20 @@ class SimModel(TwoPartyBaseModel):
             idx2 = indices2[np.argwhere(grid_ids2 == quantized_id).item()]
             for i in idx1:
                 for j in idx2:
-                    score = -np.linalg.norm(key1[i] - key2[j])  # reverse distance
-                    sim_scores.append([i, j, score])
+                    if self.feature_wise_sim:
+                        score = -(key1[i] - key2[j]) ** 2
+                    else:
+                        score = -np.linalg.norm(key1[i] - key2[j]).reshape(-1)  # reverse distance
+                    sim_scores.append(np.concatenate([np.array([i, j]), np.array(score)], axis=0))
         print("Done calculating similarity scores")
 
         # scale similarity scores to [0, 1]
-        sim_scores = np.array(sim_scores)
+        sim_scores = np.stack(sim_scores)
         if self.sim_scaler is not None:
-            sim_scores[:, -1] = self.sim_scaler.transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+            sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
             self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
-            sim_scores[:, -1] = self.sim_scaler.fit_transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+            sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
         return sim_scores
@@ -252,13 +259,18 @@ class SimModel(TwoPartyBaseModel):
             remain_data1 = data1[:, :-self.num_common_features]
             remain_data2 = data2[:, self.num_common_features:]
 
-        real_sim_scores = []
-        for idx1, idx2, score in sim_scores:
-            real_sim_scores.append([idx[int(idx1)], int(idx2), score])
-        real_sim_scores = np.array(real_sim_scores)
+        # real_sim_scores = []
+        # for idx1, idx2, score in sim_scores:
+        #     real_sim_scores.append([idx[int(idx1)], int(idx2), score])
+        # real_sim_scores = np.array(real_sim_scores)
+        real_sim_scores = np.concatenate([idx[sim_scores[:, 0].astype(np.int)].reshape(-1, 1),
+                                          sim_scores[:, 1:]], axis=1)
 
         # filter similarity scores (last column) by a threshold
-        real_sim_scores = real_sim_scores[real_sim_scores[:, -1] >= sim_threshold]
+        if not self.feature_wise_sim:
+            real_sim_scores = real_sim_scores[real_sim_scores[:, -1] >= sim_threshold]
+        elif not np.isclose(sim_threshold, 0.0):
+            warnings.warn("Threshold is not used for feature-wise similarity")
 
         # save sim scores
         with open("cache/sim_scores.pkl", "wb") as f:
@@ -269,7 +281,11 @@ class SimModel(TwoPartyBaseModel):
         data1_df['data1_idx'] = idx
         labels_df = pd.DataFrame(labels, columns=['y'])
         data2_df = pd.DataFrame(remain_data2)
-        sim_scores_df = pd.DataFrame(real_sim_scores, columns=['data1_idx', 'data2_idx', 'score'])
+        if self.feature_wise_sim:
+            score_columns = ['score' + str(i) for i in range(self.num_common_features)]
+        else:
+            score_columns = ['score']
+        sim_scores_df = pd.DataFrame(real_sim_scores, columns=['data1_idx', 'data2_idx'] + score_columns)
         sim_scores_df[['data1_idx', 'data2_idx']].astype('int32')
         data1_labels_df = pd.concat([data1_df, labels_df], axis=1)
 
@@ -277,11 +293,11 @@ class SimModel(TwoPartyBaseModel):
         print("Got {} samples in A".format(matched_pairs.shape[0]))
 
         print("Linking records")
-        data1_labels_scores_df = data1_labels_df.merge(sim_scores_df,
-                                                       how='left', on='data1_idx')
+        data1_labels_scores_df = sim_scores_df.merge(data1_labels_df,
+                                                     how='right', on='data1_idx')
         merged_data_labels_df = data1_labels_scores_df.merge(data2_df,
                                                              how='left', left_on='data2_idx', right_index=True)
-        merged_data_labels_df['score'] = merged_data_labels_df['score'].fillna(value=0.0)
+        merged_data_labels_df[score_columns] = merged_data_labels_df[score_columns].fillna(value=0.0)
         print("Finished Linking, got {} samples".format(len(merged_data_labels_df.index)))
 
         # extracting data to numpy arrays
@@ -291,8 +307,11 @@ class SimModel(TwoPartyBaseModel):
         data_indices = np.vstack([data1_indices, data2_indices]).T
         merged_data_labels_df.drop(['y', 'data1_idx', 'data2_idx'], axis=1, inplace=True)
         merged_data_labels = merged_data_labels_df.to_numpy()
-        matched_data1 = np.concatenate([merged_data_labels[:, remain_data1.shape[1]].reshape(-1, 1),
-                                        merged_data_labels[:, :remain_data1.shape[1]]], axis=1) # move score to column 0
-        matched_data2 = merged_data_labels[:, remain_data1.shape[1]:]
+        # merged_data_labels: |sim_scores|data1|data2|
+        sim_dim = self.num_common_features if self.feature_wise_sim else 1
+        matched_data1 = merged_data_labels[:, :sim_dim + remain_data1.shape[1]]
+        matched_data2 = np.concatenate([merged_data_labels[:, :sim_dim],      # sim scores
+                                        merged_data_labels[:, sim_dim + remain_data1.shape[1]:]],
+                                       axis=1)
 
         return [matched_data1, matched_data2], ordered_labels, data_indices

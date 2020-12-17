@@ -16,11 +16,11 @@ from .SimModel import SimModel
 from model.base.MLP import MLP
 
 
-class AvgMergeDataset(Dataset):
-    def __init__(self, data1, data2, labels, data_idx):
+class AvgDataset(Dataset):
+    def __init__(self, data1, data2, labels, data_idx, sim_dim=1):
         assert data1.shape[0] == data2.shape[0] == data_idx.shape[0]
         # remove similarity scores in data1 (at column 0)
-        data1_labels = np.concatenate([data1[:, 1:], labels.reshape(-1, 1)], axis=1)
+        data1_labels = np.concatenate([data1[:, sim_dim:], labels.reshape(-1, 1)], axis=1)
 
         print("Grouping data")
         grouped_data1 = {}
@@ -69,7 +69,7 @@ class AvgMergeDataset(Dataset):
                 d2 = d2[1:]     # remove index
                 weight = 1 / data2[i].shape[0]
                 # d_line: sim_score, data1, data2
-                d_line = torch.cat([d2[0].reshape(1), d1, d2[1:]], dim=0)
+                d_line = torch.cat([d2[:sim_dim], d1, d2[sim_dim:]], dim=0)
 
                 final_data.append(d_line)
                 final_weights.append(weight)
@@ -92,32 +92,11 @@ class AvgMergeDataset(Dataset):
         return self.data[idx], self.labels[idx], self.weights[idx], self.data_idx[idx, 0], self.data_idx[idx, 1]
 
 
-class SimScoreModel(nn.Module):
-    def __init__(self, num_features):
-        super().__init__()
-        self.fc1 = nn.Linear(num_features, 10)
-        self.fc2 = nn.Linear(10, 1)
-        self.dropout = nn.Dropout(0.5)
-
-    def forward(self, X):
-        out = self.fc1(X)
-        out = self.dropout(out)
-        out = torch.relu(out)
-        out = self.fc2(out)
-        out = torch.sigmoid(out)
-        return out
-
-
-class MergeSimModel(SimModel):
-    def __init__(self, num_common_features, sim_hidden_sizes=None, merge_mode='sim_model_avg', **kwargs):
+class AvgSimModel(SimModel):
+    def __init__(self, num_common_features, merge_mode='avg', **kwargs):
         super().__init__(num_common_features, **kwargs)
-        assert merge_mode in ['sim_model_avg', 'avg', 'sim_avg', 'common_model_avg']
+        assert merge_mode in ['avg']
         self.merge_mode = merge_mode
-        self.sim_model = None
-        if sim_hidden_sizes is None:
-            self.sim_hidden_sizes = [10]
-        else:
-            self.sim_hidden_sizes = sim_hidden_sizes
 
         self.data1_shape = None
         self.data2_shape = None
@@ -162,15 +141,13 @@ class MergeSimModel(SimModel):
             val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1,
                                                 preserve_key=preserve_key, grid_min=self.grid_min,
                                                 grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
-                                                kd_tree_leaf_size=self.kd_tree_leaf_size,
-                                                radius=self.kd_tree_radius)
+                                                kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
             assert self.sim_scaler is not None
             print("Matching test set")
             test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
                                                    preserve_key=preserve_key, grid_min=self.grid_min,
                                                    grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
-                                                   kd_tree_leaf_size=self.kd_tree_leaf_size,
-                                                   radius=self.kd_tree_radius)
+                                                   kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
@@ -185,9 +162,9 @@ class MergeSimModel(SimModel):
                 test_X[test_indices] = np.take(col_mean, test_indices[1])
                 print("Test done.")
 
-            train_dataset = AvgMergeDataset(train_Xs[0], train_Xs[1], train_y, train_idx)
-            val_dataset = AvgMergeDataset(val_Xs[0], val_Xs[1], val_y, val_idx)
-            test_dataset = AvgMergeDataset(test_Xs[0], test_Xs[1], test_y, test_idx)
+            train_dataset = AvgDataset(train_Xs[0], train_Xs[1], train_y, train_idx)
+            val_dataset = AvgDataset(val_Xs[0], val_Xs[1], val_y, val_idx)
+            test_dataset = AvgDataset(test_Xs[0], test_Xs[1], test_y, test_idx)
 
             if data_cache_path:
                 print("Saving data to cache")
@@ -198,8 +175,7 @@ class MergeSimModel(SimModel):
 
     def merge_pred(self, pred_all: list, idx=None):
         pred_array = np.array(pred_all).T
-        weights = pred_array[1] + 1e-6  # prevent zero-division
-        avg_pred = np.average(pred_array[0], weights=weights)
+        avg_pred = np.average(pred_array[0])
         if self.task == 'binary_cls':
             return avg_pred > 0.5
         else:
@@ -216,7 +192,6 @@ class MergeSimModel(SimModel):
         self.data2_shape = data2.shape
 
         print("Prepare for training")
-        # self.sim_model = MLP(input_size=1, hidden_sizes=self.sim_hidden_sizes, output_size=1, activation='sigmoid')
         if self.task == 'binary_cls':
             self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=1,
                              activation='sigmoid')
@@ -230,16 +205,8 @@ class MergeSimModel(SimModel):
         else:
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
-        if self.merge_mode == 'common_model_avg':
-            self.sim_model = SimScoreModel(num_features=self.num_common_features).to(self.device)
-            params = list(self.model.parameters()) + list(self.sim_model.parameters())
-        elif self.merge_mode == 'sim_model_avg':
-            self.sim_model = SimScoreModel(num_features=1).to(self.device)
-            params = list(self.model.parameters()) + list(self.sim_model.parameters())
-        else:
-            self.sim_model = None
-            params = list(self.model.parameters())
-        optimizer = torchlars.LARS(optim.Adam(params,
+
+        optimizer = torchlars.LARS(optim.Adam(self.model.parameters(),
                                               lr=self.learning_rate, weight_decay=self.weight_decay))
         if self.use_scheduler:
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=self.sche_factor,
@@ -268,8 +235,6 @@ class MergeSimModel(SimModel):
             n_train_batches = 0
             train_pred_all = {}
             self.model.train()
-            if self.sim_model:
-                self.sim_model.train()
             for data, labels, weights, idx1, idx2 in tqdm(train_loader, desc="Train"):
                 weights = weights.to(self.device).float()
                 data = data.to(self.device).float()
@@ -290,22 +255,9 @@ class MergeSimModel(SimModel):
                     assert False, "Unsupported task"
                 n_correct = torch.count_nonzero(preds == labels).item()
 
-                if self.merge_mode == 'sim_model_avg':
-                    sim_weights = self.sim_model(sim_scores.reshape(-1, 1))
-                    loss = torch.mean(losses * weights * sim_weights)
-                elif self.merge_mode == 'avg':
+                if self.merge_mode == 'avg':
                     sim_weights = weights
                     loss = torch.mean(losses * weights)
-                elif self.merge_mode == 'sim_avg':
-                    sim_weights = sim_scores
-                    loss = torch.mean(losses * weights * sim_weights)
-                elif self.merge_mode == 'common_model_avg':
-                    assert self.drop_key is False, "Not common keys to train"
-                    common_features = data[:, data1.shape[1] - self.num_common_features:
-                                              data1.shape[1] + self.num_common_features]
-                    dists = common_features[:, :self.num_common_features] - common_features[:, self.num_common_features:]
-                    sim_weights = self.sim_model(dists)
-                    loss = torch.mean(losses * weights * sim_weights)
                 else:
                     assert False
                 loss.backward()
@@ -396,8 +348,6 @@ class MergeSimModel(SimModel):
         n_val_batches = 0
         with torch.no_grad():
             self.model.eval()
-            if self.sim_model:
-                self.sim_model.eval()
             for data, labels, weights, idx1, idx2 in tqdm(val_loader, desc=name):
 
                 data = data.to(self.device).float()
@@ -406,19 +356,8 @@ class MergeSimModel(SimModel):
                 data = data[:, 1:]
 
                 outputs = self.model(data)
-                if self.merge_mode == 'sim_model_avg':
-                    sim_weights = self.sim_model(sim_scores.reshape(-1, 1))
-                elif self.merge_mode == 'avg':
+                if self.merge_mode == 'avg':
                     sim_weights = weights
-                elif self.merge_mode == 'sim_avg':
-                    sim_weights = sim_scores
-                elif self.merge_mode == 'common_model_avg':
-                    assert self.drop_key is False, "Not common keys to train"
-                    common_features = data[:, self.data1_shape[1] - self.num_common_features:
-                                              self.data1_shape[1] + self.num_common_features]
-                    dists = common_features[:, :self.num_common_features] - common_features[:,
-                                                                            self.num_common_features:]
-                    sim_weights = self.sim_model(dists)
                 else:
                     assert False
 
