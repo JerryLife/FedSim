@@ -15,15 +15,15 @@ now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 dataset = "MiniBooNE_PID.txt"
-num_common_features = 5
+num_common_features = 4
 noise_scale = args.noise_scale
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
 name = "boone_mergesim_combine"
 model = MergeSimModel(num_common_features=num_common_features,
-                      sim_hidden_sizes=[10],
-                      merge_mode='sim_model_avg',
+                      sim_hidden_sizes=[10, 10],
+                      merge_mode='common_model_avg',
                       task='binary_cls',
                       dataset_type='syn',
                       blocking_method='radius',
@@ -42,7 +42,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       hidden_sizes=[100, 100],
                       train_batch_size=64,
                       test_batch_size=4096,
-                      num_epochs=100,
+                      num_epochs=50,
                       learning_rate=1e-3,
                       weight_decay=1e-5,
                       sim_learning_rate=1e-3,

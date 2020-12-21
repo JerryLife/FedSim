@@ -308,7 +308,8 @@ class MergeSimModel(SimModel):
             train_sample_correct = 0
             train_total_samples = 0
             n_train_batches = 0
-
+            self.sim_model.train()
+            self.model.train()
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
@@ -322,8 +323,8 @@ class MergeSimModel(SimModel):
                     data = data_batch[:, 1:]
 
                 # train main model
-                self.model.train()
-                self.sim_model.eval()
+                # self.model.train()
+                # self.sim_model.eval()
                 main_optimizer.zero_grad()
                 outputs = self.model(data)
                 if self.merge_mode in ['sim_model_avg', 'common_model_avg']:
@@ -362,8 +363,8 @@ class MergeSimModel(SimModel):
                 main_optimizer.step()
 
                 # train sim model
-                self.sim_model.train()
-                self.model.eval()
+                # self.sim_model.train()
+                # self.model.eval()
                 if (epoch + 1) % self.update_sim_freq == 0:
                     outputs = self.model(data)
                     if self.merge_mode in ['sim_model_avg', 'common_model_avg']:

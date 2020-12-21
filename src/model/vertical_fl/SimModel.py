@@ -202,15 +202,17 @@ class SimModel(TwoPartyBaseModel):
         non_empty_idx = [x > 0 for x in repeat_times]
         idx1 = np.repeat(np.arange(key1.shape[0]), repeat_times)
         idx2 = np.concatenate(idx2[np.array(repeat_times) > 0])
-        sims = -np.concatenate(dists[np.array(repeat_times) > 0])
-        sim_scores = np.vstack([idx1, idx2, sims]).T
-        if self.sim_scaler is not None:
-            # use train scaler
-            sim_scores[:, -1] = self.sim_scaler.transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+        if self.feature_wise_sim:
+            sims = -(key1[idx1] - key2[idx2]) ** 2
         else:
-            # generate train scaler
+            sims = -np.concatenate(dists[np.array(repeat_times) > 0]).reshape(-1, 1)
+        # assert np.isclose(sims, -np.sqrt(np.sum((key1[idx1] - key2[idx2]) ** 2, axis=1)))
+        sim_scores = np.concatenate([idx1.reshape(-1, 1), idx2.reshape(-1, 1), sims], axis=1)
+        if self.sim_scaler is not None:
+            sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
+        else:
             self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
-            sim_scores[:, -1] = self.sim_scaler.fit_transform(sim_scores[:, -1].reshape(-1, 1)).flatten()
+            sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
         return sim_scores

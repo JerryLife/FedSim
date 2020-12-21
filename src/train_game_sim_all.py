@@ -17,7 +17,7 @@ from datetime import datetime
 
 from tqdm import tqdm
 
-from preprocess.steam_ign.split_data import split_df
+from preprocess.game.split_data import split_df
 
 print("Calculate similarity scores for train, val & test")
 os.chdir(sys.path[0] + "/../")  # change working directory

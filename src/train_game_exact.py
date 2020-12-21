@@ -15,6 +15,7 @@ from torchsummaryX import summary
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime
+import torch_optimizer as optim
 
 
 def set_seed(seed):
@@ -33,8 +34,8 @@ set_seed(seed)
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='exact_aligned_game_unmatch', type=str, help='Training dataset ')
 parser.add_argument('--setting', default='two', type=str, help='Training setting')
-parser.add_argument('--batch-size', default=128, type=int, help='Batch size')
-parser.add_argument('--lr', default=3e-4, type=float, help='Starting learning rate')
+parser.add_argument('--batch-size', default=1024 * 16, type=int, help='Batch size')
+parser.add_argument('--lr', default=1e-2, type=float, help='Starting learning rate')
 parser.add_argument('--epochs', default=30, type=int, help='Number of epochs to run for')
 parser.add_argument('--weight-decay', default=1e-3, type=float, help='Weight decay of optimizer')
 args = parser.parse_args()
@@ -253,10 +254,10 @@ lr = args.lr
 model = DLRM(top_mlp_units, dense_mlp_units, cat_mlp_units, emb_dim, counts, denses)
 summary(model, next(iter(trn_loader))[:-1])
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 criterion = torch.nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=args.weight_decay)
+optimizer = optim.Lamb(model.parameters(), lr=lr, weight_decay=args.weight_decay)
 scheduler = ReduceLROnPlateau(optimizer, factor=np.sqrt(0.1), patience=10, verbose=True, threshold=1e-4)
 
 writer = SummaryWriter("runs/run_{}".format(datetime.now().strftime('%Y-%m-%d-%H-%M-%S')), flush_secs=60)
