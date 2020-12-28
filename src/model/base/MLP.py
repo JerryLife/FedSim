@@ -25,6 +25,8 @@ class MLP(nn.Module):
             out = torch.sigmoid(self.fc_layers[-1](out))
         elif self.activation == 'tanh':
             out = torch.tanh(self.fc_layers[-1](out))
+        elif self.activation == 'relu':
+            out = torch.relu(self.fc_layers[-1](out))
         elif self.activation is None:
             out = self.fc_layers[-1](out)
         else:

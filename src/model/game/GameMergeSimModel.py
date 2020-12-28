@@ -534,7 +534,7 @@ class GameMergeSimModel(MergeSimModel):
         return best_train_sample_acc, best_val_sample_acc, best_test_sample_acc, \
                best_train_acc, best_val_acc, best_test_acc
 
-    def eval_merge_score(self, val_dataset, loss_criterion=None, name='Val'):
+    def eval_merge_score(self, val_dataset, loss_criterion=None, name='Val', y_scaler=None):
         assert self.model is not None, "Model has not been initialized"
 
         val_loader = DataLoader(val_dataset, batch_size=self.train_batch_size, shuffle=True,

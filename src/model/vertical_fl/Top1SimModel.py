@@ -10,7 +10,7 @@ import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans, MiniBatchKMeans
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 import torch
 import torch.nn as nn
@@ -18,7 +18,7 @@ import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader, Dataset
 from torch.utils.tensorboard import SummaryWriter
 
-import torchlars
+
 from tqdm import tqdm
 
 from .SimModel import SimModel
@@ -77,7 +77,7 @@ class Top1SimModel(SimModel):
         grouped_labels = data_labels[:, -1]
         return grouped_data, grouped_labels, grouped_data_idx
 
-    def train_combine(self, data1, data2, labels, data_cache_path=None):
+    def train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
         train_X, val_X, test_X, train_y, val_y, test_y, train_idx, val_idx, test_idx = \
             self.prepare_train_combine(data1, data2, labels, data_cache_path)
 
@@ -85,4 +85,16 @@ class Top1SimModel(SimModel):
         val_X, val_y, val_idx1 = self._group(val_X, val_y.reshape(-1, 1), val_idx)
         test_X, test_y, test_idx1 = self._group(test_X, test_y.reshape(-1, 1), test_idx)
 
-        return self._train(train_X, val_X, test_X, train_y, val_y, test_y, train_idx1, val_idx1, test_idx1)
+        y_scaler = None
+        if scale:
+            x_scaler = StandardScaler()
+            train_X = x_scaler.fit_transform(train_X)
+            val_X = x_scaler.transform(val_X)
+            test_X = x_scaler.transform(test_X)
+            y_scaler = MinMaxScaler(feature_range=(0, 1))
+            train_y = y_scaler.fit_transform(train_y.reshape(-1, 1)).flatten()
+            val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
+            test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
+
+        return self._train(train_X, val_X, test_X, train_y, val_y, test_y, train_idx1, val_idx1, test_idx1,
+                           y_scaler=y_scaler)

@@ -2,15 +2,16 @@ import os
 import pickle
 
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 
-import torchlars
 from tqdm import tqdm
 from torchsummaryX import summary
+import torch_optimizer as adv_optim
 
 from .SimModel import SimModel
 from model.base.MLP import MLP
@@ -66,7 +67,7 @@ class AvgDataset(Dataset):
             for j in range(data2[i].shape[0]):
                 d2 = torch.from_numpy(data2[i][j].astype(np.float))
                 idx2 = d2[0].item()
-                d2 = d2[1:]     # remove index
+                d2 = d2[1:]  # remove index
                 weight = 1 / data2[i].shape[0]
                 # d_line: sim_score, data1, data2
                 d_line = torch.cat([d2[:sim_dim], d1, d2[sim_dim:]], dim=0)
@@ -109,11 +110,11 @@ class AvgSimModel(SimModel):
         idx = torch.stack([item[3] for item in batch])
         return data1, data2, labels, idx
 
-    def prepare_train_combine(self, data1, data2, labels, data_cache_path=None):
+    def prepare_train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
         if data_cache_path and os.path.isfile(data_cache_path):
             print("Loading data from cache")
             with open(data_cache_path, 'rb') as f:
-                train_dataset, val_dataset, test_dataset = pickle.load(f)
+                train_dataset, val_dataset, test_dataset, y_scaler = pickle.load(f)
         else:
             print("Splitting data")
             train_data1, val_data1, test_data1, train_labels, val_labels, test_labels, train_idx1, val_idx1, test_idx1 = \
@@ -162,6 +163,19 @@ class AvgSimModel(SimModel):
                 test_X[test_indices] = np.take(col_mean, test_indices[1])
                 print("Test done.")
 
+                if scale:
+                    x_scaler = StandardScaler()
+                    train_X[:] = x_scaler.fit_transform(train_X)
+                    val_X[:] = x_scaler.transform(val_X)
+                    test_X[:] = x_scaler.transform(test_X)
+
+            y_scaler = None
+            if scale:
+                y_scaler = MinMaxScaler(feature_range=(0, 1))
+                train_y = y_scaler.fit_transform(train_y.reshape(-1, 1)).flatten()
+                val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
+                test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
+
             train_dataset = AvgDataset(train_Xs[0], train_Xs[1], train_y, train_idx)
             val_dataset = AvgDataset(val_Xs[0], val_Xs[1], val_y, val_idx)
             test_dataset = AvgDataset(test_Xs[0], test_Xs[1], test_y, test_idx)
@@ -169,21 +183,23 @@ class AvgSimModel(SimModel):
             if data_cache_path:
                 print("Saving data to cache")
                 with open(data_cache_path, 'wb') as f:
-                    pickle.dump([train_dataset, val_dataset, test_dataset], f)
+                    pickle.dump([train_dataset, val_dataset, test_dataset, y_scaler], f)
 
-        return train_dataset, val_dataset, test_dataset
+        return train_dataset, val_dataset, test_dataset, y_scaler
 
     def merge_pred(self, pred_all: list, idx=None):
         pred_array = np.array(pred_all).T
         avg_pred = np.average(pred_array[0])
         if self.task == 'binary_cls':
             return avg_pred > 0.5
+        elif self.task == 'regression':
+            return avg_pred
         else:
             assert False, "Not Implemented"
 
-    def train_combine(self, data1, data2, labels, data_cache_path=None):
-        train_dataset, val_dataset, test_dataset = \
-            self.prepare_train_combine(data1, data2, labels, data_cache_path)
+    def train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
+        train_dataset, val_dataset, test_dataset, y_scaler = \
+            self.prepare_train_combine(data1, data2, labels, data_cache_path, scale=scale)
 
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
                                   num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
@@ -200,14 +216,19 @@ class AvgSimModel(SimModel):
         elif self.task == 'multi_cls':
             self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=self.n_classes,
                              activation=None)
-            criterion = nn.BCELoss(reduction='none')
+            criterion = nn.CrossEntropyLoss(reduction='none')
             val_criterion = nn.CrossEntropyLoss()
+        elif self.task == 'regression':
+            self.model = MLP(input_size=num_features, hidden_sizes=self.hidden_sizes, output_size=1,
+                             activation=None)
+            criterion = nn.MSELoss(reduction='none')
+            val_criterion = nn.MSELoss()
         else:
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
 
-        optimizer = torchlars.LARS(optim.Adam(self.model.parameters(),
-                                              lr=self.learning_rate, weight_decay=self.weight_decay))
+        optimizer = adv_optim.Lamb(self.model.parameters(),
+                                   lr=self.learning_rate, weight_decay=self.weight_decay)
         if self.use_scheduler:
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=self.sche_factor,
                                                              patience=self.sche_patience,
@@ -221,9 +242,21 @@ class AvgSimModel(SimModel):
         best_train_acc = 0
         best_val_acc = 0
         best_test_acc = 0
+        best_train_rmse = np.inf
+        best_val_rmse = np.inf
+        best_test_rmse = np.inf
+        best_train_sample_rmse = np.inf
+        best_val_sample_rmse = np.inf
+        best_test_sample_rmse = np.inf
         train_idx = train_dataset.data1_idx.detach().cpu().numpy()
-        train_labels = train_dataset.data1_labels.detach().cpu().int().numpy()
-        answer_all = dict(zip(train_idx, train_labels))
+        train_labels = train_dataset.data1_labels.detach().cpu().numpy()
+        if self.task in ['binary_cls', 'multi_cls']:
+            train_labels = train_labels.astype(np.int)
+
+        if y_scaler is None:
+            answer_all = dict(zip(train_idx, train_labels))
+        else:
+            answer_all = dict(zip(train_idx, y_scaler.inverse_transform(train_labels.reshape(-1, 1)).flatten()))
         print("Start training")
         summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
         print(str(self))
@@ -233,6 +266,7 @@ class AvgSimModel(SimModel):
             train_sample_correct = 0
             train_total_samples = 0
             n_train_batches = 0
+            train_sample_mse = 0.0
             train_pred_all = {}
             self.model.train()
             for data, labels, weights, idx1, idx2 in tqdm(train_loader, desc="Train"):
@@ -251,6 +285,10 @@ class AvgSimModel(SimModel):
                 elif self.task == 'multi_cls':
                     losses = criterion(outputs, labels.long())
                     preds = torch.argmax(outputs, dim=1)
+                elif self.task == 'regression':
+                    outputs = outputs.flatten()
+                    losses = criterion(outputs, labels)
+                    preds = outputs
                 else:
                     assert False, "Unsupported task"
                 n_correct = torch.count_nonzero(preds == labels).item()
@@ -268,6 +306,15 @@ class AvgSimModel(SimModel):
                 train_sample_correct += n_correct
                 train_total_samples += data.shape[0]
                 n_train_batches += 1
+                if self.task == 'regression' and y_scaler is not None:
+                    outputs = y_scaler.inverse_transform(
+                        outputs.reshape(-1, 1).detach().cpu().numpy()).flatten()
+                    labels = y_scaler.inverse_transform(
+                        labels.reshape(-1, 1).detach().cpu().numpy()).flatten()
+                    outputs = torch.from_numpy(outputs)
+                    labels = torch.from_numpy(labels)
+                train_sample_mse = train_sample_mse / (train_total_samples + data.shape[0]) * train_total_samples + \
+                                   torch.sum((outputs - labels) ** 2).item() / (train_total_samples + data.shape[0])
 
                 # calculate final prediction
                 sim_weights = sim_weights.detach().cpu().numpy().flatten()
@@ -282,69 +329,121 @@ class AvgSimModel(SimModel):
 
             train_loss /= n_train_batches
             train_sample_acc = train_sample_correct / train_total_samples
+            train_sample_rmse = np.sqrt(train_sample_mse)
 
             train_correct = 0
+            train_error = []
             for i, pred_all in train_pred_all.items():
                 pred = self.merge_pred(pred_all, i)
+                train_error.append((answer_all[i] - pred) ** 2)
                 # noinspection PyUnboundLocalVariable
                 if answer_all[i] == pred:
                     train_correct += 1
-                assert len(answer_all) == len(train_pred_all)
+            train_rmse = np.sqrt(np.average(train_error))
+
+            assert len(answer_all) == len(train_pred_all)
             train_acc = train_correct / len(train_pred_all)
 
             # validation and test
-            val_loss, val_sample_acc, val_acc = self.eval_merge_score(val_dataset, val_criterion, 'Val')
-            test_loss, test_sample_acc, test_acc = self.eval_merge_score(test_dataset, val_criterion, 'Test')
+            val_loss, val_sample_acc, val_acc, val_sample_rmse, val_rmse = \
+                self.eval_merge_score(val_dataset, val_criterion, 'Val', y_scaler=y_scaler)
+            test_loss, test_sample_acc, test_acc, test_sample_rmse, test_rmse = \
+                self.eval_merge_score(test_dataset, val_criterion, 'Test', y_scaler=y_scaler)
             if self.use_scheduler:
                 scheduler.step(val_loss)
 
-            if val_acc > best_val_acc:
+            if val_acc > best_val_acc or val_rmse < best_val_rmse:
                 best_train_acc = train_acc
                 best_val_acc = val_acc
                 best_test_acc = test_acc
                 best_train_sample_acc = train_sample_acc
                 best_val_sample_acc = val_sample_acc
                 best_test_sample_acc = test_sample_acc
+                best_train_rmse = train_rmse
+                best_val_rmse = val_rmse
+                best_test_rmse = test_rmse
+                best_train_sample_rmse = train_sample_rmse
+                best_val_sample_rmse = val_sample_rmse
+                best_test_sample_rmse = test_sample_rmse
+
                 if self.model_save_path is not None:
                     torch.save(self.model.state_dict(), self.model_save_path)
 
-            print("Epoch {}: {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
-                  "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
-                  "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
-                  "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
-                  "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
-                  .format(epoch + 1, "Loss:", train_loss, val_loss, test_loss,
-                          "Sample Acc:", train_sample_acc, val_sample_acc, test_sample_acc,
-                          "Best Sample Acc:", best_train_sample_acc, best_val_sample_acc, best_test_sample_acc,
-                          "Acc:", train_acc, val_acc, test_acc,
-                          "Best Acc", best_train_acc, best_val_acc, best_test_acc))
+            if self.task in ['binary_cls', 'multi_cls']:
+                print("Epoch {}: {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      .format(epoch + 1, "Loss:", train_loss, val_loss, test_loss,
+                              "Sample Acc:", train_sample_acc, val_sample_acc, test_sample_acc,
+                              "Best Sample Acc:", best_train_sample_acc, best_val_sample_acc, best_test_sample_acc,
+                              "Acc:", train_acc, val_acc, test_acc,
+                              "Best Acc", best_train_acc, best_val_acc, best_test_acc))
 
-            self.writer.add_scalars('Loss', {'Train': train_loss,
-                                             'Validation': val_loss,
-                                             'Test': test_loss}, epoch + 1)
-            self.writer.add_scalars('Sample Accuracy', {'Train': train_sample_acc,
-                                                        'Validation': val_sample_acc,
-                                                        'Test': test_sample_acc}, epoch + 1)
-            self.writer.add_scalars('Accuracy', {'Train': train_acc,
-                                                 'Validation': val_acc,
-                                                 'Test': test_acc}, epoch + 1)
-        return best_train_sample_acc, best_val_sample_acc, best_test_sample_acc, \
-               best_train_acc, best_val_acc, best_test_acc
+                self.writer.add_scalars('Loss', {'Train': train_loss,
+                                                 'Validation': val_loss,
+                                                 'Test': test_loss}, epoch + 1)
+                self.writer.add_scalars('Sample Accuracy', {'Train': train_sample_acc,
+                                                            'Validation': val_sample_acc,
+                                                            'Test': test_sample_acc}, epoch + 1)
+                self.writer.add_scalars('Accuracy', {'Train': train_acc,
+                                                     'Validation': val_acc,
+                                                     'Test': test_acc}, epoch + 1)
+            elif self.task == 'regression':
+                print("Epoch {}: {:<18s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<18s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<18s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<18s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      "          {:<18s}: Train {:.4f}, Val {:.4f}, Test {:.4f}\n"
+                      .format(epoch + 1, "Loss:", train_loss, val_loss, test_loss,
+                              "Sample RMSE:", train_sample_rmse, val_sample_rmse, test_sample_rmse,
+                              "Best Sample RMSE:", best_train_sample_rmse, best_val_sample_rmse, best_test_sample_rmse,
+                              "RMSE:", train_rmse, val_rmse, test_rmse,
+                              "Best RMSE:", best_train_rmse, best_val_rmse, best_test_rmse))
 
-    def eval_merge_score(self, val_dataset, loss_criterion=None, name='Val'):
+                self.writer.add_scalars('Loss', {'Train': train_loss,
+                                                 'Validation': val_loss,
+                                                 'Test': test_loss}, epoch + 1)
+                self.writer.add_scalars('Sample RMSE', {'Train': train_sample_rmse,
+                                                        'Validation': val_sample_rmse,
+                                                        'Test': test_sample_rmse}, epoch + 1)
+                self.writer.add_scalars('RMSE', {'Train': train_rmse,
+                                                 'Validation': val_rmse,
+                                                 'Test': test_rmse}, epoch + 1)
+            else:
+                assert False, "Unsupported task"
+
+        if self.task in ['binary_cls', 'multi_cls']:
+            return best_train_sample_acc, best_val_sample_acc, best_test_sample_acc, \
+                   best_train_acc, best_val_acc, best_test_acc
+        elif self.task == 'regression':
+            return best_train_rmse, best_val_rmse, best_test_rmse, \
+                   best_train_rmse, best_val_rmse, best_test_rmse
+        else:
+            assert False
+
+    def eval_merge_score(self, val_dataset, loss_criterion=None, name='Val', y_scaler=None):
         assert self.model is not None, "Model has not been initialized"
 
         val_loader = DataLoader(val_dataset, batch_size=self.test_batch_size, shuffle=False,
                                 num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
 
         val_idx = val_dataset.data1_idx.detach().cpu().numpy()
-        val_labels = val_dataset.data1_labels.detach().cpu().int().numpy()
-        answer_all = dict(zip(val_idx, val_labels))
+        val_labels = val_dataset.data1_labels.detach().cpu().numpy()
+        if self.task in ['binary_cls', 'multi_cls']:
+            val_labels = val_labels.astype(np.int)
+
+        if y_scaler is None:
+            answer_all = dict(zip(val_idx, val_labels))
+        else:
+            answer_all = dict(zip(val_idx, y_scaler.inverse_transform(val_labels.reshape(-1, 1)).flatten()))
         val_pred_all = {}
 
         val_loss = 0.0
         val_sample_correct = 0
         val_total_samples = 0
+        val_sample_mse = 0.0
         n_val_batches = 0
         with torch.no_grad():
             self.model.eval()
@@ -372,6 +471,12 @@ class AvgSimModel(SimModel):
                         loss = loss_criterion(outputs, labels.long())
                         val_loss += loss.item()
                     preds = torch.argmax(outputs, dim=1)
+                elif self.task == 'regression':
+                    outputs = outputs.flatten()
+                    if loss_criterion is not None:
+                        loss = loss_criterion(outputs, labels)
+                        val_loss += loss.item()
+                    preds = outputs
                 else:
                     assert False, "Unsupported task"
                 n_correct = torch.count_nonzero(preds == labels).item()
@@ -379,6 +484,15 @@ class AvgSimModel(SimModel):
                 val_sample_correct += n_correct
                 val_total_samples += data.shape[0]
                 n_val_batches += 1
+                if self.task == 'regression' and y_scaler is not None:
+                    outputs = y_scaler.inverse_transform(
+                        outputs.reshape(-1, 1).detach().cpu().numpy()).flatten()
+                    labels = y_scaler.inverse_transform(
+                        labels.reshape(-1, 1).detach().cpu().numpy()).flatten()
+                    outputs = torch.from_numpy(outputs)
+                    labels = torch.from_numpy(labels)
+                val_sample_mse = val_sample_mse / (val_total_samples + data.shape[0]) * val_total_samples + \
+                                 torch.sum((outputs - labels) ** 2).item() / (val_total_samples + data.shape[0])
 
                 # calculate final predictions
                 sim_weights = sim_weights.detach().cpu().numpy().flatten()
@@ -393,21 +507,16 @@ class AvgSimModel(SimModel):
                     else:
                         val_pred_all[i1] = [(out, score, i2)]
 
+        val_sample_rmse = np.sqrt(val_sample_mse)
         val_correct = 0
-        only = 0
-        include = 0
+        val_error = []
         for i, pred_all in val_pred_all.items():
             pred = self.merge_pred(pred_all, i)
+            val_error.append((answer_all[i] - pred) ** 2)
             if answer_all[i] == pred:
                 val_correct += 1
-
-            idx2 = np.array(pred_all).T[-1]
-            if i in idx2:
-                include += 1
-            if idx2.shape[0] == 0 and idx2.item() == i:
-                only += 1
         val_acc = val_correct / len(val_pred_all)
-        print("Only {}, include {}".format(only / len(val_pred_all), include / len(val_pred_all)))
+        val_rmse = np.sqrt(np.average(val_error))
 
         val_sample_acc = val_sample_correct / val_total_samples
         if loss_criterion is not None:
@@ -415,4 +524,4 @@ class AvgSimModel(SimModel):
         else:
             val_loss = -1.
 
-        return val_loss, val_sample_acc, val_acc
+        return val_loss, val_sample_acc, val_acc, val_sample_rmse, val_rmse
