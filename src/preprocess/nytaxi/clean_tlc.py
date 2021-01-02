@@ -4,7 +4,7 @@ import sys
 import pandas as pd
 
 
-def clean_tlc(tlc_ori_data_path, out_tlc_data_path, sample_n=None, keep_col=None):
+def clean_tlc_for_airbnb(tlc_ori_data_path, out_tlc_data_path, sample_n=None, keep_col=None):
     print("Reading from {}".format(tlc_ori_data_path))
     tlc_ori_data = pd.read_csv(tlc_ori_data_path, parse_dates=['tpep_pickup_datetime', 'tpep_dropoff_datetime'])
 
@@ -66,8 +66,51 @@ def clean_tlc(tlc_ori_data_path, out_tlc_data_path, sample_n=None, keep_col=None
     print("Saved {} samples to file".format(len(out_tlc_data.index)))
 
 
+def clean_tlc_for_bike(tlc_ori_data_path, out_tlc_data_path, sample_n=None):
+    print("Reading from {}".format(tlc_ori_data_path))
+    tlc_ori_data = pd.read_csv(tlc_ori_data_path, parse_dates=['tpep_pickup_datetime', 'tpep_dropoff_datetime'])
+
+    print("Drop values that are not reasonable")
+    tlc_ori_data.dropna(inplace=True)
+    tlc_ori_data = tlc_ori_data[tlc_ori_data['trip_distance'] > 0]
+    tlc_ori_data = tlc_ori_data[tlc_ori_data['trip_distance'] < 10]
+
+    print("get duration of the trip")
+    tlc_ori_data['taxi_duration'] = (tlc_ori_data['tpep_dropoff_datetime']
+                                     - tlc_ori_data['tpep_pickup_datetime']).astype('timedelta64[s]')
+    tlc_ori_data = tlc_ori_data[tlc_ori_data['taxi_duration'] > 0]
+    tlc_ori_data = tlc_ori_data[tlc_ori_data['taxi_duration'] < 10000]
+
+    print("get pick-up and drop-off hour")
+    tlc_ori_data['start_hour'] = tlc_ori_data['tpep_pickup_datetime'].dt.hour
+    tlc_ori_data['end_hour'] = tlc_ori_data['tpep_dropoff_datetime'].dt.hour
+
+    print("drop specific time information")
+    tlc_ori_data.drop(columns=['tpep_pickup_datetime', 'tpep_dropoff_datetime'], inplace=True)
+
+    print("divide pickup and dropoff dataset")
+    tlc_ori_data.rename(columns={'pickup_longitude': 'start_lon',
+                                 'pickup_latitude': 'start_lat',
+                                 'dropoff_longitude': 'end_lon',
+                                 'dropoff_latitude': 'end_lat'}, inplace=True)
+
+    print("Drop useless features")
+    out_tlc_data = tlc_ori_data[['start_lon', 'start_lat', 'end_lon', 'end_lat',
+                                 'start_hour', 'end_hour', 'trip_distance', 'taxi_duration']]
+
+    print("sampling from dataset")
+    if sample_n is not None:
+        out_tlc_data = out_tlc_data.sample(n=sample_n, random_state=0)
+
+    print("Saving cleaned dataset to {}".format(out_tlc_data_path))
+    out_tlc_data.to_pickle(out_tlc_data_path)
+    print("Saved {} samples to file".format(len(out_tlc_data.index)))
+
+
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../../data/nytaxi")  # change working directory
     # clean_tlc("yellow_tripdata_2016-06.csv", "taxi_201606_clean.csv", sample_n=None)
-    clean_tlc("yellow_tripdata_2016-06.csv", "taxi_201606_clean_sample_1e6.csv",
-              sample_n=1000000, keep_col=['RatecodeID', 'tip_amount'])
+    # clean_tlc_for_airbnb("yellow_tripdata_2016-06.csv", "taxi_201606_clean_sample_1e6.csv",
+    #                      sample_n=1000000, keep_col=['RatecodeID', 'tip_amount'])
+    clean_tlc_for_bike("yellow_tripdata_2016-06.csv", "taxi_201606_clean.pkl",
+                       sample_n=None)

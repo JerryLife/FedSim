@@ -2,6 +2,7 @@ import os
 import abc
 import pickle
 import warnings
+import gc
 
 import numpy as np
 import pandas as pd
@@ -288,6 +289,8 @@ class SimModel(TwoPartyBaseModel):
         with open("cache/sim_scores.pkl", "wb") as f:
             pickle.dump(real_sim_scores, f)
 
+        remain_data1_shape1 = remain_data1.shape[1]
+
         # convert to pandas
         data1_df = pd.DataFrame(remain_data1)
         data1_df['data1_idx'] = idx
@@ -304,26 +307,43 @@ class SimModel(TwoPartyBaseModel):
         matched_pairs = np.unique(sim_scores_df['data1_idx'].to_numpy())
         print("Got {} samples in A".format(matched_pairs.shape[0]))
 
-        print("Linking records")
-        data1_labels_scores_df = sim_scores_df.merge(data1_labels_df,
-                                                     how='right', on='data1_idx')
-        merged_data_labels_df = data1_labels_scores_df.merge(data2_df,
-                                                             how='left', left_on='data2_idx', right_index=True)
-        merged_data_labels_df[score_columns] = merged_data_labels_df[score_columns].fillna(value=0.0)
-        print("Finished Linking, got {} samples".format(len(merged_data_labels_df.index)))
+        del remain_data1, remain_data2, labels, matched_pairs
+        gc.collect()
 
-        # extracting data to numpy arrays
+        print("Setting index")
+        data1_labels_df.set_index('data1_idx', inplace=True)
+        data2_df['data2_idx'] = range(len(data2_df.index))
+        data2_df.set_index('data2_idx', inplace=True)
+        # sim_scores_df.set_index(['data1_idx', 'data2_idx'], inplace=True)
+
+        print("Linking records")
+        data1_labels_scores_df = sim_scores_df.merge(data1_labels_df, how='right', on='data1_idx')
+        print("Step 1 done.")
+        del data1_labels_df, sim_scores_df
+        gc.collect()
+        merged_data_labels_df = data1_labels_scores_df.merge(data2_df, how='left', left_on='data2_idx',
+                                                             right_index=True)
+        print("Finished Linking, got {} samples".format(len(merged_data_labels_df.index)))
+        del data2_df
+        gc.collect()
+
+        print("Filling null values")
+        merged_data_labels_df.fillna({col: 0.0 for col in score_columns}, inplace=True)
+
+        print("extracting data to numpy arrays")
         ordered_labels = merged_data_labels_df['y'].to_numpy()
         data1_indices = merged_data_labels_df['data1_idx'].to_numpy()
         data2_indices = merged_data_labels_df['data2_idx'].to_numpy()
         data_indices = np.vstack([data1_indices, data2_indices]).T
         merged_data_labels_df.drop(['y', 'data1_idx', 'data2_idx'], axis=1, inplace=True)
         merged_data_labels = merged_data_labels_df.to_numpy()
+        del merged_data_labels_df
+        gc.collect()
         # merged_data_labels: |sim_scores|data1|data2|
         sim_dim = self.num_common_features if self.feature_wise_sim else 1
-        matched_data1 = merged_data_labels[:, :sim_dim + remain_data1.shape[1]]
+        matched_data1 = merged_data_labels[:, :sim_dim + remain_data1_shape1]
         matched_data2 = np.concatenate([merged_data_labels[:, :sim_dim],      # sim scores
-                                        merged_data_labels[:, sim_dim + remain_data1.shape[1]:]],
+                                        merged_data_labels[:, sim_dim + remain_data1_shape1:]],
                                        axis=1)
 
         return [matched_data1, matched_data2], ordered_labels, data_indices

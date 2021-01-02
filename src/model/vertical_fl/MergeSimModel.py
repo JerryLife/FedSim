@@ -1,5 +1,6 @@
 import os
 import pickle
+import gc
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,7 @@ import torch_optimizer as adv_optim
 from .SimModel import SimModel
 from model.base.MLP import MLP
 from .AvgSim import AvgDataset as AvgMergeDatasetV1
+from utils import get_split_points
 
 
 class MergeDataset(Dataset):
@@ -206,17 +208,21 @@ class MergeSimModel(SimModel):
                 print("Test done.")
 
                 if scale:
+                    print("Scaling X")
                     x_scaler = StandardScaler()
                     train_X[:] = x_scaler.fit_transform(train_X)
                     val_X[:] = x_scaler.transform(val_X)
                     test_X[:] = x_scaler.transform(test_X)
+                    print("Scale done.")
 
             y_scaler = None
             if scale:
+                print("Scaling y")
                 y_scaler = MinMaxScaler(feature_range=(0, 1))
                 train_y = y_scaler.fit_transform(train_y.reshape(-1, 1)).flatten()
                 val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
                 test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
+                print("Scale done")
 
             sim_dim = self.num_common_features if self.feature_wise_sim else 1
             train_dataset = MergeDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)

@@ -1,73 +1,69 @@
 import os
 import sys
+from datetime import datetime
 
 import pandas as pd
 
 
-def clean_bike(bike_ori_data_path, out_bike_data_path, sample_n=None, keep_col=None):
+def fill_zero_padding(s: str):
+    """
+    Fill a datetime string with zero paddings in days and months
+    :param s: original datetime string with format '%-m/%-d/%Y %H:%M:%S'
+    :return:
+    """
+    month, day, other = s.split('/')
+    month = "0" + month if len(month) == 1 else month
+    day = "0" + day if len(day) == 1 else day
+    return month + "/" + day + "/" + other
+
+
+def clean_bike(bike_ori_data_path, out_bike_data_path, sample_n=None):
     print("Reading from {}".format(bike_ori_data_path))
-    bike_ori_data = pd.read_csv(bike_ori_data_path, parse_dates=['tpep_pickup_datetime', 'tpep_dropoff_datetime'])
+    date_parser = lambda x: datetime.strptime(fill_zero_padding(x), '%m/%d/%Y %H:%M:%S')
+    bike_ori_data = pd.read_csv(bike_ori_data_path, parse_dates=['starttime', 'stoptime'],
+                                date_parser=date_parser)
 
-    print("get pick-up and drop-off hour")
-    bike_ori_data.drop(columns=['store_and_fwd_flag'], inplace=True)
+    print("Remove all nonsense data")
+    bike_ori_data.dropna(inplace=True)
+    bike_ori_data = bike_ori_data[bike_ori_data['tripduration'] < 2000]
 
-    print("get pick-up and drop-off hour")
-    bike_ori_data['pickup_hour'] = bike_ori_data['tpep_pickup_datetime'].dt.hour
-    bike_ori_data['dropoff_hour'] = bike_ori_data['tpep_dropoff_datetime'].dt.hour
+    print("Remove useless features from dataset")
+    bike_ori_data.drop(columns=['bikeid', 'usertype', 'start station name', 'end station name'], inplace=True)
 
-    print("drop specific time information")
-    bike_ori_data.drop(columns=['tpep_pickup_datetime', 'tpep_dropoff_datetime'], inplace=True)
+    print("Get pick-up and drop-off hour")
+    bike_ori_data['start_hour'] = bike_ori_data['starttime'].dt.hour
+    bike_ori_data['end_hour'] = bike_ori_data['stoptime'].dt.hour
 
-    print("divide pickup and dropoff dataset")
-    bike_ori_data_pickup = bike_ori_data.drop(columns=['dropoff_hour', 'dropoff_longitude', 'dropoff_latitude'])
-    bike_ori_data_pickup['is_pickup'] = 1
-    bike_ori_data_pickup.rename(columns={'pickup_hour': 'hour',
-                                        'pickup_longitude': 'lon',
-                                        'pickup_latitude': 'lat'}, inplace=True)
-    bike_ori_data_dropoff = bike_ori_data.drop(columns=['pickup_hour', 'pickup_longitude', 'pickup_latitude'])
-    bike_ori_data_dropoff.rename(columns={'dropoff_hour': 'hour',
-                                         'dropoff_longitude': 'lon',
-                                         'dropoff_latitude': 'lat'}, inplace=True)
-    bike_ori_data_dropoff['is_pickup'] = 0
+    print("Drop specific time information")
+    bike_ori_data.drop(columns=['starttime', 'stoptime'], inplace=True)
 
-    print("concat pickup and dropoff dataset by rows")
-    out_bike_data = pd.concat([bike_ori_data_pickup, bike_ori_data_dropoff])
-    print("Finished, print all the columns:")
-    print(out_bike_data.dtypes)
+    print("Rename columns")
+    bike_ori_data.rename(columns={'start station id': 'start_id',
+                                  'end station id': 'end_id',
+                                  'start station longitude': 'start_lon',
+                                  'start station latitude': 'start_lat',
+                                  'end station longitude': 'end_lon',
+                                  'end station latitude': 'end_lat'}, inplace=True)
 
-    if keep_col is None:
-        print("make categorical features one-hot")
-        out_bike_data = pd.get_dummies(out_bike_data,
-                                      columns=['hour', 'VendorID', 'RatecodeID', 'payment_type'],
-                                      prefix=['hr', 'vid', 'rid', 'pt'], drop_first=True)
-    else:
-        print("Filter columns {}".format(keep_col))
-        out_bike_data = out_bike_data[keep_col + ['lon', 'lat']]
-        print("make categorical features one-hot")
-        dummy_col, dummy_prefix = [], []
-        col_prefix = {
-            'hour': 'hr',
-            'VendorID': 'vid',
-            'RatecodeID': 'rid',
-            'payment_type': 'pt'
-        }
-        for col, prefix in col_prefix.items():
-            if col in out_bike_data.columns:
-                dummy_col.append(col)
-                dummy_prefix.append(prefix)
-        out_bike_data = pd.get_dummies(out_bike_data, columns=dummy_col, prefix=dummy_prefix, drop_first=True)
+    print("Change birth year to age")
+    bike_ori_data['age'] = bike_ori_data['birth year'].apply(lambda x: 2016 - x)
+    bike_ori_data.drop(columns=['birth year'], inplace=True)
+
+    print("Columns: " + str(bike_ori_data.columns))
+
+    out_bike_data = pd.get_dummies(bike_ori_data,
+                                   columns=['gender', 'start_id', 'end_id'],
+                                   prefix=['gender', 'sid', 'eid'], drop_first=True)
 
     print("sampling from dataset")
     if sample_n is not None:
         out_bike_data = out_bike_data.sample(n=sample_n, random_state=0)
 
     print("Saving cleaned dataset to {}".format(out_bike_data_path))
-    out_bike_data.to_csv(out_bike_data_path, index=False)
+    out_bike_data.to_pickle(out_bike_data_path)
     print("Saved {} samples to file".format(len(out_bike_data.index)))
 
 
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../../data/nytaxi")  # change working directory
-    # clean_bike("yellow_tripdata_2016-06.csv", "taxi_201606_clean.csv", sample_n=None)
-    clean_bike("yellow_tripdata_2016-06.csv", "taxi_201606_clean_sample_1e6.csv",
-              sample_n=1000000, keep_col=['RatecodeID', 'tip_amount'])
+    clean_bike("201606-citibike-tripdata.csv", "bike_201606_clean_sample_6e5.pkl", sample_n=600000)

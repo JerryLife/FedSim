@@ -4,16 +4,16 @@ from datetime import datetime
 import argparse
 
 from model.vertical_fl.Top1SimModel import Top1SimModel
-from preprocess.nytaxi.ny_loader import NYLoader
+from preprocess.nytaxi.ny_loader import NYBikeTaxiLoader
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/nytaxi/"
-aribnb_dataset = "airbnb_clean.csv"
-taxi_dataset = "taxi_201606_clean_sample_1e6.csv"
+bike_dataset = "bike_201606_clean_sample_6e5.pkl"
+taxi_dataset = "taxi_201606_clean.pkl"
 
-num_common_features = 2
-data_loader = NYLoader(airbnb_path=root + aribnb_dataset, taxi_path=root + taxi_dataset, link=True)
+num_common_features = 4
+data_loader = NYBikeTaxiLoader(bike_path=root + bike_dataset, taxi_path=root + taxi_dataset, link=True)
 [X1, X2], y = data_loader.load_parties()
 name = "ny_top1sim_combine"
 
@@ -27,7 +27,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      grid_width=1.5,
                      knn_k=10,
                      kd_tree_radius=0.01,
-                     kd_tree_leaf_size=400,
+                     kd_tree_leaf_size=1000,
                      model_name=name + "_" + now_string,
                      val_rate=0.1,
                      test_rate=0.2,
@@ -37,7 +37,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      train_batch_size=1024 * 4,
                      test_batch_size=1024 * 4,
                      num_epochs=50,
-                     learning_rate=1e-2,
+                     learning_rate=3e-3,
                      weight_decay=1e-5,
                      num_workers=8 if sys.gettrace() is None else 0,
                      use_scheduler=False, sche_factor=0.1, sche_patience=10, sche_threshold=0.0001,
