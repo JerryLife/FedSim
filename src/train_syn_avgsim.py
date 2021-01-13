@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 
-from model.vertical_fl.AvgSim import AvgSimModel
+from model.vertical_fl.AvgSimModel import AvgSimModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')

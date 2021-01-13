@@ -1,14 +1,6 @@
 import pandas as pd
 
-
-def move_item_to_end_(arr, items):
-    for item in items:
-        arr.insert(len(arr), arr.pop(arr.index(item)))
-
-
-def move_item_to_start_(arr, items):
-    for item in items[::-1]:
-        arr.insert(0, arr.pop(arr.index(item)))
+from utils import move_item_to_start_, move_item_to_end_
 
 
 class NYAirbnbTaxiLoader:
@@ -30,7 +22,7 @@ class NYAirbnbTaxiLoader:
             ab_cols.insert(len(ab_cols), ab_cols.pop(ab_cols.index('longitude')))
             ab_cols.insert(len(ab_cols), ab_cols.pop(ab_cols.index('latitude')))
             self.airbnb_data = self.airbnb_data[ab_cols]
-            print("Current aribnb columns: " + str(list(self.airbnb_data)))
+            print("Current airbnb columns: " + str(list(self.airbnb_data)))
             self.airbnb_data = self.airbnb_data.to_numpy()
 
             # move lon and lat to the front of taxi
