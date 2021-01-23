@@ -21,3 +21,4 @@ def move_item_to_end_(arr, items):
 def move_item_to_start_(arr, items):
     for item in items[::-1]:
         arr.insert(0, arr.pop(arr.index(item)))
+

@@ -27,6 +27,7 @@ name = "beijing_house"
 
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='regression',
+                      metrics=['r2_score', 'rmse'],
                       n_classes=2,
                       val_rate=0.1,
                       test_rate=0.2,

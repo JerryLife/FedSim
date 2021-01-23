@@ -17,13 +17,14 @@ taxi_dataset = "taxi_201606_clean.pkl"
 num_common_features = 4
 data_loader = NYBikeTaxiLoader(bike_path=root + bike_dataset, taxi_path=root + taxi_dataset, link=True)
 [X1, X2], y = data_loader.load_parties()
-name = "ny_mergesim_splitnn"
-
+name = "ny_mergesim_combine"
 
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10, 10],
                       merge_mode='common_model_avg',
+                      feature_wise_sim=True,
                       task='regression',
+                      metrics=['r2_score', 'rmse'],
                       dataset_type='real',
                       blocking_method='knn',
                       n_classes=2,
@@ -53,10 +54,6 @@ model = MergeSimModel(num_common_features=num_common_features,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string),
                       sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
-                      # SplitNN parameters
-                      local_hidden_sizes=[[100], [100]],
-                      agg_hidden_sizes=[100],
-                      cut_dims=[50, 50]
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/ny_mergesim_combine.pkl", scale=True)
+model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
 # model.train_combine(X1, X2, y, scale=True)

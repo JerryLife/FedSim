@@ -4,33 +4,34 @@ from datetime import datetime
 import argparse
 
 from model.vertical_fl.MergeSimModel import MergeSimModel
-from preprocess.nytaxi.ny_loader import NYBikeTaxiLoader
+from preprocess.beijing import load_both
 
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
-root = "data/nytaxi/"
-bike_dataset = "bike_201606_clean_sample_6e5.pkl"
-taxi_dataset = "taxi_201606_clean.pkl"
-# taxi_dataset = "taxi_201606_clean.csv"
+root = "data/beijing/"
+house_dataset = root + "house_clean.csv"
+airbnb_dataset = root + "airbnb_clean.csv"
 
-num_common_features = 4
-data_loader = NYBikeTaxiLoader(bike_path=root + bike_dataset, taxi_path=root + taxi_dataset, link=True)
-[X1, X2], y = data_loader.load_parties()
-name = "ny_mergesim_combine"
+num_common_features = 2
+[X1, X2], y = load_both(house_path=house_dataset, airbnb_path=airbnb_dataset, active_party='house')
+name = "beijing_avgsim_splitnn"
+
 
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10, 10],
-                      merge_mode='common_model_avg',
+                      merge_mode='avg',
+                      feature_wise_sim=False,
                       task='regression',
+                      metrics=['r2_score', 'rmse'],
                       dataset_type='real',
                       blocking_method='knn',
                       n_classes=2,
                       grid_min=-10.0,
                       grid_max=10.0,
                       grid_width=1.5,
-                      knn_k=10,
-                      kd_tree_radius=2e-3,
+                      knn_k=20,
+                      kd_tree_radius=1e-2,
                       kd_tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
                       val_rate=0.1,
@@ -38,7 +39,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       drop_key=True,
                       device='cuda:0',
                       hidden_sizes=[200, 100],
-                      train_batch_size=1024 * 4 // 10,
+                      train_batch_size=1024 * 4 // 20,
                       test_batch_size=1024 * 4,
                       num_epochs=50,
                       learning_rate=3e-3,
@@ -52,6 +53,10 @@ model = MergeSimModel(num_common_features=num_common_features,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string),
                       sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
+                      # SplitNN parameters
+                      local_hidden_sizes=[[200], [200]],
+                      agg_hidden_sizes=[100],
+                      cut_dims=[100, 100]
                       )
-model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
-# model.train_combine(X1, X2, y, scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
+

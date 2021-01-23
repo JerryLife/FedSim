@@ -19,6 +19,7 @@ name = "ny_top1sim_combine"
 
 model = Top1SimModel(num_common_features=num_common_features,
                      task='regression',
+                     metrics=['r2_score', 'rmse'],
                      dataset_type='real',
                      blocking_method='knn',
                      n_classes=2,
@@ -44,5 +45,5 @@ model = Top1SimModel(num_common_features=num_common_features,
                      writer_path="runs/{}_{}".format(name, now_string),
                      model_save_path="ckp/{}_{}.pth".format(name, now_string),
                      )
-model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
 # model.train_combine(X1, X2, y, scale=True)

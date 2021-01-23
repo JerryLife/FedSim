@@ -7,8 +7,12 @@ import gc
 import numpy as np
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.neighbors import KDTree
+import joblib
+
+import torch
+from torch.utils.data import Dataset
 
 from tqdm import tqdm
 import deprecation
@@ -16,15 +20,111 @@ import deprecation
 from .TwoPartyModel import TwoPartyBaseModel
 
 
+class SimDataset(Dataset):
+    def __init__(self, data1, data2, labels, data_idx, sim_dim=1):
+        # data1[:, 0] and data2[:, 0] are both sim_scores
+        assert data1.shape[0] == data2.shape[0] == data_idx.shape[0]
+        # remove similarity scores in data1 (at column 0)
+        data1_labels = np.concatenate([data1[:, sim_dim:], labels.reshape(-1, 1)], axis=1)
+
+        print("Grouping data")
+        grouped_data1 = {}
+        grouped_data2 = {}
+        for i in range(data_idx.shape[0]):
+            idx1, idx2 = data_idx[i]
+            new_data2 = np.concatenate([idx2.reshape(1, 1), data2[i].reshape(1, -1)], axis=1)
+            if idx1 in grouped_data2:
+                grouped_data2[idx1] = np.concatenate([grouped_data2[idx1], new_data2], axis=0)
+            else:
+                grouped_data2[idx1] = new_data2
+            grouped_data1[idx1] = data1_labels[i]
+        print("Done")
+
+        group1_data_idx = np.array(list(grouped_data1.keys()))
+        group1_data1_labels = np.array(list(grouped_data1.values()))
+        group2_data_idx = np.array(list(grouped_data2.keys()))
+        group2_data2 = np.array(list(grouped_data2.values()), dtype='object')
+
+        print("Sorting data")
+        group1_order = group1_data_idx.argsort()
+        group2_order = group2_data_idx.argsort()
+
+        group1_data_idx = group1_data_idx[group1_order]
+        group1_data1_labels = group1_data1_labels[group1_order]
+        group2_data_idx = group2_data_idx[group2_order]
+        group2_data2 = group2_data2[group2_order]
+        assert (group1_data_idx == group2_data_idx).all()
+        print("Done")
+
+        self.data1_idx: np.ndarray = group1_data_idx
+        data1: np.ndarray = group1_data1_labels[:, :-1]
+        self.labels: torch.Tensor = torch.from_numpy(group1_data1_labels[:, -1])
+        data2: list = group2_data2
+
+        print("Retrieve data")
+        data_list = []
+        weight_list = []
+        data_idx_list = []
+        self.data_idx_split_points = [0]
+        for i in range(self.data1_idx.shape[0]):
+            d2 = torch.from_numpy(data2[i].astype(np.float)[:, 1:])  # remove index
+            d1 = torch.from_numpy(np.repeat(data1[i].reshape(1, -1), d2.shape[0], axis=0))
+            d = torch.cat([d2[:, :sim_dim], d1, d2[:, sim_dim:]], dim=1)  # move similarity to index 0
+            data_list.append(d)
+
+            weight = torch.ones(d2.shape[0]) / d2.shape[0]
+            weight_list.append(weight)
+
+            idx = torch.from_numpy(np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0))
+            data_idx_list.append(idx)
+            self.data_idx_split_points.append(self.data_idx_split_points[-1] + idx.shape[0])
+        print("Done")
+
+        self.data = torch.cat(data_list, dim=0)  # sim_scores; data1; data2
+        self.weights = torch.cat(weight_list, dim=0)
+        self.data_idx = torch.cat(data_idx_list, dim=0)
+
+    def __len__(self):
+        return self.data1_idx.shape[0]
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        start = self.data_idx_split_points[idx]
+        end = self.data_idx_split_points[idx + 1]
+
+        return self.data[start:end], self.labels[idx], self.weights[start:end], \
+               self.data_idx[start:end], self.data1_idx[idx]
+
+
 class SimModel(TwoPartyBaseModel):
     def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
-                 blocking_method='grid', feature_wise_sim=False, **kwargs):
+                 blocking_method='grid', feature_wise_sim=False,
+                 # Split Learning
+                 local_hidden_sizes=None, agg_hidden_sizes=None, cut_dims=None,
+                 **kwargs):
         super().__init__(num_common_features, **kwargs)
 
         self.feature_wise_sim = feature_wise_sim
         self.blocking_method = blocking_method
         self.center_threshold = center_threshold
         self.n_clusters = n_clusters
+
+        if local_hidden_sizes is None:
+            self.local_hidden_sizes = [[10], [10]]
+        else:
+            self.local_hidden_sizes = local_hidden_sizes
+
+        if cut_dims is None:
+            self.cut_dims = [100, 10]
+        else:
+            self.cut_dims = cut_dims
+
+        if agg_hidden_sizes is None:
+            self.agg_hidden_sizes = [10]
+        else:
+            self.agg_hidden_sizes = agg_hidden_sizes
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -345,5 +445,104 @@ class SimModel(TwoPartyBaseModel):
         matched_data2 = np.concatenate([merged_data_labels[:, :sim_dim],      # sim scores
                                         merged_data_labels[:, sim_dim + remain_data1_shape1:]],
                                        axis=1)
+        # matched_data2 = merged_data_labels[:, sim_dim + remain_data1_shape1:]
 
         return [matched_data1, matched_data2], ordered_labels, data_indices
+
+    def prepare_train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
+        if data_cache_path and os.path.isfile(data_cache_path):
+            print("Loading data from cache")
+            with open(data_cache_path, 'rb') as f:
+                train_dataset, val_dataset, test_dataset, y_scaler = pickle.load(f)
+            print("Done")
+        else:
+            print("Splitting data")
+            train_data1, val_data1, test_data1, train_labels, val_labels, test_labels, train_idx1, val_idx1, test_idx1 = \
+                self.split_data(data1, labels, val_rate=self.val_rate, test_rate=self.test_rate)
+
+            if self.dataset_type == 'syn':
+                train_data2 = data2[train_idx1]
+                val_data2 = data2[val_idx1]
+                test_data2 = data2[test_idx1]
+            elif self.dataset_type == 'real':
+                train_data2 = data2
+                val_data2 = data2
+                test_data2 = data2
+            else:
+                assert False, "Not supported dataset type"
+            print("Matching training set")
+            self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
+            preserve_key = not self.drop_key
+            train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
+                                                      preserve_key=preserve_key, grid_min=self.grid_min,
+                                                      grid_max=self.grid_max, grid_width=self.grid_width,
+                                                      knn_k=self.knn_k, kd_tree_leaf_size=self.kd_tree_leaf_size,
+                                                      radius=self.kd_tree_radius)
+            assert self.sim_scaler is not None
+            print("Matching validation set")
+            val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1,
+                                                preserve_key=preserve_key, grid_min=self.grid_min,
+                                                grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
+                                                kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
+            assert self.sim_scaler is not None
+            print("Matching test set")
+            test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
+                                                   preserve_key=preserve_key, grid_min=self.grid_min,
+                                                   grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
+                                                   kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
+
+            for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
+                print("Replace NaN with mean value")
+                col_mean = np.nanmean(train_X, axis=0)
+                train_indices = np.where(np.isnan(train_X))
+                train_X[train_indices] = np.take(col_mean, train_indices[1])
+                print("Train done.")
+                val_indices = np.where(np.isnan(val_X))
+                val_X[val_indices] = np.take(col_mean, val_indices[1])
+                print("Validation done.")
+                test_indices = np.where(np.isnan(test_X))
+                test_X[test_indices] = np.take(col_mean, test_indices[1])
+                print("Test done.")
+
+                if scale:
+                    sim_dim = self.num_common_features if self.feature_wise_sim else 1
+                    print("Scaling X")
+                    x_scaler = StandardScaler()
+                    # train_X[:, sim_dim:] = x_scaler.fit_transform(train_X[:, sim_dim:])
+                    # val_X[:, sim_dim:] = x_scaler.transform(val_X[:, sim_dim:])
+                    # test_X[:, sim_dim:] = x_scaler.transform(test_X[:, sim_dim:])
+                    train_X[:] = x_scaler.fit_transform(train_X)
+                    val_X[:] = x_scaler.transform(val_X)
+                    test_X[:] = x_scaler.transform(test_X)
+                    print("Scale done.")
+
+            y_scaler = None
+            if scale:
+                print("Scaling y")
+                y_scaler = MinMaxScaler(feature_range=(0, 1))
+                train_y = y_scaler.fit_transform(train_y.reshape(-1, 1)).flatten()
+                val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
+                test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
+                print("Scale done")
+
+            sim_dim = self.num_common_features if self.feature_wise_sim else 1
+            train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)
+            val_dataset = SimDataset(val_Xs[0], val_Xs[1], val_y, val_idx, sim_dim=sim_dim)
+            test_dataset = SimDataset(test_Xs[0], test_Xs[1], test_y, test_idx, sim_dim=sim_dim)
+
+            if data_cache_path:
+                print("Saving data to cache")
+                with open(data_cache_path, 'wb') as f:
+                    pickle.dump([train_dataset, val_dataset, test_dataset, y_scaler], f)
+                print("Saved")
+
+        return train_dataset, val_dataset, test_dataset, y_scaler
+
+    @staticmethod
+    def var_collate_fn(batch):
+        data = torch.cat([item[0] for item in batch], dim=0)
+        labels = torch.stack([item[1] for item in batch])
+        weights = torch.cat([item[2] for item in batch], dim=0)
+        idx = torch.cat([item[3] for item in batch], dim=0)
+        idx_unique = np.array([item[4] for item in batch], dtype=np.int)
+        return data, labels, weights, idx, idx_unique
