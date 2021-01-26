@@ -508,12 +508,12 @@ class SimModel(TwoPartyBaseModel):
                     sim_dim = self.num_common_features if self.feature_wise_sim else 1
                     print("Scaling X")
                     x_scaler = StandardScaler()
-                    # train_X[:, sim_dim:] = x_scaler.fit_transform(train_X[:, sim_dim:])
-                    # val_X[:, sim_dim:] = x_scaler.transform(val_X[:, sim_dim:])
-                    # test_X[:, sim_dim:] = x_scaler.transform(test_X[:, sim_dim:])
-                    train_X[:] = x_scaler.fit_transform(train_X)
-                    val_X[:] = x_scaler.transform(val_X)
-                    test_X[:] = x_scaler.transform(test_X)
+                    train_X[:, sim_dim:] = x_scaler.fit_transform(train_X[:, sim_dim:])
+                    val_X[:, sim_dim:] = x_scaler.transform(val_X[:, sim_dim:])
+                    test_X[:, sim_dim:] = x_scaler.transform(test_X[:, sim_dim:])
+                    # train_X[:] = x_scaler.fit_transform(train_X)
+                    # val_X[:] = x_scaler.transform(val_X)
+                    # test_X[:] = x_scaler.transform(test_X)
                     print("Scale done.")
 
             y_scaler = None

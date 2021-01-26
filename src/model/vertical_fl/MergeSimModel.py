@@ -18,6 +18,10 @@ from tqdm import tqdm
 from torchsummaryX import summary
 import torch_optimizer as adv_optim
 
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
+
 from .SimModel import SimModel
 from model.base import *
 from .SimModel import SimDataset
@@ -44,8 +48,12 @@ class MergeSimModel(SimModel):
     def __init__(self, num_common_features, sim_hidden_sizes=None, merge_mode='sim_model_avg',
                  sim_model_save_path=None, update_sim_freq=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
+                 log_dir=None,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.log_dir = log_dir
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
         self.update_sim_freq = update_sim_freq
         self.sim_model_save_path = sim_model_save_path
         self.sim_batch_size = sim_batch_size
@@ -62,6 +70,41 @@ class MergeSimModel(SimModel):
 
         self.data1_shape = None
         self.data2_shape = None
+
+    def plot_model(self, model, input_dim, save_fig_path, dim_wise=False):
+        """
+        If the input dimension of the model is lower than 2, plot the figure of model.
+        Otherwise, do nothing.
+        """
+        assert int(input_dim) == input_dim
+
+        if input_dim == 1:
+            x = np.arange(0, 1, 0.01)
+            x_tensor = torch.tensor(x).float().reshape(-1, 1).to(self.device)
+            z = model(x_tensor).detach().cpu().numpy()
+            plt.plot(x, z)
+            plt.savefig(save_fig_path)
+            plt.close()
+            return
+
+        xs_raw = [np.arange(0, 1, 0.01) for _ in range(input_dim)]
+        xs = np.meshgrid(*xs_raw)
+        xs_tensor = torch.tensor(np.concatenate(
+            [x.reshape(-1, 1) for x in xs], axis=1)).float().to(self.device)
+        z = model(xs_tensor).detach().cpu().numpy().reshape(xs[0].shape)
+
+        if dim_wise:
+            raise NotImplementedError   # todo
+        else:
+            assert input_dim == 2, "Cannot plot high dimensional functions"
+            assert len(xs) == 2
+
+            fig = plt.figure()
+            ax = fig.gca(projection='3d')
+            surf = ax.plot_surface(xs[0], xs[1], z, cmap=cm.coolwarm,
+                                   linewidth=0, antialiased=False)
+            plt.savefig(save_fig_path)
+
 
     @deprecation.deprecated()
     def train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
@@ -548,6 +591,16 @@ class MergeSimModel(SimModel):
                 is_best = (val_metric_scores[0] < best_val_metric_scores[0])
             else:
                 assert False, "Unsupported metric"
+
+            # visualize sim_model
+            if self.merge_mode == 'avg':
+                pass
+            elif self.feature_wise_sim:
+                raise NotImplementedError # todo
+            else:
+                self.plot_model(self.sim_model, input_dim=1,
+                                save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch),
+                                dim_wise=False)
 
             if is_best:
                 best_train_metric_scores = train_metric_scores

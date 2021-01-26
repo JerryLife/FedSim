@@ -20,8 +20,8 @@ name = "beijing_mergesim_splitnn"
 
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10, 10],
-                      merge_mode='common_model_avg',
-                      feature_wise_sim=True,
+                      merge_mode='sim_model_avg',
+                      feature_wise_sim=False,
                       task='regression',
                       metrics=['r2_score', 'rmse'],
                       dataset_type='real',
@@ -30,7 +30,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       grid_min=-10.0,
                       grid_max=10.0,
                       grid_width=1.5,
-                      knn_k=20,
+                      knn_k=100,
                       kd_tree_radius=1e-2,
                       kd_tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
@@ -39,7 +39,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       drop_key=True,
                       device='cuda:0',
                       hidden_sizes=[200, 100],
-                      train_batch_size=1024 * 4 // 20,
+                      train_batch_size=1024 * 4 // 100,
                       test_batch_size=1024 * 4,
                       num_epochs=50,
                       learning_rate=3e-3,
@@ -53,10 +53,12 @@ model = MergeSimModel(num_common_features=num_common_features,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string),
                       sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
+                      log_dir="log/{}_{}/".format(name, now_string),
                       # SplitNN parameters
                       local_hidden_sizes=[[200], [200]],
                       agg_hidden_sizes=[100],
                       cut_dims=[100, 100]
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_dim_1.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, scale=True)
 
