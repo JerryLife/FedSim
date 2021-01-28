@@ -7,7 +7,7 @@ from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
+parser.add_argument('-s', '--noise-scale', type=float, default=0.2)
 args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -20,12 +20,14 @@ noise_scale = args.noise_scale
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
-name = "boone_mergesim_combine"
+name = "boone_mergesim_splitnn"
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10, 10],
-                      merge_mode='common_model_avg',
+                      merge_mode='sim_model_avg',
+                      feature_wise_sim=False,
                       task='binary_cls',
                       dataset_type='syn',
+                      metrics=['accuracy'],
                       blocking_method='radius',
                       n_classes=2,
                       grid_min=-10.0,
@@ -43,9 +45,9 @@ model = MergeSimModel(num_common_features=num_common_features,
                       train_batch_size=64,
                       test_batch_size=4096,
                       num_epochs=50,
-                      learning_rate=1e-3,
+                      learning_rate=5e-3,
                       weight_decay=1e-5,
-                      sim_learning_rate=1e-3,
+                      sim_learning_rate=5e-3,
                       sim_weight_decay=1e-5,
                       sim_batch_size=4096,
                       update_sim_freq=1,
@@ -54,6 +56,11 @@ model = MergeSimModel(num_common_features=num_common_features,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string),
                       sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
+                      log_dir="log/{}_{}/".format(name, now_string),
+                      # SplitNN parameters
+                      local_hidden_sizes=[[100], [100]],
+                      agg_hidden_sizes=[100],
+                      cut_dims=[50, 50]
                       )
 # model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
-model.train_combine(X1, X2, y)
+model.train_splitnn(X1, X2, y)

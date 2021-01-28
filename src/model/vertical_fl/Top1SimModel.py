@@ -199,6 +199,10 @@ class Top1SimModel(SimModel):
         input_dims = [self.data1_shape[1] - self.num_common_features,
                       self.data2_shape[1] - self.num_common_features]
         num_parties = 2
+        if self.drop_key:
+            num_features = data1.shape[1] + data2.shape[1] - 2 * self.num_common_features
+        else:
+            num_features = data1.shape[1] + data2.shape[1]
 
         if self.task == 'binary_cls':
             output_dim = 1
@@ -247,7 +251,7 @@ class Top1SimModel(SimModel):
         if train_idx is not None:
             answer_all = dict(zip(train_idx, train_y))
         print("Start training")
-        summary(self.model, next(iter(train_loader))[0].to(self.device))
+        summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
         print(str(self))
         for epoch in range(self.num_epochs):
             if train_idx is not None:
@@ -342,7 +346,7 @@ class Top1SimModel(SimModel):
             print("Best:")
             for i in range(len(self.metrics)):
                 print("          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}"
-                      .format(self.metrics[i], best_train_metric_scores[i],
+                      .format(self.metrics_f[i].name, best_train_metric_scores[i],
                               best_val_metric_scores[i], best_test_metric_scores[i]))
 
         time_duration_sec = (datetime.now() - start_time).seconds

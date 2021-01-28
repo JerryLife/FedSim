@@ -254,7 +254,7 @@ class BaseModel:
             print("Best:")
             for i in range(len(self.metrics)):
                 print("          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}"
-                      .format(self.metrics[i], best_train_metric_scores[i],
+                      .format(self.metrics_f[i].name, best_train_metric_scores[i],
                               best_val_metric_scores[i], best_test_metric_scores[i]))
 
         return best_test_metric_scores

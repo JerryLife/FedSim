@@ -59,6 +59,6 @@ model = MergeSimModel(num_common_features=num_common_features,
                       agg_hidden_sizes=[100],
                       cut_dims=[100, 100]
                       )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_dim_1.pkl".format(name), scale=True)
-model.train_splitnn(X1, X2, y, scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True, torch_seed=0)
+# model.train_splitnn(X1, X2, y, scale=True)
 

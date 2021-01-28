@@ -333,7 +333,6 @@ class SimModel(TwoPartyBaseModel):
         """
         Match data1 and data2 according to common features
         :param radius:
-        :param radius:
         :param knn_k:
         :param kd_tree_leaf_size:
         :param blocking_method: method of blocking before matching
@@ -524,6 +523,11 @@ class SimModel(TwoPartyBaseModel):
                 val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
                 test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
                 print("Scale done")
+
+            # # debug
+            # np.random.shuffle(train_idx)
+            # np.random.shuffle(val_idx)
+            # np.random.shuffle(test_idx)
 
             sim_dim = self.num_common_features if self.feature_wise_sim else 1
             train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)

@@ -1,7 +1,14 @@
 import numpy as np
+import os
+import wget
 
 
-def load_miniboone(path):
+def load_miniboone(path, download=True):
+    if download and not os.path.isfile(path):
+        print("Downloading MiniBooNE dataset")
+        wget.download("https://archive.ics.uci.edu/ml/machine-learning-databases/00199/MiniBooNE_PID.txt",
+                      out=path)
+
     with open(path, 'r') as f:
         line = next(f)
         n_signal_events, n_background_events = [int(x) for x in line.split()]

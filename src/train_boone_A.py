@@ -9,7 +9,7 @@ from model.vertical_fl.OnePartyModel import OnePartyModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
+parser.add_argument('-s', '--noise-scale', type=float, default=0.2)
 args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -30,6 +30,7 @@ name = "boone_a"
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='binary_cls',
                       n_classes=2,
+                      metrics=['accuracy'],
                       val_rate=0.1,
                       test_rate=0.2,
                       device='cuda:0',
@@ -37,7 +38,7 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       train_batch_size=4096,
                       test_batch_size=4096,
                       num_epochs=100,
-                      learning_rate=1e-3,
+                      learning_rate=2e-3,
                       weight_decay=1e-5,
                       num_workers=4 if sys.gettrace() is None else 0,
                       use_scheduler=False,

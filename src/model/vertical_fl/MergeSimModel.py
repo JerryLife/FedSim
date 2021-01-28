@@ -375,7 +375,14 @@ class MergeSimModel(SimModel):
         else:
             assert False
 
-    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False):
+    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None):
+        if torch_seed is not None:
+            torch.manual_seed(torch_seed)
+            # For CUDA >= 10.2 only
+            os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
+
+            torch.set_deterministic(True)
+
         start_time = datetime.now()
         train_dataset, val_dataset, test_dataset, y_scaler = \
             self.prepare_train_combine(data1, data2, labels, data_cache_path, scale)
@@ -626,7 +633,7 @@ class MergeSimModel(SimModel):
             print("Best:")
             for i in range(len(self.metrics)):
                 print("          {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}"
-                      .format(self.metrics[i], best_train_metric_scores[i],
+                      .format(self.metrics_f[i].name, best_train_metric_scores[i],
                               best_val_metric_scores[i], best_test_metric_scores[i]))
 
         time_duration_sec = (datetime.now() - start_time).seconds
