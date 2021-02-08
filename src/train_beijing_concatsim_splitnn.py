@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import argparse
 
-from model.vertical_fl.MergeSimModel import MergeSimModel
+from model.vertical_fl.ConcatSimModel import ConcatSimModel
 from preprocess.beijing import load_both
 
 
@@ -15,12 +15,12 @@ airbnb_dataset = root + "airbnb_clean.csv"
 
 num_common_features = 2
 [X1, X2], y = load_both(house_path=house_dataset, airbnb_path=airbnb_dataset, active_party='house')
-name = "beijing_avgsim_splitnn"
+name = "beijing_concatsim_splitnn"
 
 
-model = MergeSimModel(num_common_features=num_common_features,
-                      sim_hidden_sizes=[10, 10],
-                      merge_mode='avg',
+model = ConcatSimModel(num_common_features=num_common_features,
+                      sim_hidden_sizes=[50, 50],
+                      raw_output_dim=10,
                       feature_wise_sim=False,
                       task='regression',
                       metrics=['r2_score', 'rmse'],
@@ -39,7 +39,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       drop_key=True,
                       device='cuda:0',
                       hidden_sizes=[200, 100],
-                      train_batch_size=1024 * 4 // 100,
+                      train_batch_size=128,
                       test_batch_size=1024 * 4,
                       num_epochs=50,
                       learning_rate=3e-3,
@@ -59,6 +59,6 @@ model = MergeSimModel(num_common_features=num_common_features,
                       agg_hidden_sizes=[100],
                       cut_dims=[100, 100]
                       )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True, torch_seed=0)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
 model.train_splitnn(X1, X2, y, scale=True)
 

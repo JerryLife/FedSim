@@ -112,5 +112,5 @@ if __name__ == '__main__':
     # clean_tlc("yellow_tripdata_2016-06.csv", "taxi_201606_clean.csv", sample_n=None)
     # clean_tlc_for_airbnb("yellow_tripdata_2016-06.csv", "taxi_201606_clean_sample_1e6.csv",
     #                      sample_n=1000000, keep_col=['RatecodeID', 'tip_amount'])
-    clean_tlc_for_bike("yellow_tripdata_2016-06.csv", "taxi_201606_clean.pkl",
-                       sample_n=None)
+    clean_tlc_for_bike("yellow_tripdata_2016-06.csv", "taxi_201606_clean_sample_1e5.pkl",
+                       sample_n=100000)

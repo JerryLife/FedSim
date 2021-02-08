@@ -15,7 +15,7 @@ noise_scale = 0.2
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
     root + "syn_cls_many2many_generator_noise_{:.2f}.pkl".format(noise_scale))
 [X1, X2], y = syn_generator.get_parties()
-name = "syn_sim_avgsim_splitnn"
+name = "syn_avgsim_splitnn"
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10],
                       merge_mode='avg',
@@ -37,7 +37,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       drop_key=True,
                       device='cuda:0',
                       hidden_sizes=[100, 100],
-                      train_batch_size=64,
+                      train_batch_size=32,
                       test_batch_size=4096,
                       num_epochs=50,
                       learning_rate=1e-3,

@@ -78,6 +78,8 @@ class SimDataset(Dataset):
             idx = torch.from_numpy(np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0))
             data_idx_list.append(idx)
             self.data_idx_split_points.append(self.data_idx_split_points[-1] + idx.shape[0])
+            if idx.shape[0] != 100:
+                pass
         print("Done")
 
         self.data = torch.cat(data_list, dim=0)  # sim_scores; data1; data2
@@ -378,11 +380,11 @@ class SimModel(TwoPartyBaseModel):
         real_sim_scores = np.concatenate([idx[sim_scores[:, 0].astype(np.int)].reshape(-1, 1),
                                           sim_scores[:, 1:]], axis=1)
 
-        # filter similarity scores (last column) by a threshold
-        if not self.feature_wise_sim:
-            real_sim_scores = real_sim_scores[real_sim_scores[:, -1] >= sim_threshold]
-        elif not np.isclose(sim_threshold, 0.0):
-            warnings.warn("Threshold is not used for feature-wise similarity")
+        # # filter similarity scores (last column) by a threshold
+        # if not self.feature_wise_sim:
+        #     real_sim_scores = real_sim_scores[real_sim_scores[:, -1] >= sim_threshold]
+        # elif not np.isclose(sim_threshold, 0.0):
+        #     warnings.warn("Threshold is not used for feature-wise similarity")
 
         # save sim scores
         with open("cache/sim_scores.pkl", "wb") as f:
@@ -523,11 +525,6 @@ class SimModel(TwoPartyBaseModel):
                 val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
                 test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
                 print("Scale done")
-
-            # # debug
-            # np.random.shuffle(train_idx)
-            # np.random.shuffle(val_idx)
-            # np.random.shuffle(test_idx)
 
             sim_dim = self.num_common_features if self.feature_wise_sim else 1
             train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)

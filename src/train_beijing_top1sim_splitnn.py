@@ -25,7 +25,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      grid_min=-10.0,
                      grid_max=10.0,
                      grid_width=1.5,
-                     knn_k=20,
+                     knn_k=100,
                      kd_tree_radius=0.01,
                      kd_tree_leaf_size=1000,
                      model_name=name + "_" + now_string,
@@ -48,5 +48,5 @@ model = Top1SimModel(num_common_features=num_common_features,
                      agg_hidden_sizes=[100],
                      cut_dims=[100, 100]
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
-# model.train_splitnn(X1, X2, y, scale=True)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, scale=True)

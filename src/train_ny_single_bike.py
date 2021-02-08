@@ -16,7 +16,7 @@ now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
 
 root = "data/nytaxi/"
-dataset = "bike_201606_clean_sample_6e5.pkl"
+dataset = "bike_201606_clean_sample_2e5.pkl"
 
 data_loader = NYBikeTaxiLoader(bike_path=root + dataset, taxi_path=None, link=False)
 X, y = data_loader.load_single()

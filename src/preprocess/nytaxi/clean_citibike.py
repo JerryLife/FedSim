@@ -66,4 +66,4 @@ def clean_bike(bike_ori_data_path, out_bike_data_path, sample_n=None):
 
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../../data/nytaxi")  # change working directory
-    clean_bike("201606-citibike-tripdata.csv", "bike_201606_clean_sample_6e5.pkl", sample_n=600000)
+    clean_bike("201606-citibike-tripdata.csv", "bike_201606_clean_sample_2e5.pkl", sample_n=200000)

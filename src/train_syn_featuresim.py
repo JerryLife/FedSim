@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 
-from model.vertical_fl.MergeSimModel import MergeSimModel
+from model.vertical_fl.FeatureSimModel import FeatureSimModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -15,10 +15,8 @@ noise_scale = 0.2
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
     root + "syn_cls_many2many_generator_noise_{:.2f}.pkl".format(noise_scale))
 [X1, X2], y = syn_generator.get_parties()
-name = "syn_mergsim_splitnn"
-model = MergeSimModel(num_common_features=num_common_features,
-                      sim_hidden_sizes=[10],
-                      merge_mode='sim_model_avg',
+name = "syn_featuresim_splitnn"
+model = FeatureSimModel(num_common_features=num_common_features,
                       feature_wise_sim=False,
                       task='binary_cls',
                       metrics=['accuracy'],
@@ -42,20 +40,14 @@ model = MergeSimModel(num_common_features=num_common_features,
                       num_epochs=50,
                       learning_rate=1e-3,
                       weight_decay=1e-4,
-                      sim_learning_rate=1e-3,
-                      sim_weight_decay=1e-4,
-                      sim_batch_size=4096,
-                      update_sim_freq=1,
                       num_workers=4 if sys.gettrace() is None else 0,
                       use_scheduler=False, sche_factor=0.1, sche_patience=10, sche_threshold=0.0001,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string),
-                      sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
-                      log_dir="log/{}_{}/".format(name, now_string),
                       # SplitNN parameters
                       local_hidden_sizes=[[100], [100]],
                       agg_hidden_sizes=[100],
                       cut_dims=[50, 50]
                       )
+# model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
 model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
-# model.train_splitnn(X1, X2, y)
