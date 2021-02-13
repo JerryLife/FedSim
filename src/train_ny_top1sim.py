@@ -15,7 +15,7 @@ taxi_dataset = "taxi_201606_clean_sample_1e5.pkl"
 num_common_features = 4
 data_loader = NYBikeTaxiLoader(bike_path=root + bike_dataset, taxi_path=root + taxi_dataset, link=True)
 [X1, X2], y = data_loader.load_parties()
-name = "ny_top1sim_combine"
+name = "ny_top1sim"
 
 model = Top1SimModel(num_common_features=num_common_features,
                      task='regression',
@@ -45,5 +45,4 @@ model = Top1SimModel(num_common_features=num_common_features,
                      writer_path="runs/{}_{}".format(name, now_string),
                      model_save_path="ckp/{}_{}.pth".format(name, now_string),
                      )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
-model.train_combine(X1, X2, y, scale=True)
+model.train_splitnn(X1, X2, y, scale=True)

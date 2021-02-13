@@ -1,21 +1,26 @@
 import os
 import sys
+import argparse
 from datetime import datetime
 
 from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
+args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 num_common_features = 5
-noise_scale = 0.2
+noise_scale = args.noise_scale
 
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
     root + "syn_cls_many2many_generator_noise_{:.2f}.pkl".format(noise_scale))
 [X1, X2], y = syn_generator.get_parties()
-name = "syn_mergsim_splitnn"
+name = "syn_mergsim_noise_{:.2f}".format(noise_scale)
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10],
                       merge_mode='sim_model_avg',
@@ -23,12 +28,12 @@ model = MergeSimModel(num_common_features=num_common_features,
                       task='binary_cls',
                       metrics=['accuracy'],
                       dataset_type='syn',
-                      blocking_method='grid',
+                      blocking_method='knn',
                       n_classes=2,
                       grid_min=-10.0,
                       grid_max=10.0,
                       grid_width=1.5,
-                      knn_k=10,
+                      knn_k=100,
                       kd_tree_radius=2,
                       kd_tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
@@ -57,5 +62,5 @@ model = MergeSimModel(num_common_features=num_common_features,
                       agg_hidden_sizes=[100],
                       cut_dims=[50, 50]
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.2f}.pkl".format(noise_scale))
 # model.train_splitnn(X1, X2, y)

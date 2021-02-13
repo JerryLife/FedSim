@@ -20,17 +20,18 @@ noise_scale = args.noise_scale
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
-name = "boone_top1sim_splitnn"
+name = "boone_top1sim_noise_{:.2f}".format(noise_scale)
+
 model = Top1SimModel(num_common_features=num_common_features,
                      dataset_type='syn',
                      task='binary_cls',
                      metrics=['accuracy'],
-                     blocking_method='radius',
+                     blocking_method='knn',
                      n_classes=2,
                      grid_min=-10.0,
                      grid_max=10.0,
                      grid_width=1.5,
-                     knn_k=10,
+                     knn_k=100,
                      kd_tree_leaf_size=1000,
                      kd_tree_radius=2,
                      model_name=name + "_" + now_string,
@@ -56,5 +57,4 @@ model = Top1SimModel(num_common_features=num_common_features,
                      agg_hidden_sizes=[100],
                      cut_dims=[50, 50]
                      )
-# model.train_combine(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
 model.train_splitnn(X1, X2, y)

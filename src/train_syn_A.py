@@ -1,24 +1,30 @@
 import os
 import sys
+import argparse
 from datetime import datetime
 
 from model.vertical_fl.OnePartyModel import OnePartyModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
+args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 num_common_features = 5
-noise_scale = 0.2
+noise_scale = args.noise_scale
 
 syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
     root + "syn_cls_many2many_generator_noise_{:.2f}.pkl".format(noise_scale))
 (X1, X2), y = syn_generator.get_parties()
-# X = X1[:, :-num_common_features]
-X = X1
+X = X1[:, :-num_common_features]
+# X = X1
 print("X got {} dimensions".format(X.shape[1]))
-name = "syn_single_a"
+name = "syn_a_noise_scale_{:.2f}".format(noise_scale)
+
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='binary_cls',
                       metrics=['accuracy'],

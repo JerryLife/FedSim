@@ -23,18 +23,22 @@ num_features = 50
 num_common_features = 4
 noise_scale = args.noise_scale
 
-data_loader = TwoPartyLoader(num_features=num_features,
-                             num_common_features=num_common_features,
-                             common_feature_noise_scale=noise_scale,
-                             data_fmt=load_miniboone, dataset_name=dataset, n_classes=2,
-                             seed=0)
-data_loader.load_parties(root + dataset)
-data_loader.to_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
+# data_loader = TwoPartyLoader(num_features=num_features,
+#                              num_common_features=num_common_features,
+#                              common_feature_noise_scale=noise_scale,
+#                              data_fmt=load_miniboone, dataset_name=dataset, n_classes=2,
+#                              seed=0)
+# data_loader.load_parties(root + dataset)
+# data_loader.to_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
-X, y = data_loader.load_dataset()
+[X1, X2], y = data_loader.load_parties()
+
+# remove linked features
+X = np.concatenate([X1[:, :-num_common_features], X2[:, num_common_features:]], axis=1)
+
 print("X got {} dimensions".format(X.shape[1]))
-name = "boone_all"
+name = "boone_all_noise_{:.2f}".format(noise_scale)
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='binary_cls',
                       metrics=['accuracy'],

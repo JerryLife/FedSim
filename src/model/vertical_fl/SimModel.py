@@ -37,8 +37,15 @@ class SimDataset(Dataset):
                 grouped_data2[idx1] = np.concatenate([grouped_data2[idx1], new_data2], axis=0)
             else:
                 grouped_data2[idx1] = new_data2
+            np.random.shuffle(grouped_data2[idx1])  # shuffle to avoid information leakage of the order
             grouped_data1[idx1] = data1_labels[i]
         print("Done")
+
+        print("Checking if B is sorted by similarity: ", end="")
+        is_sorted = True
+        for k, v in grouped_data2.items():
+            is_sorted = is_sorted and np.all(np.diff(v[:, 1].flatten()) < 0)
+        print(is_sorted)
 
         group1_data_idx = np.array(list(grouped_data1.keys()))
         group1_data1_labels = np.array(list(grouped_data1.values()))
@@ -270,7 +277,8 @@ class SimModel(TwoPartyBaseModel):
         tree = KDTree(key2, leaf_size=kd_tree_leaf_size)
 
         print("Query KD-tree")
-        dists, idx2 = tree.query(key1, k=knn_k, return_distance=True)
+        # sort_results should be marked False to avoid the order leaking information
+        dists, idx2 = tree.query(key1, k=knn_k, return_distance=True, sort_results=False)
 
         repeat_times = [x.shape[0] for x in idx2]
         non_empty_idx = [x > 0 for x in repeat_times]
@@ -308,7 +316,7 @@ class SimModel(TwoPartyBaseModel):
         tree = KDTree(key2, leaf_size=kd_tree_leaf_size)
 
         print("Query KD-tree")
-        idx2, dists = tree.query_radius(key1, r=radius, return_distance=True)
+        idx2, dists = tree.query_radius(key1, r=radius, return_distance=True, sort_results=False)
 
         print("Calculate sim_scores")
         repeat_times = [x.shape[0] for x in idx2]

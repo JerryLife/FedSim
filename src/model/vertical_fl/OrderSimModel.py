@@ -28,7 +28,7 @@ from .SimModel import SimDataset
 from utils import get_split_points
 
 
-class ConcatSimModel(SimModel):
+class OrderSimModel(SimModel):
     def __init__(self, num_common_features, sim_hidden_sizes=None,
                  sim_model_save_path=None, update_sim_freq=1, raw_output_dim=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
@@ -54,6 +54,8 @@ class ConcatSimModel(SimModel):
 
         self.data1_shape = None
         self.data2_shape = None
+
+        assert self.feature_wise_sim is False, "Cannot sort by multiple features"
 
         assert self.blocking_method == 'knn'    # the pairing must be consistent
 
@@ -161,18 +163,8 @@ class ConcatSimModel(SimModel):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
 
-                if self.feature_wise_sim:
-                    data = data_batch[:, self.num_common_features:]
-                    if self.use_sim:
-                        sim_scores = data_batch[:, :self.num_common_features]
-                    else:
-                        sim_scores = torch.ones([data_batch.shape[0], self.num_common_features]).to(self.device)
-                else:
-                    data = data_batch[:, 1:]
-                    if self.use_sim:
-                        sim_scores = data_batch[:, 0].reshape(-1, 1)
-                    else:
-                        sim_scores = torch.ones([data_batch.shape[0], 1]).to(self.device)
+                data = data_batch[:, 1:]
+                sim_scores = data_batch[:, 0].reshape(-1, 1)
 
                 # train main model
                 optimizer.zero_grad()
@@ -185,8 +177,13 @@ class ConcatSimModel(SimModel):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
 
-                    outputs_flat = outputs[start:end].flatten()
                     sim_scores_flat = sim_scores[start:end].flatten()
+                    sim_scores_flat, indices = torch.sort(sim_scores_flat)
+                    outputs_flat = outputs[start:end][indices].flatten()
+
+                    if not self.use_sim:
+                        sim_scores_flat = torch.ones(sim_scores_flat.shape).to(self.device)
+
                     output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
 
                     # # bound threshold
@@ -295,18 +292,8 @@ class ConcatSimModel(SimModel):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
 
-                if self.feature_wise_sim:
-                    data = data_batch[:, self.num_common_features:]
-                    if self.use_sim:
-                        sim_scores = data_batch[:, :self.num_common_features]
-                    else:
-                        sim_scores = torch.ones([data_batch.shape[0], self.num_common_features]).to(self.device)
-                else:
-                    data = data_batch[:, 1:]
-                    if self.use_sim:
-                        sim_scores = data_batch[:, 0].reshape(-1, 1)
-                    else:
-                        sim_scores = torch.ones([data_batch.shape[0], 1]).to(self.device)
+                data = data_batch[:, 1:]
+                sim_scores = data_batch[:, 0].reshape(-1, 1)
 
                 outputs = self.model(data)
 
@@ -317,12 +304,15 @@ class ConcatSimModel(SimModel):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
 
-                    outputs_flat = outputs[start:end].flatten()
                     sim_scores_flat = sim_scores[start:end].flatten()
-                    try:
-                        output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
-                    except Exception:
-                        pass
+                    sim_scores_flat, indices = torch.sort(sim_scores_flat)
+                    outputs_flat = outputs[start:end][indices].flatten()
+
+                    if not self.use_sim:
+                        sim_scores_flat = torch.ones(sim_scores_flat.shape).to(self.device)
+
+                    output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
+
 
                     # # bound threshold
                     # output_i[output_i > 1.] = 1.

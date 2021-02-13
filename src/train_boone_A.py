@@ -26,7 +26,7 @@ data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format
 X = X1[:, :-num_common_features]
 # X = X1
 print("X got {} dimensions".format(X.shape[1]))
-name = "boone_a"
+name = "boone_a_noise_{:.2f}".format(noise_scale)
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='binary_cls',
                       n_classes=2,

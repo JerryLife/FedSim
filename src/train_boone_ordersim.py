@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import argparse
 
-from model.vertical_fl.MergeSimModel import MergeSimModel
+from model.vertical_fl.OrderSimModel import OrderSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
@@ -20,9 +20,11 @@ noise_scale = args.noise_scale
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
-name = "boone_avgsim_noise_{:.2f}".format(noise_scale)
-model = MergeSimModel(num_common_features=num_common_features,
-                      merge_mode='avg',
+name = "boone_ordersim_noise_{:.2f}".format(noise_scale)
+
+model = OrderSimModel(num_common_features=num_common_features,
+                      sim_hidden_sizes=[30, 30],
+                      raw_output_dim=3,
                       feature_wise_sim=False,
                       task='binary_cls',
                       dataset_type='syn',
@@ -44,17 +46,24 @@ model = MergeSimModel(num_common_features=num_common_features,
                       train_batch_size=64,
                       test_batch_size=4096,
                       num_epochs=100,
-                      learning_rate=2e-3,
+                      learning_rate=1e-3,
                       weight_decay=1e-5,
+                      sim_learning_rate=1e-3,
+                      sim_weight_decay=1e-5,
+                      sim_batch_size=4096,
+                      update_sim_freq=1,
                       num_workers=4 if sys.gettrace() is None else 0,
                       use_scheduler=False, sche_factor=0.1, sche_patience=10, sche_threshold=0.0001,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string),
+                      sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
                       log_dir="log/{}_{}/".format(name, now_string),
                       # SplitNN parameters
                       local_hidden_sizes=[[100], [100]],
                       agg_hidden_sizes=[100],
-                      cut_dims=[50, 50]
+                      cut_dims=[50, 50],
+
+                      use_sim=False
                       )
-model.train_combine(X1, X2, y, data_cache_path="cache/boone_sim_noise_{:.2f}.pkl".format(noise_scale))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/boone_sim_noise_{:.2f}.pkl".format(noise_scale))
 # model.train_splitnn(X1, X2, y)
