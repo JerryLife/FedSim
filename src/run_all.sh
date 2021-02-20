@@ -23,7 +23,7 @@ for i in  $(seq 0 $(($1 - 1))); do
 
   for name in "beijing_avgsim" "beijing_house" "beijing_concatsim" "beijing_mergesim" \
    "beijing_ordersim" "beijing_top1sim"; do
-      python src/train_"$name".py > out/beijing/"$name"_noise_"$noise_scale"_"$i".out &
+      python src/train_"$name".py > out/beijing/"$name"_"$i".out &
       sleep 1
   done
   wait

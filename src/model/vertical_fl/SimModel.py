@@ -3,6 +3,7 @@ import abc
 import pickle
 import warnings
 import gc
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -16,12 +17,86 @@ from torch.utils.data import Dataset
 
 from tqdm import tqdm
 import deprecation
+import networkx as nx
 
 from .TwoPartyModel import TwoPartyBaseModel
 
 
+@deprecation.deprecated()
+def __remove_conflict_v1(matched_indices, n_batches: int):
+    """
+    Remove conflict based on equitable coloring
+    :param matched_indices:
+    :param n_batches:
+    :return:
+    """
+    # build conflict graph
+    print("Adding edges")
+    conflict_records = {}
+    conflict_edges = []
+    for a, b in tqdm(matched_indices):
+        a = int(a)
+        b = int(b)
+        if b in conflict_records:
+            # add conflicts to graph
+            conflict_nodes = conflict_records[b]
+            conflict_edges += [(a, v) for v in conflict_nodes]
+
+            # record new node
+            conflict_records[b].add(a)
+        else:
+            # no conflict
+            conflict_records[b] = {a}
+    print("Constructing conflict graph")
+    start_time = datetime.now()
+    G = nx.Graph()
+    G.add_edges_from(conflict_edges)
+    time_cost_sec = (datetime.now() - start_time).seconds
+    print("Done constructing, cost {} seconds".format(time_cost_sec))
+
+    max_degree = max(G.degree, key=lambda x: x[1])[1]
+    if max_degree > n_batches:
+        warnings.warn("Degree {} is higher than #colors {}, coloring might cost exponential time"
+                      .format(max_degree, n_batches))
+
+    # equitable color the graph
+    print("Coloring")
+    start_time = datetime.now()
+    a_colors = nx.equitable_color(G, n_batches)
+    time_cost_sec = (datetime.now() - start_time).seconds
+    print("Done coloring, cost {} seconds".format(time_cost_sec))
+
+    sorted_a_colors = list(sorted(a_colors.item(), key=lambda x: x[0]))
+    return sorted_a_colors
+
+
+def remove_conflict(matched_indices: np.ndarray, n_batches: int):
+    # group by idx of B
+    sorted_indices = np.sort(matched_indices, axis=1)
+
+    batched_indices = [[] for _ in n_batches]
+    cur_a_count = 0
+    cur_a = -1
+    cur_pos = 0
+    for idx1, idx2 in sorted_indices:
+        batched_indices[cur_pos].append([idx1, idx2])
+
+        if int(idx1) == int(cur_a):
+            cur_a_count += 1
+            if cur_a_count > n_batches:
+                assert False, "The degree of {} is larger than batch size {}".format(idx2, n_batches)
+        else:
+            cur_a = idx1
+            cur_a_count = 1
+
+        cur_pos = (cur_pos + 1) % n_batches
+
+    return batched_indices
+
+
 class SimDataset(Dataset):
-    def __init__(self, data1, data2, labels, data_idx, sim_dim=1):
+    @torch.no_grad()    # disable auto_grad in __init__
+    def __init__(self, data1, data2, labels, data_idx, batch_sizes=1, sim_dim=1):
         # data1[:, 0] and data2[:, 0] are both sim_scores
         assert data1.shape[0] == data2.shape[0] == data_idx.shape[0]
         # remove similarity scores in data1 (at column 0)
@@ -52,6 +127,10 @@ class SimDataset(Dataset):
         group2_data_idx = np.array(list(grouped_data2.keys()))
         group2_data2 = np.array(list(grouped_data2.values()), dtype='object')
 
+        # print("Equitable coloring to remove conflict")
+        # data1_colors = remove_conflict(data_idx, n_batches=np.ceil(data1.shape[0] / batch_sizes).astype('int'))
+        # data1_order = np.argsort(data1_colors, axis=1)
+
         print("Sorting data")
         group1_order = group1_data_idx.argsort()
         group2_order = group2_data_idx.argsort()
@@ -75,6 +154,7 @@ class SimDataset(Dataset):
         self.data_idx_split_points = [0]
         for i in range(self.data1_idx.shape[0]):
             d2 = torch.from_numpy(data2[i].astype(np.float)[:, 1:])  # remove index
+            d2_idx = data2[i].astype(np.float)[:, 0].reshape(-1, 1)
             d1 = torch.from_numpy(np.repeat(data1[i].reshape(1, -1), d2.shape[0], axis=0))
             d = torch.cat([d2[:, :sim_dim], d1, d2[:, sim_dim:]], dim=1)  # move similarity to index 0
             data_list.append(d)
@@ -82,11 +162,10 @@ class SimDataset(Dataset):
             weight = torch.ones(d2.shape[0]) / d2.shape[0]
             weight_list.append(weight)
 
-            idx = torch.from_numpy(np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0))
+            d1_idx = np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0).reshape(-1, 1)
+            idx = torch.from_numpy(np.concatenate([d1_idx, d2_idx], axis=1))
             data_idx_list.append(idx)
             self.data_idx_split_points.append(self.data_idx_split_points[-1] + idx.shape[0])
-            if idx.shape[0] != 100:
-                pass
         print("Done")
 
         self.data = torch.cat(data_list, dim=0)  # sim_scores; data1; data2
@@ -131,9 +210,9 @@ class SimModel(TwoPartyBaseModel):
             self.cut_dims = cut_dims
 
         if agg_hidden_sizes is None:
-            self.agg_hidden_sizes = [10]
+            self.merge_hidden_sizes = [10]
         else:
-            self.agg_hidden_sizes = agg_hidden_sizes
+            self.merge_hidden_sizes = agg_hidden_sizes
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -451,7 +530,7 @@ class SimModel(TwoPartyBaseModel):
         # merged_data_labels: |sim_scores|data1|data2|
         sim_dim = self.num_common_features if self.feature_wise_sim else 1
         matched_data1 = merged_data_labels[:, :sim_dim + remain_data1_shape1]
-        matched_data2 = np.concatenate([merged_data_labels[:, :sim_dim],      # sim scores
+        matched_data2 = np.concatenate([merged_data_labels[:, :sim_dim],  # sim scores
                                         merged_data_labels[:, sim_dim + remain_data1_shape1:]],
                                        axis=1)
         # matched_data2 = merged_data_labels[:, sim_dim + remain_data1_shape1:]
@@ -500,6 +579,8 @@ class SimModel(TwoPartyBaseModel):
                                                    grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
                                                    kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
 
+            # debug
+
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
                 col_mean = np.nanmean(train_X, axis=0)
@@ -535,9 +616,12 @@ class SimModel(TwoPartyBaseModel):
                 print("Scale done")
 
             sim_dim = self.num_common_features if self.feature_wise_sim else 1
-            train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)
-            val_dataset = SimDataset(val_Xs[0], val_Xs[1], val_y, val_idx, sim_dim=sim_dim)
-            test_dataset = SimDataset(test_Xs[0], test_Xs[1], test_y, test_idx, sim_dim=sim_dim)
+            train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim,
+                                       batch_sizes=self.train_batch_size)
+            val_dataset = SimDataset(val_Xs[0], val_Xs[1], val_y, val_idx, sim_dim=sim_dim,
+                                     batch_sizes=self.test_batch_size)
+            test_dataset = SimDataset(test_Xs[0], test_Xs[1], test_y, test_idx, sim_dim=sim_dim,
+                                      batch_sizes=self.test_batch_size)
 
             if data_cache_path:
                 print("Saving data to cache")

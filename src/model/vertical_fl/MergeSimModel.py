@@ -411,7 +411,7 @@ class MergeSimModel(SimModel):
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
                             output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.BCELoss()
@@ -420,7 +420,7 @@ class MergeSimModel(SimModel):
             output_dim = self.n_classes
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
                             output_size=output_dim, activation=None)
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.CrossEntropyLoss()
@@ -429,7 +429,7 @@ class MergeSimModel(SimModel):
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
                             output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.MSELoss()
@@ -599,15 +599,15 @@ class MergeSimModel(SimModel):
             else:
                 assert False, "Unsupported metric"
 
-            # visualize sim_model
-            if self.merge_mode == 'avg':
-                pass
-            elif self.feature_wise_sim:
-                raise NotImplementedError # todo
-            else:
-                self.plot_model(self.sim_model, input_dim=1,
-                                save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch),
-                                dim_wise=False)
+            # # visualize sim_model
+            # if self.merge_mode == 'avg':
+            #     pass
+            # elif self.feature_wise_sim:
+            #     raise NotImplementedError # todo
+            # else:
+            #     self.plot_model(self.sim_model, input_dim=1,
+            #                     save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch),
+            #                     dim_wise=False)
 
             if is_best:
                 best_train_metric_scores = train_metric_scores

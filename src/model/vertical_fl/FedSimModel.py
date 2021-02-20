@@ -28,23 +28,25 @@ from .SimModel import SimDataset
 from utils import get_split_points
 
 
-class OrderSimModel(SimModel):
+class FedSimModel(SimModel):
     def __init__(self, num_common_features, sim_hidden_sizes=None,
                  sim_model_save_path=None, update_sim_freq=1, raw_output_dim=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
-                 log_dir=None, use_sim=True,
+                 log_dir=None, merge_hidden_sizes=None, merge_model_save_path=None,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
-        self.use_sim = use_sim
         self.raw_output_dim = raw_output_dim
         self.log_dir = log_dir
         if log_dir:
             os.makedirs(log_dir, exist_ok=True)
         self.update_sim_freq = update_sim_freq
         self.sim_model_save_path = sim_model_save_path
+        self.merge_model_save_path = merge_model_save_path
         self.sim_batch_size = sim_batch_size
         self.sim_weight_decay = sim_weight_decay
         self.sim_learning_rate = sim_learning_rate
+        self.model = None
+        self.merge_model = None
         self.sim_model = None
 
         if sim_hidden_sizes is None:
@@ -52,14 +54,17 @@ class OrderSimModel(SimModel):
         else:
             self.sim_hidden_sizes = sim_hidden_sizes
 
+        if merge_hidden_sizes is None:
+            self.merge_hidden_sizes = [10]
+        else:
+            self.merge_hidden_sizes = merge_hidden_sizes
+
         self.data1_shape = None
         self.data2_shape = None
 
-        assert self.feature_wise_sim is False, "Cannot sort by multiple features"
-
         assert self.blocking_method == 'knn'    # the pairing must be consistent
 
-    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None):
+    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None, sim_model_path=None):
         if torch_seed is not None:
             torch.manual_seed(torch_seed)
             # For CUDA >= 10.2 only
@@ -122,16 +127,23 @@ class OrderSimModel(SimModel):
         else:
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
+        self.merge_model = MLP(input_size=self.raw_output_dim * self.knn_k,
+                               hidden_sizes=self.merge_hidden_sizes,
+                               output_size=output_dim, activation='sigmoid').to(self.device)
         if self.feature_wise_sim:
-            self.sim_model = MLP(input_size=(self.num_common_features + self.raw_output_dim) * self.knn_k,
+            self.sim_model = MLP(input_size=self.num_common_features,
                                  hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=output_dim, activation='sigmoid').to(self.device)
+                                 output_size=self.raw_output_dim, activation='sigmoid').to(self.device)
         else:
-            self.sim_model = MLP(input_size=(self.raw_output_dim + 1) * self.knn_k,
+            self.sim_model = MLP(input_size=1,
                                  hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=output_dim, activation='sigmoid').to(self.device)
-        optimizer = adv_optim.Lamb(list(self.model.parameters()) + list(self.sim_model.parameters()),
+                                 output_size=self.raw_output_dim, activation='sigmoid').to(self.device)
+        optimizer = adv_optim.Lamb(list(self.model.parameters()) + list(self.merge_model.parameters()) +
+                                   list(self.sim_model.parameters()),
                                    lr=self.learning_rate, weight_decay=self.weight_decay)
+
+        if sim_model_path is not None:
+            self.sim_model.load_state_dict(torch.load(sim_model_path))
 
         if self.use_scheduler:
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=self.sche_factor,
@@ -144,9 +156,11 @@ class OrderSimModel(SimModel):
         best_val_metric_scores = [m.worst for m in self.metrics_f]
         best_test_metric_scores = [m.worst for m in self.metrics_f]
         print("Start training")
-        summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
-        summary(self.sim_model, torch.zeros([1, (self.num_common_features + self.raw_output_dim) * self.knn_k
-                if self.feature_wise_sim else (self.raw_output_dim + 1) * self.knn_k])
+        summary(self.model, torch.zeros([self.train_batch_size, num_features])
+                .to(self.device))
+        summary(self.merge_model, torch.zeros([1, self.raw_output_dim * self.knn_k])
+                .to(self.device))
+        summary(self.sim_model, torch.zeros([1, self.num_common_features if self.feature_wise_sim else 1])
                 .to(self.device))
         print(str(self))
         # # debug
@@ -155,7 +169,7 @@ class OrderSimModel(SimModel):
             # train
             train_loss = 0.0
             n_train_batches = 0
-            self.sim_model.train()
+            self.merge_model.train()
             self.model.train()
             all_preds = np.zeros((0, output_dim))
             all_labels = np.zeros(0)
@@ -163,8 +177,12 @@ class OrderSimModel(SimModel):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
 
-                data = data_batch[:, 1:]
-                sim_scores = data_batch[:, 0].reshape(-1, 1)
+                if self.feature_wise_sim:
+                    data = data_batch[:, self.num_common_features:]
+                    sim_scores = data_batch[:, :self.num_common_features]
+                else:
+                    data = data_batch[:, 1:]
+                    sim_scores = data_batch[:, 0].reshape(-1, 1)
 
                 # train main model
                 optimizer.zero_grad()
@@ -177,14 +195,17 @@ class OrderSimModel(SimModel):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
 
-                    sim_scores_flat = sim_scores[start:end].flatten()
+                    sim_weights = self.sim_model(sim_scores[start:end])
+                    sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
-                    outputs_flat = outputs[start:end][indices].flatten()
+                    outputs_sorted = outputs[start:end][indices]
+                    sim_weights_sorted = sim_weights[indices]
+                    _tmp = sim_weights_sorted - sim_weights_sorted.min(1, keepdim=True)[0] + 1e-7
+                    sim_weights_scaled = _tmp / _tmp.max(1, keepdim=True)[0]
+                    outputs_weighted = outputs_sorted * sim_weights_scaled
+                    outputs_flat = outputs_weighted.flatten()
 
-                    if not self.use_sim:
-                        sim_scores_flat = torch.ones(sim_scores_flat.shape).to(self.device)
-
-                    output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
+                    output_i = self.merge_model(outputs_flat)
 
                     # # bound threshold
                     # output_i[output_i > 1.] = 1.
@@ -247,8 +268,10 @@ class OrderSimModel(SimModel):
                 best_val_metric_scores = val_metric_scores
                 best_test_metric_scores = test_metric_scores
                 if self.model_save_path is not None:
+                    assert self.sim_model_save_path is not None and self.merge_model_save_path is not None
                     torch.save(self.model.state_dict(), self.model_save_path)
                     torch.save(self.sim_model.state_dict(), self.sim_model_save_path)
+                    torch.save(self.merge_model.state_dict(), self.merge_model_save_path)
 
             print("Epoch {}: {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}"
                   .format(epoch + 1, "Loss:", train_loss, val_loss, test_loss))
@@ -287,13 +310,17 @@ class OrderSimModel(SimModel):
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()
-            self.sim_model.eval()
+            self.merge_model.eval()
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(val_loader, desc=name):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
 
-                data = data_batch[:, 1:]
-                sim_scores = data_batch[:, 0].reshape(-1, 1)
+                if self.feature_wise_sim:
+                    data = data_batch[:, self.num_common_features:]
+                    sim_scores = data_batch[:, :self.num_common_features]
+                else:
+                    data = data_batch[:, 1:]
+                    sim_scores = data_batch[:, 0].reshape(-1, 1)
 
                 outputs = self.model(data)
 
@@ -304,15 +331,17 @@ class OrderSimModel(SimModel):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
 
-                    sim_scores_flat = sim_scores[start:end].flatten()
+                    sim_weights = self.sim_model(sim_scores[start:end])
+                    sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
-                    outputs_flat = outputs[start:end][indices].flatten()
+                    outputs_sorted = outputs[start:end][indices]
+                    sim_weights_sorted = sim_weights[indices]
+                    _tmp = sim_weights_sorted - sim_weights_sorted.min(1, keepdim=True)[0] + 1e-7
+                    sim_weights_scaled = _tmp / _tmp.max(1, keepdim=True)[0]
+                    outputs_weighted = outputs_sorted * sim_weights_scaled
+                    outputs_flat = outputs_weighted.flatten()
 
-                    if not self.use_sim:
-                        sim_scores_flat = torch.ones(sim_scores_flat.shape).to(self.device)
-
-                    output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
-
+                    output_i = self.merge_model(outputs_flat)
 
                     # # bound threshold
                     # output_i[output_i > 1.] = 1.

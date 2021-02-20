@@ -34,7 +34,7 @@ model = OrderSimModel(num_common_features=num_common_features,
                       grid_min=-10.0,
                       grid_max=10.0,
                       grid_width=1.5,
-                      knn_k=100,
+                      knn_k=50,
                       kd_tree_radius=2,
                       kd_tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
@@ -43,7 +43,7 @@ model = OrderSimModel(num_common_features=num_common_features,
                       drop_key=True,
                       device='cuda:0',
                       hidden_sizes=[100, 100],
-                      train_batch_size=4096 // 100,
+                      train_batch_size=32,
                       test_batch_size=4096,
                       num_epochs=50,
                       learning_rate=1e-3,
@@ -63,5 +63,5 @@ model = OrderSimModel(num_common_features=num_common_features,
 
                       use_sim=False
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.2f}.pkl".format(noise_scale))
-# model.train_splitnn(X1, X2, y)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.2f}.pkl".format(noise_scale))
+model.train_splitnn(X1, X2, y)

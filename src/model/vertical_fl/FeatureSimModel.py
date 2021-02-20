@@ -72,7 +72,7 @@ class FeatureSimModel(SimModel):
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
                             output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.BCELoss()
@@ -81,7 +81,7 @@ class FeatureSimModel(SimModel):
             output_dim = self.n_classes
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
                             output_size=output_dim, activation=None)
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.CrossEntropyLoss()
@@ -90,7 +90,7 @@ class FeatureSimModel(SimModel):
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
                             output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.MSELoss()
