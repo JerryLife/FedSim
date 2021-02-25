@@ -260,7 +260,7 @@ class Top1SimModel(SimModel):
             train_loss = 0.0
             n_train_batches = 0
             self.model.train()
-            all_preds = np.zeros((0, output_dim))
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for info in tqdm(train_loader, desc="Train"):
                 if train_idx is not None:

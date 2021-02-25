@@ -71,41 +71,6 @@ class MergeSimModel(SimModel):
         self.data1_shape = None
         self.data2_shape = None
 
-    def plot_model(self, model, input_dim, save_fig_path, dim_wise=False):
-        """
-        If the input dimension of the model is lower than 2, plot the figure of model.
-        Otherwise, do nothing.
-        """
-        assert int(input_dim) == input_dim
-
-        if input_dim == 1:
-            x = np.arange(0, 1, 0.01)
-            x_tensor = torch.tensor(x).float().reshape(-1, 1).to(self.device)
-            z = model(x_tensor).detach().cpu().numpy()
-            plt.plot(x, z)
-            plt.savefig(save_fig_path)
-            plt.close()
-            return
-
-        xs_raw = [np.arange(0, 1, 0.01) for _ in range(input_dim)]
-        xs = np.meshgrid(*xs_raw)
-        xs_tensor = torch.tensor(np.concatenate(
-            [x.reshape(-1, 1) for x in xs], axis=1)).float().to(self.device)
-        z = model(xs_tensor).detach().cpu().numpy().reshape(xs[0].shape)
-
-        if dim_wise:
-            raise NotImplementedError   # todo
-        else:
-            assert input_dim == 2, "Cannot plot high dimensional functions"
-            assert len(xs) == 2
-
-            fig = plt.figure()
-            ax = fig.gca(projection='3d')
-            surf = ax.plot_surface(xs[0], xs[1], z, cmap=cm.coolwarm,
-                                   linewidth=0, antialiased=False)
-            plt.savefig(save_fig_path)
-
-
     @deprecation.deprecated()
     def train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
         train_dataset, val_dataset, test_dataset, y_scaler = \
@@ -216,13 +181,13 @@ class MergeSimModel(SimModel):
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
-                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end]) \
+                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
                                / torch.sum(sim_weights[start:end])
                     # bound threshold
                     output_i[output_i > 1.] = 1.
                     output_i[output_i < 0.] = 0.
 
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
@@ -260,13 +225,13 @@ class MergeSimModel(SimModel):
                     for i in range(idx1_unique.shape[0]):
                         start = idx1_split_points[i]
                         end = idx1_split_points[i + 1]
-                        output_i = torch.sum(outputs[start:end] * sim_weights[start:end]) \
+                        output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
                                    / torch.sum(sim_weights[start:end])
                         # bound threshold
                         output_i[output_i > 1.] = 1.
                         output_i[output_i < 0.] = 0.
 
-                        outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                        outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
 
                     if self.task == 'binary_cls':
                         outputs_batch = outputs_batch.flatten()
@@ -475,7 +440,7 @@ class MergeSimModel(SimModel):
             if use_sim_model:
                 self.sim_model.train()
             self.model.train()
-            all_preds = np.zeros((0, output_dim))
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
@@ -504,13 +469,15 @@ class MergeSimModel(SimModel):
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
-                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end]) \
-                               / torch.sum(sim_weights[start:end])
-                    # bound threshold
-                    output_i[output_i > 1.] = 1.
-                    output_i[output_i < 0.] = 0.
+                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                               / torch.sum(sim_weights[start:end], dim=0)
 
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                    if self.task in ['binary_cls', 'regression']:
+                        # bound threshold
+                        output_i[output_i > 1.] = 1.
+                        output_i[output_i < 0.] = 0.
+
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
@@ -545,13 +512,15 @@ class MergeSimModel(SimModel):
                     for i in range(idx1_unique.shape[0]):
                         start = idx1_split_points[i]
                         end = idx1_split_points[i + 1]
-                        output_i = torch.sum(outputs[start:end] * sim_weights[start:end]) \
-                                   / torch.sum(sim_weights[start:end])
-                        # bound threshold
-                        output_i[output_i > 1.] = 1.
-                        output_i[output_i < 0.] = 0.
+                        output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                                   / torch.sum(sim_weights[start:end], dim=0)
 
-                        outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                        if self.task in ['binary_cls', 'regression']:
+                            # bound threshold
+                            output_i[output_i > 1.] = 1.
+                            output_i[output_i < 0.] = 0.
+
+                        outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
 
                     if self.task == 'binary_cls':
                         outputs_batch = outputs_batch.flatten()
@@ -599,15 +568,16 @@ class MergeSimModel(SimModel):
             else:
                 assert False, "Unsupported metric"
 
-            # # visualize sim_model
-            # if self.merge_mode == 'avg':
-            #     pass
-            # elif self.feature_wise_sim:
-            #     raise NotImplementedError # todo
-            # else:
-            #     self.plot_model(self.sim_model, input_dim=1,
-            #                     save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch),
-            #                     dim_wise=False)
+            # visualize sim_model
+            if self.log_dir is not None:
+                if self.merge_mode == 'avg':
+                    pass
+                elif self.feature_wise_sim:
+                    raise NotImplementedError # todo
+                else:
+                    self.plot_model(self.sim_model, input_dim=1,
+                                    save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch),
+                                    dim_wise=False)
 
             if is_best:
                 best_train_metric_scores = train_metric_scores
@@ -641,88 +611,6 @@ class MergeSimModel(SimModel):
 
         return best_test_metric_scores
 
-    @deprecation.deprecated()
-    def __eval_merge_score(self, val_dataset, loss_criterion=None, name='Val', y_scaler=None):
-        assert self.model is not None, "Model has not been initialized"
-
-        val_loader = DataLoader(val_dataset, batch_size=self.train_batch_size, shuffle=True,
-                                num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context,
-                                collate_fn=self.var_collate_fn)
-
-        val_loss = 0.0
-        val_sample_correct = 0
-        val_total_samples = 0
-        val_mse = 0.0
-        n_val_batches = 0
-        with torch.no_grad():
-            self.model.eval()
-            self.sim_model.eval()
-            for data_batch, labels, weights, idx1, idx1_unique in tqdm(val_loader, desc=name):
-                data_batch = data_batch.to(self.device).float()
-                labels = labels.to(self.device).float()
-
-                if self.feature_wise_sim:
-                    sim_scores = data_batch[:, :self.num_common_features]
-                    data = data_batch[:, self.num_common_features:]
-                else:
-                    sim_scores = data_batch[:, 0].reshape(-1, 1)
-                    data = data_batch[:, 1:]
-
-                outputs = self.model(data)
-                if self.merge_mode in ['sim_model_avg', 'common_model_avg']:
-                    sim_weights = self.sim_model(sim_scores) + 1e-7  # prevent dividing zero
-                else:
-                    assert False, "Unsupported merge mode"
-                output_dim = 1
-                outputs_batch = torch.zeros([0, output_dim]).to(self.device)
-                idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
-                for i in range(idx1_unique.shape[0]):
-                    start = idx1_split_points[i]
-                    end = idx1_split_points[i + 1]
-                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end]) \
-                               / torch.sum(sim_weights[start:end])
-                    # bound threshold
-                    output_i[output_i > 1.] = 1.
-                    output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
-                if self.task == 'binary_cls':
-                    outputs_batch = outputs_batch.flatten()
-                    loss = loss_criterion(outputs_batch, labels)
-                    preds = outputs_batch > 0.5
-                elif self.task == 'multi_cls':
-                    loss = loss_criterion(outputs_batch, labels.long())
-                    preds = torch.argmax(outputs_batch, dim=1)
-                elif self.task == 'regression':
-                    outputs_batch = outputs_batch.flatten()
-                    loss = loss_criterion(outputs_batch, labels)
-                    preds = outputs_batch
-                else:
-                    assert False, "Unsupported task"
-                n_correct = torch.count_nonzero(preds == labels).item()
-
-                val_loss += loss.item()
-                val_sample_correct += n_correct
-                val_total_samples += idx1_unique.shape[0]
-                n_val_batches += 1
-                if self.task == 'regression' and y_scaler is not None:
-                    preds = y_scaler.inverse_transform(
-                        preds.reshape(-1, 1).detach().cpu().numpy()).flatten()
-                    labels = y_scaler.inverse_transform(
-                        labels.reshape(-1, 1).detach().cpu().numpy()).flatten()
-                    preds = torch.from_numpy(preds)
-                    labels = torch.from_numpy(labels)
-                val_mse = val_mse / (val_total_samples + labels.shape[0]) * val_total_samples + \
-                          torch.sum((preds - labels) ** 2).item() / (val_total_samples + labels.shape[0])
-
-            val_loss /= n_val_batches
-            val_acc = val_sample_acc = val_sample_correct / val_total_samples
-            val_rmse = np.sqrt(val_mse)
-
-        return val_loss, val_sample_acc, val_acc, val_rmse
-
     def eval_merge_score(self, val_dataset, loss_criterion, name='Val', y_scaler=None):
         assert self.model is not None, "Model has not been initialized"
 
@@ -734,7 +622,7 @@ class MergeSimModel(SimModel):
         val_loss = 0.0
         n_val_batches = 0
         output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
-        all_preds = np.zeros((0, output_dim))
+        all_preds = np.zeros((0, 1))
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()
@@ -758,20 +646,22 @@ class MergeSimModel(SimModel):
                     sim_weights = torch.ones([sim_scores.shape[0], 1]).to(self.device)
                 else:
                     assert False, "Unsupported merge mode"
-                output_dim = 1
+
                 outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 idx1_split_points = get_split_points(idx1, idx1.shape[0])
                 labels_sim = torch.zeros(0).to(self.device)
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
-                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end]) \
-                               / torch.sum(sim_weights[start:end])
-                    # bound threshold
-                    output_i[output_i > 1.] = 1.
-                    output_i[output_i < 0.] = 0.
+                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                               / torch.sum(sim_weights[start:end], dim=0)
 
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                    if self.task in ['binary_cls', 'regression']:
+                        # bound threshold
+                        output_i[output_i > 1.] = 1.
+                        output_i[output_i < 0.] = 0.
+
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()

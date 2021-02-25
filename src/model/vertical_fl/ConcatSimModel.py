@@ -155,7 +155,7 @@ class ConcatSimModel(SimModel):
             n_train_batches = 0
             self.sim_model.train()
             self.model.train()
-            all_preds = np.zeros((0, output_dim))
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
@@ -286,7 +286,7 @@ class ConcatSimModel(SimModel):
         val_loss = 0.0
         n_val_batches = 0
         output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
-        all_preds = np.zeros((0, output_dim))
+        all_preds = np.zeros((0, 1))
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()

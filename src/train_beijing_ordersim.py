@@ -57,10 +57,10 @@ model = OrderSimModel(num_common_features=num_common_features,
                       # SplitNN parameters
                       local_hidden_sizes=[[200], [200]],
                       agg_hidden_sizes=[100],
-                      cut_dims=[100, 100],
+                      cut_dims=[50, 50],
 
                       use_sim=False
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
-# model.train_splitnn(X1, X2, y, scale=True)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, scale=True)
 

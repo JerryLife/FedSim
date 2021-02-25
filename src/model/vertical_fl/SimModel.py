@@ -18,12 +18,13 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 import deprecation
 import networkx as nx
+import matplotlib.pyplot as plt
+from captum.attr import IntegratedGradients
 
 from .TwoPartyModel import TwoPartyBaseModel
 
 
-@deprecation.deprecated()
-def __remove_conflict_v1(matched_indices, n_batches: int):
+def remove_conflict(matched_indices, n_batches: int):
     """
     Remove conflict based on equitable coloring
     :param matched_indices:
@@ -70,28 +71,28 @@ def __remove_conflict_v1(matched_indices, n_batches: int):
     return sorted_a_colors
 
 
-def remove_conflict(matched_indices: np.ndarray, n_batches: int):
-    # group by idx of B
-    sorted_indices = np.sort(matched_indices, axis=1)
-
-    batched_indices = [[] for _ in n_batches]
-    cur_a_count = 0
-    cur_a = -1
-    cur_pos = 0
-    for idx1, idx2 in sorted_indices:
-        batched_indices[cur_pos].append([idx1, idx2])
-
-        if int(idx1) == int(cur_a):
-            cur_a_count += 1
-            if cur_a_count > n_batches:
-                assert False, "The degree of {} is larger than batch size {}".format(idx2, n_batches)
-        else:
-            cur_a = idx1
-            cur_a_count = 1
-
-        cur_pos = (cur_pos + 1) % n_batches
-
-    return batched_indices
+# def remove_conflict(matched_indices: np.ndarray, n_batches: int):
+#     # group by idx of B
+#     sorted_indices = np.sort(matched_indices, axis=1)
+#
+#     batched_indices = [[] for _ in n_batches]
+#     cur_a_count = 0
+#     cur_a = -1
+#     cur_pos = 0
+#     for idx1, idx2 in sorted_indices:
+#         batched_indices[cur_pos].append([idx1, idx2])
+#
+#         if int(idx1) == int(cur_a):
+#             cur_a_count += 1
+#             if cur_a_count > n_batches:
+#                 assert False, "The degree of {} is larger than batch size {}".format(idx2, n_batches)
+#         else:
+#             cur_a = idx1
+#             cur_a_count = 1
+#
+#         cur_pos = (cur_pos + 1) % n_batches
+#
+#     return batched_indices
 
 
 class SimDataset(Dataset):
@@ -162,10 +163,10 @@ class SimDataset(Dataset):
             weight = torch.ones(d2.shape[0]) / d2.shape[0]
             weight_list.append(weight)
 
-            d1_idx = np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0).reshape(-1, 1)
-            idx = torch.from_numpy(np.concatenate([d1_idx, d2_idx], axis=1))
-            data_idx_list.append(idx)
-            self.data_idx_split_points.append(self.data_idx_split_points[-1] + idx.shape[0])
+            d1_idx = np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0)
+            # idx = torch.from_numpy(np.concatenate([d1_idx.reshape(-1, 1), d2_idx], axis=1))
+            data_idx_list.append(torch.from_numpy(d1_idx))
+            self.data_idx_split_points.append(self.data_idx_split_points[-1] + d1_idx.shape[0])
         print("Done")
 
         self.data = torch.cat(data_list, dim=0)  # sim_scores; data1; data2
@@ -639,3 +640,60 @@ class SimModel(TwoPartyBaseModel):
         idx = torch.cat([item[3] for item in batch], dim=0)
         idx_unique = np.array([item[4] for item in batch], dtype=np.int)
         return data, labels, weights, idx, idx_unique
+
+    def plot_model(self, model, input_dim, save_fig_path, dim_wise=False):
+        """
+        If the input dimension of the model is lower than 2, plot the figure of model.
+        Otherwise, do nothing.
+        """
+        assert int(input_dim) == input_dim
+
+        if input_dim == 1:
+            x = np.arange(0, 1, 0.01)
+            x_tensor = torch.tensor(x).float().reshape(-1, 1).to(self.device)
+            z = model(x_tensor).detach().cpu().numpy()
+            assert ((0 <= z) & (z <= 1)).all(), "{}".format(z)
+            plt.plot(x, z)
+            plt.savefig(save_fig_path)
+            plt.close()
+            return
+
+        xs_raw = [np.arange(0, 1, 0.01) for _ in range(input_dim)]
+        xs = np.meshgrid(*xs_raw)
+        xs_tensor = torch.tensor(np.concatenate(
+            [x.reshape(-1, 1) for x in xs], axis=1)).float().to(self.device)
+        z = model(xs_tensor).detach().cpu().numpy().reshape(xs[0].shape)
+
+        if dim_wise:
+            raise NotImplementedError   # todo
+        else:
+            assert input_dim == 2, "Cannot plot high dimensional functions"
+            assert len(xs) == 2
+
+            fig = plt.figure()
+            ax = fig.gca(projection='3d')
+            surf = ax.plot_surface(xs[0], xs[1], z, cmap=cm.coolwarm,
+                                   linewidth=0, antialiased=False)
+            plt.savefig(save_fig_path)
+
+    def visualize_model(self, model, data, target, save_fig_path):
+        model.eval()
+        baselines = torch.zeros(data.shape).to(self.device)
+
+        # Get feature importance by integrated gradients
+        ig = IntegratedGradients(model)
+        attributions, delta = ig.attribute(data, baselines, target=target, return_convergence_delta=True)
+        avg_attrs = torch.mean(attributions, dim=0).detach().cpu().numpy()
+
+        # plot 1d heat map for the attributes
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+        x = np.arange(0, data.shape[1])
+        extent = [x[0] - (x[1] - x[0]) / 2., x[-1] + (x[1] - x[0]) / 2., 0, 1]
+        ax1.imshow(avg_attrs.reshape(1, -1), cmap='plasma', aspect='auto', extent=extent)
+        ax1.set_yticks([])
+        ax1.set_xlim(extent[0], extent[1])
+
+        ax2.plot(x, avg_attrs)
+        plt.tight_layout()
+        plt.savefig(save_fig_path)
+        plt.close()

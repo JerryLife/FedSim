@@ -32,3 +32,13 @@ class MLP(nn.Module):
         else:
             assert False
         return out
+
+
+class DropoutInputMLP(MLP):
+    def __init__(self, dropout_rate=0.5, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dropout = nn.Dropout(dropout_rate)
+
+    def forward(self, X):
+        out = self.dropout(X)
+        return super().forward(out)

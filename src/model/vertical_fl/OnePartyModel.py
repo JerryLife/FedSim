@@ -144,7 +144,7 @@ class BaseModel:
             train_loss = 0.0
             n_train_batches = 0
             model.train()
-            all_preds = np.zeros((0, output_dim))
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for info in tqdm(train_loader, desc="Train"):
                 if train_idx is not None:
@@ -368,8 +368,8 @@ class BaseModel:
 
         val_loss = 0.0
         n_val_batches = 0
-        output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
-        all_preds = np.zeros((0, output_dim))
+        # output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
+        all_preds = np.zeros((0, 1))
         all_labels = np.zeros(0)
         if val_idx is not None:
             answer_all = dict(zip(val_idx, val_y))

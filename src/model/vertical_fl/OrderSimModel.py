@@ -22,6 +22,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
+from captum.attr import IntegratedGradients
+
 from .SimModel import SimModel
 from model.base import *
 from .SimModel import SimDataset
@@ -32,9 +34,10 @@ class OrderSimModel(SimModel):
     def __init__(self, num_common_features, sim_hidden_sizes=None,
                  sim_model_save_path=None, update_sim_freq=1, raw_output_dim=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
-                 log_dir=None, use_sim=True,
+                 log_dir=None, use_sim=True, sim_dropout_p=0.0,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.sim_dropout_p = sim_dropout_p
         self.use_sim = use_sim
         self.raw_output_dim = raw_output_dim
         self.log_dir = log_dir
@@ -57,7 +60,7 @@ class OrderSimModel(SimModel):
 
         assert self.feature_wise_sim is False, "Cannot sort by multiple features"
 
-        assert self.blocking_method == 'knn'    # the pairing must be consistent
+        assert self.blocking_method == 'knn'  # the pairing must be consistent
 
     def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None):
         if torch_seed is not None:
@@ -106,7 +109,7 @@ class OrderSimModel(SimModel):
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
             agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
-                            output_size=self.raw_output_dim, activation=None)
+                            output_size=self.raw_output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.CrossEntropyLoss()
             val_criterion = nn.CrossEntropyLoss()
@@ -123,13 +126,21 @@ class OrderSimModel(SimModel):
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
         if self.feature_wise_sim:
-            self.sim_model = MLP(input_size=(self.num_common_features + self.raw_output_dim) * self.knn_k,
-                                 hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=output_dim, activation='sigmoid').to(self.device)
+            extra_dim = self.raw_output_dim if self.use_sim else 0
+            self.sim_model = DropoutInputMLP(dropout_rate=self.sim_dropout_p,
+                                             input_size=(self.num_common_features + extra_dim) * self.knn_k,
+                                             hidden_sizes=self.sim_hidden_sizes,
+                                             output_size=output_dim,
+                                             activation=None if self.task == 'multi_cls' else 'sigmoid'
+                                             ).to(self.device)
         else:
-            self.sim_model = MLP(input_size=(self.raw_output_dim + 1) * self.knn_k,
-                                 hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=output_dim, activation='sigmoid').to(self.device)
+            extra_dim = 1 if self.use_sim else 0
+            self.sim_model = DropoutInputMLP(dropout_rate=self.sim_dropout_p,
+                                             input_size=(self.raw_output_dim + extra_dim) * self.knn_k,
+                                             hidden_sizes=self.sim_hidden_sizes,
+                                             output_size=output_dim,
+                                             activation=None if self.task == 'multi_cls' else 'sigmoid'
+                                             ).to(self.device)
         optimizer = adv_optim.Lamb(list(self.model.parameters()) + list(self.sim_model.parameters()),
                                    lr=self.learning_rate, weight_decay=self.weight_decay)
 
@@ -146,7 +157,7 @@ class OrderSimModel(SimModel):
         print("Start training")
         summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
         summary(self.sim_model, torch.zeros([1, (self.num_common_features + self.raw_output_dim) * self.knn_k
-                if self.feature_wise_sim else (self.raw_output_dim + 1) * self.knn_k])
+        if self.feature_wise_sim else (self.raw_output_dim + extra_dim) * self.knn_k])
                 .to(self.device))
         print(str(self))
         # # debug
@@ -157,7 +168,8 @@ class OrderSimModel(SimModel):
             n_train_batches = 0
             self.sim_model.train()
             self.model.train()
-            all_preds = np.zeros((0, output_dim))
+
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
@@ -172,7 +184,7 @@ class OrderSimModel(SimModel):
 
                 outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
+                # labels_sim = torch.zeros(0).to(self.device)
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
@@ -181,17 +193,13 @@ class OrderSimModel(SimModel):
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_flat = outputs[start:end][indices].flatten()
 
-                    if not self.use_sim:
-                        sim_scores_flat = torch.ones(sim_scores_flat.shape).to(self.device)
+                    if self.use_sim:
+                        output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
+                    else:
+                        output_i = self.sim_model(outputs_flat)
 
-                    output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
-
-                    # # bound threshold
-                    # output_i[output_i > 1.] = 1.
-                    # output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
+                    # labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
                     loss = criterion(outputs_batch, labels)
@@ -225,6 +233,14 @@ class OrderSimModel(SimModel):
             train_metric_scores = []
             for metric_f in self.metrics_f:
                 train_metric_scores.append(metric_f(all_preds, all_labels))
+
+            # visualize sim_model
+            if self.log_dir is not None:
+                viz_data = torch.rand([100, (self.num_common_features + self.raw_output_dim) * self.knn_k
+                if self.feature_wise_sim else (self.raw_output_dim + extra_dim) * self.knn_k]) \
+                    .to(self.device)
+                self.visualize_model(self.sim_model, viz_data, target=0,
+                                     save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch))
 
             # validation and test
             val_loss, val_metric_scores = self.eval_merge_score(val_dataset, val_criterion,
@@ -283,7 +299,7 @@ class OrderSimModel(SimModel):
         val_loss = 0.0
         n_val_batches = 0
         output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
-        all_preds = np.zeros((0, output_dim))
+        all_preds = np.zeros((0, 1))
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()
@@ -299,7 +315,7 @@ class OrderSimModel(SimModel):
 
                 outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
+                # labels_sim = torch.zeros(0).to(self.device)
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
@@ -308,18 +324,13 @@ class OrderSimModel(SimModel):
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_flat = outputs[start:end][indices].flatten()
 
-                    if not self.use_sim:
-                        sim_scores_flat = torch.ones(sim_scores_flat.shape).to(self.device)
+                    if self.use_sim:
+                        output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
+                    else:
+                        output_i = self.sim_model(outputs_flat)
 
-                    output_i = self.sim_model(torch.cat([outputs_flat, sim_scores_flat]))
-
-
-                    # # bound threshold
-                    # output_i[output_i > 1.] = 1.
-                    # output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
+                    # labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
                     loss = loss_criterion(outputs_batch, labels)

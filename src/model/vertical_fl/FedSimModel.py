@@ -33,8 +33,10 @@ class FedSimModel(SimModel):
                  sim_model_save_path=None, update_sim_freq=1, raw_output_dim=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
                  log_dir=None, merge_hidden_sizes=None, merge_model_save_path=None,
+                 merge_dropout_p=0.0,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.merge_dropout_p = merge_dropout_p
         self.raw_output_dim = raw_output_dim
         self.log_dir = log_dir
         if log_dir:
@@ -62,9 +64,10 @@ class FedSimModel(SimModel):
         self.data1_shape = None
         self.data2_shape = None
 
-        assert self.blocking_method == 'knn'    # the pairing must be consistent
+        assert self.blocking_method == 'knn'  # the pairing must be consistent
 
-    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None, sim_model_path=None):
+    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None,
+                      sim_model_path=None):
         if torch_seed is not None:
             torch.manual_seed(torch_seed)
             # For CUDA >= 10.2 only
@@ -127,17 +130,20 @@ class FedSimModel(SimModel):
         else:
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
-        self.merge_model = MLP(input_size=self.raw_output_dim * self.knn_k,
-                               hidden_sizes=self.merge_hidden_sizes,
-                               output_size=output_dim, activation='sigmoid').to(self.device)
+        self.merge_model = DropoutInputMLP(dropout_rate=self.merge_dropout_p,
+                                           input_size=self.raw_output_dim * self.knn_k,
+                                           hidden_sizes=self.merge_hidden_sizes,
+                                           output_size=output_dim,
+                                           activation=None if self.task == 'multi_cls' else 'sigmoid'
+                                           ).to(self.device)
         if self.feature_wise_sim:
             self.sim_model = MLP(input_size=self.num_common_features,
                                  hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=self.raw_output_dim, activation='sigmoid').to(self.device)
+                                 output_size=1, activation='sigmoid').to(self.device)
         else:
             self.sim_model = MLP(input_size=1,
                                  hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=self.raw_output_dim, activation='sigmoid').to(self.device)
+                                 output_size=1, activation='sigmoid').to(self.device)
         optimizer = adv_optim.Lamb(list(self.model.parameters()) + list(self.merge_model.parameters()) +
                                    list(self.sim_model.parameters()),
                                    lr=self.learning_rate, weight_decay=self.weight_decay)
@@ -171,7 +177,8 @@ class FedSimModel(SimModel):
             n_train_batches = 0
             self.merge_model.train()
             self.model.train()
-            all_preds = np.zeros((0, output_dim))
+            self.sim_model.train()
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
@@ -196,6 +203,8 @@ class FedSimModel(SimModel):
                     end = idx1_split_points[i + 1]
 
                     sim_weights = self.sim_model(sim_scores[start:end])
+                    assert ((0 <= sim_weights) & (sim_weights <= 1)).all()
+                    # reduce multi-dimensional similarity to one dimension
                     sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_sorted = outputs[start:end][indices]
@@ -207,11 +216,7 @@ class FedSimModel(SimModel):
 
                     output_i = self.merge_model(outputs_flat)
 
-                    # # bound threshold
-                    # output_i[output_i > 1.] = 1.
-                    # output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
@@ -246,6 +251,22 @@ class FedSimModel(SimModel):
             train_metric_scores = []
             for metric_f in self.metrics_f:
                 train_metric_scores.append(metric_f(all_preds, all_labels))
+
+            # visualize merge_model
+            if self.log_dir is not None:
+                viz_data = torch.rand([100, (self.num_common_features + self.raw_output_dim) * self.knn_k
+                if self.feature_wise_sim else self.raw_output_dim * self.knn_k]) \
+                    .to(self.device)
+                self.visualize_model(self.merge_model, viz_data, target=0,
+                                     save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
+
+                # visualize sim_model
+                if self.feature_wise_sim:
+                    raise NotImplementedError  # todo
+                else:
+                    self.plot_model(self.sim_model, input_dim=1,
+                                    save_fig_path="{}/sim_epoch_{}.jpg".format(self.log_dir, epoch),
+                                    dim_wise=False)
 
             # validation and test
             val_loss, val_metric_scores = self.eval_merge_score(val_dataset, val_criterion,
@@ -306,11 +327,12 @@ class FedSimModel(SimModel):
         val_loss = 0.0
         n_val_batches = 0
         output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
-        all_preds = np.zeros((0, output_dim))
+        all_preds = np.zeros((0, 1))
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()
             self.merge_model.eval()
+            self.sim_model.eval()
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(val_loader, desc=name):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
@@ -332,6 +354,7 @@ class FedSimModel(SimModel):
                     end = idx1_split_points[i + 1]
 
                     sim_weights = self.sim_model(sim_scores[start:end])
+                    assert ((0 <= sim_weights) & (sim_weights <= 1)).all()
                     sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_sorted = outputs[start:end][indices]
@@ -343,11 +366,7 @@ class FedSimModel(SimModel):
 
                     output_i = self.merge_model(outputs_flat)
 
-                    # # bound threshold
-                    # output_i[output_i > 1.] = 1.
-                    # output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, 1)], dim=0)
+                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
