@@ -23,7 +23,7 @@ data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format
 name = "frog_ordersim_noise_{:.2f}".format(noise_scale)
 
 model = OrderSimModel(num_common_features=num_common_features,
-                      sim_hidden_sizes=[50, 50],
+                      sim_hidden_sizes=[10],
                       raw_output_dim=3,
                       feature_wise_sim=False,
                       task='multi_cls',
@@ -62,7 +62,7 @@ model = OrderSimModel(num_common_features=num_common_features,
                       local_hidden_sizes=[[100], [100]],
                       agg_hidden_sizes=[100],
                       cut_dims=[50, 50],
-                      sim_dropout_p=0.75,
+                      sim_dropout_p=0.8,
 
                       use_sim=False
                       )

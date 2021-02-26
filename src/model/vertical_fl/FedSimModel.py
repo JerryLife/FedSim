@@ -209,8 +209,9 @@ class FedSimModel(SimModel):
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_sorted = outputs[start:end][indices]
                     sim_weights_sorted = sim_weights[indices]
-                    _tmp = sim_weights_sorted - sim_weights_sorted.min(1, keepdim=True)[0] + 1e-7
-                    sim_weights_scaled = _tmp / _tmp.max(1, keepdim=True)[0]
+                    # _tmp = sim_weights_sorted - sim_weights_sorted.min(0, keepdim=True)[0] + 1e-7
+                    # sim_weights_scaled = _tmp / _tmp.max(0, keepdim=True)[0]
+                    sim_weights_scaled = sim_weights_sorted
                     outputs_weighted = outputs_sorted * sim_weights_scaled
                     outputs_flat = outputs_weighted.flatten()
 
@@ -359,8 +360,9 @@ class FedSimModel(SimModel):
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_sorted = outputs[start:end][indices]
                     sim_weights_sorted = sim_weights[indices]
-                    _tmp = sim_weights_sorted - sim_weights_sorted.min(1, keepdim=True)[0] + 1e-7
-                    sim_weights_scaled = _tmp / _tmp.max(1, keepdim=True)[0]
+                    # _tmp = sim_weights_sorted - sim_weights_sorted.min(0, keepdim=True)[0] + 1e-7
+                    # sim_weights_scaled = _tmp / _tmp.max(0, keepdim=True)[0]
+                    sim_weights_scaled = sim_weights_sorted
                     outputs_weighted = outputs_sorted * sim_weights_scaled
                     outputs_flat = outputs_weighted.flatten()
 
