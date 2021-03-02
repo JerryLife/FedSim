@@ -3,7 +3,7 @@ import sys
 import argparse
 from datetime import datetime
 
-from model.vertical_fl.FedSimModel import FedSimModel
+from model.vertical_fl.FedSimModelV2 import FedSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
@@ -43,7 +43,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     device='cuda:0',
                     hidden_sizes=[100, 100],
                     train_batch_size=32,
-                    test_batch_size=4096,
+                    test_batch_size=32,
                     num_epochs=100,
                     learning_rate=3e-3,
                     weight_decay=1e-4,
@@ -55,17 +55,19 @@ model = FedSimModel(num_common_features=num_common_features,
                     writer_path="runs/{}_{}".format(name, now_string),
                     model_save_path="ckp/{}_{}.pth".format(name, now_string),
                     sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
-                    log_dir="log/{}_{}/".format(name, now_string),
+                    # log_dir="log/{}_{}/".format(name, now_string),
                     # SplitNN parameters
                     local_hidden_sizes=[[100], [100]],
                     agg_hidden_sizes=[100],
                     cut_dims=[50, 50],
 
                     # fedsim parameters
-                    merge_hidden_sizes=[100],
+                    merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10, 10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.95
+                    merge_dropout_p=0.9,
+                    conv_n_channels=2,
+                    conv_kernel_v_size=7
                     )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_noise_{:.2f}.pkl".format(noise_scale),
                     sim_model_path=None)

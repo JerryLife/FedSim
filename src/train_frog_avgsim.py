@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import argparse
 
-from model.vertical_fl.OrderSimModel import OrderSimModel
+from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
@@ -20,11 +20,11 @@ noise_scale = args.noise_scale
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
-name = "frog_ordersim_noise_{:.2f}".format(noise_scale)
+name = "frog_avgsim_noise_{:.2f}".format(noise_scale)
 
-model = OrderSimModel(num_common_features=num_common_features,
-                      sim_hidden_sizes=[50],
-                      raw_output_dim=3,
+model = MergeSimModel(num_common_features=num_common_features,
+                      sim_hidden_sizes=[10, 10],
+                      merge_mode='avg',
                       feature_wise_sim=False,
                       task='multi_cls',
                       dataset_type='syn',
@@ -61,10 +61,7 @@ model = OrderSimModel(num_common_features=num_common_features,
                       # SplitNN parameters
                       local_hidden_sizes=[[100], [100]],
                       agg_hidden_sizes=[100],
-                      cut_dims=[50, 50],
-                      sim_dropout_p=0.8,
-
-                      use_sim=False
+                      cut_dims=[50, 50]
                       )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_noise_{:.2f}.pkl".format(noise_scale))
 # model.train_splitnn(X1, X2, y)
