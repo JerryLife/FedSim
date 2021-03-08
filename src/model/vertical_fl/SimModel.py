@@ -211,9 +211,9 @@ class SimModel(TwoPartyBaseModel):
             self.cut_dims = cut_dims
 
         if agg_hidden_sizes is None:
-            self.merge_hidden_sizes = [10]
+            self.agg_hidden_sizes = [10]
         else:
-            self.merge_hidden_sizes = agg_hidden_sizes
+            self.agg_hidden_sizes = agg_hidden_sizes
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -685,15 +685,24 @@ class SimModel(TwoPartyBaseModel):
         attributions, delta = ig.attribute(data, baselines, target=target, return_convergence_delta=True)
         avg_attrs = torch.mean(attributions, dim=0).detach().cpu().numpy()
 
-        # plot 1d heat map for the attributes
-        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
-        x = np.arange(0, data.shape[1])
-        extent = [x[0] - (x[1] - x[0]) / 2., x[-1] + (x[1] - x[0]) / 2., 0, 1]
-        ax1.imshow(avg_attrs.reshape(1, -1), cmap='plasma', aspect='auto', extent=extent)
-        ax1.set_yticks([])
-        ax1.set_xlim(extent[0], extent[1])
+        if len(avg_attrs.shape) == 1:
+            # plot 1d heat map for the attributes
+            fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+            x = np.arange(0, data.shape[1])
+            extent = [x[0] - (x[1] - x[0]) / 2., x[-1] + (x[1] - x[0]) / 2., 0, 1]
+            ax1.imshow(avg_attrs.reshape(1, -1), cmap='plasma', aspect='auto', extent=extent)
+            ax1.set_yticks([])
+            ax1.set_xlim(extent[0], extent[1])
 
-        ax2.plot(x, avg_attrs)
-        plt.tight_layout()
-        plt.savefig(save_fig_path)
-        plt.close()
+            ax2.plot(x, avg_attrs)
+            plt.tight_layout()
+            plt.savefig(save_fig_path)
+            plt.close()
+        elif len(avg_attrs.shape) == 2:
+            # plot 2d heat map for the attributes
+            plt.imshow(avg_attrs, cmap='plasma')
+            plt.tight_layout()
+            plt.savefig(save_fig_path)
+            plt.close()
+        else:
+            assert False, "Wrong dimension of input"

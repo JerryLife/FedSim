@@ -23,7 +23,7 @@ data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format
 name = "frog_avgsim_noise_{:.2f}".format(noise_scale)
 
 model = MergeSimModel(num_common_features=num_common_features,
-                      sim_hidden_sizes=[10, 10],
+                      sim_hidden_sizes=[10],
                       merge_mode='avg',
                       feature_wise_sim=False,
                       task='multi_cls',
@@ -38,7 +38,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       kd_tree_radius=2,
                       kd_tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
-                      val_rate=0.1,
+                      val_rate=0.2,
                       test_rate=0.2,
                       drop_key=True,
                       device='cuda:0',

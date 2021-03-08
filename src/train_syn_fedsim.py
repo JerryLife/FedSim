@@ -3,7 +3,7 @@ import sys
 import argparse
 from datetime import datetime
 
-from model.vertical_fl.FedSimModelV2 import FedSimModel
+from model.vertical_fl.FedSimModelV3 import FedSimModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 parser = argparse.ArgumentParser()
@@ -23,7 +23,7 @@ syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
 name = "syn_fedsim_noise_{:.2f}".format(noise_scale)
 
 model = FedSimModel(num_common_features=num_common_features,
-                    raw_output_dim=3,
+                    raw_output_dim=1,
                     feature_wise_sim=False,
                     task='binary_cls',
                     metrics=['accuracy'],
@@ -62,11 +62,11 @@ model = FedSimModel(num_common_features=num_common_features,
 
                     # fedsim parameters
                     merge_hidden_sizes=[400],
-                    sim_hidden_sizes=[10, 10],
+                    sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
                     merge_dropout_p=0.7,
-                    conv_n_channels=2,
-                    conv_kernel_v_size=5
+                    conv_n_channels=4,
+                    conv_kernel_v_size=7
                     )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.2f}.pkl".format(noise_scale),
                     sim_model_path=None)

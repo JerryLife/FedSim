@@ -23,13 +23,13 @@ num_features = 22
 num_common_features = 16
 noise_scale = args.noise_scale
 
-data_loader = TwoPartyLoader(num_features=num_features,
-                             num_common_features=num_common_features,
-                             common_feature_noise_scale=noise_scale,
-                             data_fmt=load_frog, dataset_name=dataset, n_classes=2,
-                             seed=0)
-data_loader.load_parties(root + dataset)
-data_loader.to_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
+# data_loader = TwoPartyLoader(num_features=num_features,
+#                              num_common_features=num_common_features,
+#                              common_feature_noise_scale=noise_scale,
+#                              data_fmt=load_frog, dataset_name=dataset, n_classes=2,
+#                              seed=0)
+# data_loader.load_parties(root + dataset)
+# data_loader.to_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
@@ -43,13 +43,13 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       task='multi_cls',
                       metrics=['accuracy'],
                       n_classes=10,
-                      val_rate=0.1,
+                      val_rate=0.2,
                       test_rate=0.2,
                       device='cuda:0',
                       hidden_sizes=[200, 100],
                       train_batch_size=4096,
                       test_batch_size=4096,
-                      num_epochs=100,
+                      num_epochs=200,
                       learning_rate=3e-2,
                       weight_decay=1e-4,
                       num_workers=4 if sys.gettrace() is None else 0,

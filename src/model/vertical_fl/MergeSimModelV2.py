@@ -28,27 +28,23 @@ from .SimModel import SimDataset
 from utils import get_split_points
 
 
-class FedSimModel(SimModel):
-    def __init__(self, num_common_features, sim_hidden_sizes=None,
-                 sim_model_save_path=None, update_sim_freq=1, raw_output_dim=1,
+class MergeSimModel(SimModel):
+    def __init__(self, num_common_features, sim_hidden_sizes=None, merge_mode='sim_model_avg',
+                 sim_model_save_path=None, update_sim_freq=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
-                 log_dir=None, merge_hidden_sizes=None, merge_model_save_path=None,
-                 merge_dropout_p=0.0,
+                 log_dir=None,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
-        self.merge_dropout_p = merge_dropout_p
-        self.raw_output_dim = raw_output_dim
         self.log_dir = log_dir
         if log_dir:
             os.makedirs(log_dir, exist_ok=True)
         self.update_sim_freq = update_sim_freq
         self.sim_model_save_path = sim_model_save_path
-        self.merge_model_save_path = merge_model_save_path
         self.sim_batch_size = sim_batch_size
         self.sim_weight_decay = sim_weight_decay
         self.sim_learning_rate = sim_learning_rate
-        self.model = None
-        self.merge_model = None
+        assert merge_mode in ['sim_model_avg', 'avg', 'common_model_avg']
+        self.merge_mode = merge_mode
         self.sim_model = None
 
         if sim_hidden_sizes is None:
@@ -56,18 +52,10 @@ class FedSimModel(SimModel):
         else:
             self.sim_hidden_sizes = sim_hidden_sizes
 
-        if merge_hidden_sizes is None:
-            self.merge_hidden_sizes = [10]
-        else:
-            self.merge_hidden_sizes = merge_hidden_sizes
-
         self.data1_shape = None
         self.data2_shape = None
 
-        assert self.blocking_method == 'knn'  # the pairing must be consistent
-
-    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None,
-                      sim_model_path=None):
+    def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None):
         if torch_seed is not None:
             torch.manual_seed(torch_seed)
             # For CUDA >= 10.2 only
@@ -86,7 +74,6 @@ class FedSimModel(SimModel):
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
                                   num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context,
                                   collate_fn=self.var_collate_fn)
-
         print("Done")
         self.data1_shape = data1.shape
         self.data2_shape = data2.shape
@@ -105,7 +92,7 @@ class FedSimModel(SimModel):
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
             agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
-                            output_size=self.raw_output_dim, activation='sigmoid')
+                            output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.BCELoss()
             val_criterion = nn.BCELoss()
@@ -114,7 +101,7 @@ class FedSimModel(SimModel):
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
             agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
-                            output_size=self.raw_output_dim, activation=None)
+                            output_size=output_dim, activation=None)
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.CrossEntropyLoss()
             val_criterion = nn.CrossEntropyLoss()
@@ -123,36 +110,27 @@ class FedSimModel(SimModel):
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
             agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
-                            output_size=self.raw_output_dim, activation='sigmoid')
+                            output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.MSELoss()
             val_criterion = nn.MSELoss()
         else:
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
-        self.merge_model = DropoutInputMLP(dropout_rate=self.merge_dropout_p,
-                                           input_size=self.raw_output_dim * self.knn_k,
-                                           hidden_sizes=self.merge_hidden_sizes,
-                                           output_size=output_dim,
-                                           activation=None if self.task == 'multi_cls' else 'sigmoid'
-                                           ).to(self.device)
-        if self.feature_wise_sim:
-            self.sim_model = MLP(input_size=self.num_common_features,
-                                 hidden_sizes=self.sim_hidden_sizes,
+        if self.merge_mode == 'common_model_avg':
+            self.sim_model = MLP(input_size=self.num_common_features, hidden_sizes=self.sim_hidden_sizes,
+                                 output_size=1, activation='sigmoid').to(self.device)
+            # self.sim_model = SimScoreModel(num_features=self.num_common_features)
+        elif self.merge_mode == 'sim_model_avg':
+            self.sim_model = MLP(input_size=1, hidden_sizes=self.sim_hidden_sizes,
                                  output_size=1, activation='sigmoid').to(self.device)
         else:
-            self.sim_model = MLP(input_size=1,
-                                 hidden_sizes=self.sim_hidden_sizes,
-                                 output_size=1, activation='sigmoid').to(self.device)
-        optimizer = adv_optim.Lamb(list(self.model.parameters()) + list(self.merge_model.parameters()) +
-                                   list(self.sim_model.parameters()),
-                                   lr=self.learning_rate, weight_decay=self.weight_decay)
-
-        if sim_model_path is not None:
-            self.sim_model.load_state_dict(torch.load(sim_model_path))
-
+            self.sim_model = None
+        optimier = adv_optim.Lamb(list(self.model.parameters()) + list(self.sim_model.parameters()),
+                                  lr=self.learning_rate, weight_decay=self.weight_decay)
+        use_sim_model = (self.merge_mode in ['common_model_avg', 'sim_model_avg'])
         if self.use_scheduler:
-            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=self.sche_factor,
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimier, factor=self.sche_factor,
                                                              patience=self.sche_patience,
                                                              threshold=self.sche_threshold)
         else:
@@ -162,60 +140,54 @@ class FedSimModel(SimModel):
         best_val_metric_scores = [m.worst for m in self.metrics_f]
         best_test_metric_scores = [m.worst for m in self.metrics_f]
         print("Start training")
-        summary(self.model, torch.zeros([self.train_batch_size, num_features])
-                .to(self.device))
-        summary(self.merge_model, torch.zeros([1, self.raw_output_dim * self.knn_k])
-                .to(self.device))
-        summary(self.sim_model, torch.zeros([1, self.num_common_features if self.feature_wise_sim else 1])
-                .to(self.device))
+        summary(self.model, torch.zeros([self.train_batch_size, num_features]).to(self.device))
+        if use_sim_model:
+            summary(self.sim_model, torch.zeros([1, self.num_common_features if self.feature_wise_sim else 1])
+                    .to(self.device))
         print(str(self))
-        # # debug
-        # torch.autograd.set_detect_anomaly(True)
         for epoch in range(self.num_epochs):
             # train
             train_loss = 0.0
             n_train_batches = 0
-            self.merge_model.train()
+            if use_sim_model:
+                self.sim_model.train()
             self.model.train()
-            self.sim_model.train()
             all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
+                weights = weights.to(self.device).float()
 
                 if self.feature_wise_sim:
-                    data = data_batch[:, self.num_common_features:]
                     sim_scores = data_batch[:, :self.num_common_features]
+                    data = data_batch[:, self.num_common_features:]
                 else:
-                    data = data_batch[:, 1:]
                     sim_scores = data_batch[:, 0].reshape(-1, 1)
+                    data = data_batch[:, 1:]
 
                 # train main model
-                optimizer.zero_grad()
+                optimier.zero_grad()
                 outputs = self.model(data)
-
+                if self.merge_mode in ['sim_model_avg', 'common_model_avg']:
+                    sim_weights = self.sim_model(sim_scores) + 1e-7  # prevent dividing zero
+                elif self.merge_mode in ['avg']:
+                    sim_weights = torch.ones([sim_scores.shape[0], 1]).to(self.device)
+                else:
+                    assert False, "Unsupported merge mode"
                 outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 idx1_split_points = get_split_points(idx1, idx1.shape[0])
                 labels_sim = torch.zeros(0).to(self.device)
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
+                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                               / torch.sum(sim_weights[start:end], dim=0)
 
-                    sim_weights = self.sim_model(sim_scores[start:end])
-                    assert ((0 <= sim_weights) & (sim_weights <= 1)).all()
-                    # reduce multi-dimensional similarity to one dimension
-                    sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
-                    sim_scores_flat, indices = torch.sort(sim_scores_flat)
-                    outputs_sorted = outputs[start:end][indices]
-                    sim_weights_sorted = sim_weights[indices]
-                    # _tmp = sim_weights_sorted - sim_weights_sorted.min(0, keepdim=True)[0] + 1e-7
-                    # sim_weights_scaled = _tmp / _tmp.max(0, keepdim=True)[0]
-                    sim_weights_scaled = sim_weights_sorted
-                    outputs_weighted = outputs_sorted * sim_weights_scaled
-                    outputs_flat = outputs_weighted.flatten()
-
-                    output_i = self.merge_model(outputs_flat)
+                    if self.task in ['binary_cls', 'regression']:
+                        # bound threshold
+                        output_i[output_i > 1.] = 1.
+                        output_i[output_i < 0.] = 0.
 
                     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
@@ -233,8 +205,11 @@ class FedSimModel(SimModel):
                 else:
                     assert False, "Unsupported task"
 
-                loss.backward()
-                optimizer.step()
+                if (epoch + 1) % self.update_sim_freq == 0:
+                    loss.backward(retain_graph=True)
+                else:
+                    loss.backward()
+                optimier.step()
 
                 train_loss += loss.item()
                 preds = preds.reshape(-1, 1).detach().cpu().numpy()
@@ -253,22 +228,6 @@ class FedSimModel(SimModel):
             for metric_f in self.metrics_f:
                 train_metric_scores.append(metric_f(all_preds, all_labels))
 
-            # visualize merge_model
-            if self.log_dir is not None:
-                viz_data = torch.rand([100, (self.num_common_features + self.raw_output_dim) * self.knn_k
-                if self.feature_wise_sim else self.raw_output_dim * self.knn_k]) \
-                    .to(self.device)
-                self.visualize_model(self.merge_model, viz_data, target=0,
-                                     save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
-
-                # visualize sim_model
-                if self.feature_wise_sim:
-                    raise NotImplementedError  # todo
-                else:
-                    self.plot_model(self.sim_model, input_dim=1,
-                                    save_fig_path="{}/sim_epoch_{}.jpg".format(self.log_dir, epoch),
-                                    dim_wise=False)
-
             # validation and test
             val_loss, val_metric_scores = self.eval_merge_score(val_dataset, val_criterion,
                                                                 'Val', y_scaler=y_scaler)
@@ -285,15 +244,25 @@ class FedSimModel(SimModel):
             else:
                 assert False, "Unsupported metric"
 
+            # visualize sim_model
+            if self.log_dir is not None:
+                if self.merge_mode == 'avg':
+                    pass
+                elif self.feature_wise_sim:
+                    raise NotImplementedError  # todo
+                else:
+                    self.plot_model(self.sim_model, input_dim=1,
+                                    save_fig_path="{}/epoch_{}.jpg".format(self.log_dir, epoch),
+                                    dim_wise=False)
+
             if is_best:
                 best_train_metric_scores = train_metric_scores
                 best_val_metric_scores = val_metric_scores
                 best_test_metric_scores = test_metric_scores
                 if self.model_save_path is not None:
-                    assert self.sim_model_save_path is not None and self.merge_model_save_path is not None
                     torch.save(self.model.state_dict(), self.model_save_path)
-                    torch.save(self.sim_model.state_dict(), self.sim_model_save_path)
-                    torch.save(self.merge_model.state_dict(), self.merge_model_save_path)
+                    if use_sim_model:
+                        torch.save(self.sim_model.state_dict(), self.sim_model_save_path)
 
             print("Epoch {}: {:<17s}: Train {:.4f}, Val {:.4f}, Test {:.4f}"
                   .format(epoch + 1, "Loss:", train_loss, val_loss, test_loss))
@@ -325,6 +294,7 @@ class FedSimModel(SimModel):
                                 num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context,
                                 collate_fn=self.var_collate_fn)
 
+        use_sim_model = (self.merge_mode in ['common_model_avg', 'sim_model_avg'])
         val_loss = 0.0
         n_val_batches = 0
         output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
@@ -332,20 +302,26 @@ class FedSimModel(SimModel):
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()
-            self.merge_model.eval()
-            self.sim_model.eval()
+            if use_sim_model:
+                self.sim_model.eval()
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(val_loader, desc=name):
                 data_batch = data_batch.to(self.device).float()
                 labels = labels.to(self.device).float()
 
                 if self.feature_wise_sim:
-                    data = data_batch[:, self.num_common_features:]
                     sim_scores = data_batch[:, :self.num_common_features]
+                    data = data_batch[:, self.num_common_features:]
                 else:
-                    data = data_batch[:, 1:]
                     sim_scores = data_batch[:, 0].reshape(-1, 1)
+                    data = data_batch[:, 1:]
 
                 outputs = self.model(data)
+                if self.merge_mode in ['sim_model_avg', 'common_model_avg']:
+                    sim_weights = self.sim_model(sim_scores) + 1e-7  # prevent dividing zero
+                elif self.merge_mode in ['avg']:
+                    sim_weights = torch.ones([sim_scores.shape[0], 1]).to(self.device)
+                else:
+                    assert False, "Unsupported merge mode"
 
                 outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 idx1_split_points = get_split_points(idx1, idx1.shape[0])
@@ -353,20 +329,13 @@ class FedSimModel(SimModel):
                 for i in range(idx1_unique.shape[0]):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
+                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                               / torch.sum(sim_weights[start:end], dim=0)
 
-                    sim_weights = self.sim_model(sim_scores[start:end])
-                    assert ((0 <= sim_weights) & (sim_weights <= 1)).all()
-                    sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
-                    sim_scores_flat, indices = torch.sort(sim_scores_flat)
-                    outputs_sorted = outputs[start:end][indices]
-                    sim_weights_sorted = sim_weights[indices]
-                    # _tmp = sim_weights_sorted - sim_weights_sorted.min(0, keepdim=True)[0] + 1e-7
-                    # sim_weights_scaled = _tmp / _tmp.max(0, keepdim=True)[0]
-                    sim_weights_scaled = sim_weights_sorted
-                    outputs_weighted = outputs_sorted * sim_weights_scaled
-                    outputs_flat = outputs_weighted.flatten()
-
-                    output_i = self.merge_model(outputs_flat)
+                    if self.task in ['binary_cls', 'regression']:
+                        # bound threshold
+                        output_i[output_i > 1.] = 1.
+                        output_i[output_i < 0.] = 0.
 
                     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)

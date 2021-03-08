@@ -28,14 +28,62 @@ from .SimModel import SimDataset
 from utils import get_split_points
 
 
+class ConvModel(nn.Module):
+    def __init__(self, knn_k, merge_input_dim, merge_hidden_sizes, n_channels=4, kernel_v_size=3,
+                 dropout_p=0.5, output_dim=1, activation=None):
+        super().__init__()
+        self.merge_hidden_sizes = merge_hidden_sizes
+        # self.avgpool_kernel_size = [5, 1]
+        self.conv1 = nn.Conv2d(1, n_channels, kernel_size=[kernel_v_size, 1],
+                               padding=[kernel_v_size - 1, 0])
+        # self.conv2 = nn.Conv2d(n_channels, n_channels, kernel_size=[kernel_v_size, 1],
+        #                        padding=[kernel_v_size - 1, 0])
+        self.mlp_input_dim = n_channels * (knn_k + kernel_v_size - 1) * merge_input_dim
+        # self.mlp_input_dim = n_channels * ((knn_k + kernel_v_size - 1) // self.avgpool_kernel_size[0]) \
+        #                      * merge_input_dim
+        assert len(merge_hidden_sizes) == 1, "Multiple hidden layers not supported yet."
+        self.fc1 = nn.Linear(self.mlp_input_dim, merge_hidden_sizes[0])
+        self.fc2 = nn.Linear(self.merge_hidden_sizes[0], output_dim)
+        self.activation = activation
+        self.dropout1 = nn.Dropout(dropout_p)
+        self.dropout2 = nn.Dropout(dropout_p)
+
+    def forward(self, X):
+        """
+        :param X: [n x k x d] tensor (n: #samples, k: knn_k, d: raw_output_dim + [sim_dim])
+        :return:
+        """
+        X = torch.relu(self.conv1(X.unsqueeze(1)))
+        # X = torch.relu(self.conv2(X))
+        # X = nn.AvgPool2d(self.avgpool_kernel_size)(X)
+        X = self.dropout1(X.view(-1, self.mlp_input_dim))
+        X = torch.relu(self.fc1(X))
+        X = self.dropout2(X)
+
+        if self.activation == 'sigmoid':
+            X = torch.sigmoid(self.fc2(X))
+        elif self.activation == 'tanh':
+            X = torch.tanh(self.fc2(X))
+        elif self.activation == 'relu':
+            X = torch.relu(self.fc2(X))
+        elif self.activation is None:
+            X = self.fc2(X)
+        else:
+            assert False, "Not supported activation function"
+
+        return X
+
+
 class FedSimModel(SimModel):
     def __init__(self, num_common_features, sim_hidden_sizes=None,
                  sim_model_save_path=None, update_sim_freq=1, raw_output_dim=1,
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
                  log_dir=None, merge_hidden_sizes=None, merge_model_save_path=None,
-                 merge_dropout_p=0.0,
+                 merge_dropout_p=0.0, conv_n_channels=1, conv_kernel_v_size=3,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.conv_kernel_v_size = conv_kernel_v_size
+        self.conv_n_channels = conv_n_channels
         self.merge_dropout_p = merge_dropout_p
         self.raw_output_dim = raw_output_dim
         self.log_dir = log_dir
@@ -86,10 +134,13 @@ class FedSimModel(SimModel):
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
                                   num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context,
                                   collate_fn=self.var_collate_fn)
-
         print("Done")
+
         self.data1_shape = data1.shape
         self.data2_shape = data2.shape
+        sim_dim = self.num_common_features if self.feature_wise_sim else 1
+        input_dims = [self.data1_shape[1] - self.num_common_features,
+                      self.data2_shape[1] - self.num_common_features]
         if self.drop_key:
             num_features = data1.shape[1] + data2.shape[1] - 2 * self.num_common_features
         else:
@@ -97,8 +148,6 @@ class FedSimModel(SimModel):
 
         print("Prepare for training")
         num_parties = 2
-        input_dims = [self.data1_shape[1] - self.num_common_features,
-                      self.data2_shape[1] - self.num_common_features]
 
         if self.task == 'binary_cls':
             output_dim = 1
@@ -130,12 +179,15 @@ class FedSimModel(SimModel):
         else:
             assert False, "Unsupported task"
         self.model = self.model.to(self.device)
-        self.merge_model = DropoutInputMLP(dropout_rate=self.merge_dropout_p,
-                                           input_size=self.raw_output_dim * self.knn_k,
-                                           hidden_sizes=self.merge_hidden_sizes,
-                                           output_size=output_dim,
-                                           activation=None if self.task == 'multi_cls' else 'sigmoid'
-                                           ).to(self.device)
+        self.merge_model = ConvModel(knn_k=self.knn_k,
+                                     merge_input_dim=self.raw_output_dim,
+                                     merge_hidden_sizes=self.merge_hidden_sizes,
+                                     output_dim=output_dim,
+                                     n_channels=self.conv_n_channels,
+                                     kernel_v_size=self.conv_kernel_v_size,
+                                     dropout_p=self.merge_dropout_p,
+                                     activation=None if self.task == 'multi_cls' else 'sigmoid'
+                                     ).to(self.device)
         if self.feature_wise_sim:
             self.sim_model = MLP(input_size=self.num_common_features,
                                  hidden_sizes=self.sim_hidden_sizes,
@@ -164,7 +216,7 @@ class FedSimModel(SimModel):
         print("Start training")
         summary(self.model, torch.zeros([self.train_batch_size, num_features])
                 .to(self.device))
-        summary(self.merge_model, torch.zeros([1, self.raw_output_dim * self.knn_k])
+        summary(self.merge_model, torch.zeros([1, self.knn_k, self.raw_output_dim])
                 .to(self.device))
         summary(self.sim_model, torch.zeros([1, self.num_common_features if self.feature_wise_sim else 1])
                 .to(self.device))
@@ -202,20 +254,17 @@ class FedSimModel(SimModel):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
 
-                    sim_weights = self.sim_model(sim_scores[start:end])
-                    assert ((0 <= sim_weights) & (sim_weights <= 1)).all()
                     # reduce multi-dimensional similarity to one dimension
                     sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_sorted = outputs[start:end][indices]
-                    sim_weights_sorted = sim_weights[indices]
-                    # _tmp = sim_weights_sorted - sim_weights_sorted.min(0, keepdim=True)[0] + 1e-7
-                    # sim_weights_scaled = _tmp / _tmp.max(0, keepdim=True)[0]
-                    sim_weights_scaled = sim_weights_sorted
-                    outputs_weighted = outputs_sorted * sim_weights_scaled
-                    outputs_flat = outputs_weighted.flatten()
 
-                    output_i = self.merge_model(outputs_flat)
+                    sim_scores_sorted = sim_scores[start:end][indices]
+                    sim_weights = self.sim_model(sim_scores_sorted)
+
+                    outputs_weighted = outputs_sorted * sim_weights
+
+                    output_i = self.merge_model(outputs_weighted.unsqueeze(0))
 
                     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
@@ -255,11 +304,13 @@ class FedSimModel(SimModel):
 
             # visualize merge_model
             if self.log_dir is not None:
-                viz_data = torch.rand([100, (self.num_common_features + self.raw_output_dim) * self.knn_k
-                if self.feature_wise_sim else self.raw_output_dim * self.knn_k]) \
-                    .to(self.device)
-                self.visualize_model(self.merge_model, viz_data, target=0,
-                                     save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
+                try:
+                    viz_data = torch.rand([1000, self.knn_k, self.raw_output_dim]) \
+                        .to(self.device)
+                    self.visualize_model(self.merge_model, viz_data, target=0,
+                                         save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
+                except Exception:
+                    pass
 
                 # visualize sim_model
                 if self.feature_wise_sim:
@@ -354,19 +405,16 @@ class FedSimModel(SimModel):
                     start = idx1_split_points[i]
                     end = idx1_split_points[i + 1]
 
-                    sim_weights = self.sim_model(sim_scores[start:end])
-                    assert ((0 <= sim_weights) & (sim_weights <= 1)).all()
+                    # reduce multi-dimensional similarity to one dimension
                     sim_scores_flat = torch.sqrt(torch.sum(sim_scores[start:end] ** 2, dim=1)).flatten()
                     sim_scores_flat, indices = torch.sort(sim_scores_flat)
                     outputs_sorted = outputs[start:end][indices]
-                    sim_weights_sorted = sim_weights[indices]
-                    # _tmp = sim_weights_sorted - sim_weights_sorted.min(0, keepdim=True)[0] + 1e-7
-                    # sim_weights_scaled = _tmp / _tmp.max(0, keepdim=True)[0]
-                    sim_weights_scaled = sim_weights_sorted
-                    outputs_weighted = outputs_sorted * sim_weights_scaled
-                    outputs_flat = outputs_weighted.flatten()
 
-                    output_i = self.merge_model(outputs_flat)
+                    sim_scores_sorted = sim_scores[start:end][indices]
+                    sim_weights = self.sim_model(sim_scores_sorted)
+
+                    outputs_weighted = outputs_sorted * sim_weights
+                    output_i = self.merge_model(outputs_weighted.unsqueeze(0))
 
                     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
