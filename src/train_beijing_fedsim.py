@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import argparse
 
-from model.vertical_fl.FedSimModelV3 import FedSimModel
+from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.beijing import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -34,7 +34,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     val_rate=0.1,
                     test_rate=0.2,
                     drop_key=True,
-                    device='cuda:0',
+                    device='cuda:2',
                     hidden_sizes=[200, 100],
                     train_batch_size=32,
                     test_batch_size=1024 * 4,

@@ -3,7 +3,7 @@ import sys
 import argparse
 from datetime import datetime
 
-from model.vertical_fl.FedSimModelV2 import FedSimModel
+from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
@@ -23,7 +23,7 @@ data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format
 name = "frog_fedsim_noise_{:.2f}".format(noise_scale)
 
 model = FedSimModel(num_common_features=num_common_features,
-                    raw_output_dim=3,
+                    raw_output_dim=10,
                     feature_wise_sim=False,
                     task='multi_cls',
                     metrics=['accuracy'],
@@ -64,6 +64,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     # fedsim parameters
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
+                    use_conv=False,
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
                     merge_dropout_p=0.7,
                     conv_n_channels=4,

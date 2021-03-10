@@ -56,7 +56,7 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
             max_score = np.max(scores_per_noise)
 
             scores_per_algo.append(avg_score)
-            errors_per_algo[0].append(min_score - avg_score)
+            errors_per_algo[0].append(avg_score - min_score)
             errors_per_algo[1].append(max_score - avg_score)
 
         # plot this algorithm
@@ -64,7 +64,7 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
             pos = x - width * (len(algorithms) // 2) + width / 2 + width * i_algo
         else:
             pos = x - width * (len(algorithms) // 2) + width * i_algo
-        ax.bar(pos, scores_per_algo, width, yerr=errors_per_algo, label=algo)
+        ax.bar(pos, scores_per_algo, width, yerr=errors_per_algo, label=algo, capsize=2)
 
         print("Algorithm {} printed".format(algo))
 
@@ -84,12 +84,12 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
 
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../")  # change working directory
-    plot_noise(result_dir="./out/syn/", dataset_name="syn", metric="Accuracy", n_round=1,
-               algorithms=['all', 'fedsim', 'ordersim', 'mergesim', 'top1sim', 'concatsim', 'avgsim', 'A'],
-               noises=[0.0, 0.1, 0.2], save_path="fig/syn_noise.png")
-    plot_noise(result_dir="./out/boone/", dataset_name="boone", metric="Accuracy", n_round=1,
-               algorithms=['all', 'ordersim', 'mergesim', 'top1sim', 'concatsim', 'avgsim', 'A'],
-               noises=[0.0, 0.1, 0.2], save_path="fig/boone_noise.png")
-    plot_noise(result_dir="./out/frog/", dataset_name="frog", metric="Accuracy", n_round=1,
-               algorithms=['all', 'fedsim', 'ordersim', 'mergesim', 'concatsim', 'avgsim', 'top1sim', 'A'],
+    # plot_noise(result_dir="./out/syn/", dataset_name="syn", metric="Accuracy", n_round=1,
+    #            algorithms=['all', 'fedsim', 'ordersim', 'mergesim', 'top1sim', 'concatsim', 'avgsim', 'A'],
+    #            noises=[0.0, 0.1, 0.2], save_path="fig/syn_noise.png")
+    # plot_noise(result_dir="./out/boone/", dataset_name="boone", metric="Accuracy", n_round=1,
+    #            algorithms=['all', 'ordersim', 'mergesim', 'top1sim', 'concatsim', 'avgsim', 'A'],
+    #            noises=[0.0, 0.1, 0.2], save_path="fig/boone_noise.png")
+    plot_noise(result_dir="./out/frog/", dataset_name="frog", metric="Accuracy", n_round=5,
+               algorithms=['all', 'fedsim', 'ordersim', 'concatsim', 'avgsim', 'top1sim', 'A'],
                noises=[0.0, 0.1, 0.2], save_path="fig/frog_noise.png", decimal=1)

@@ -473,7 +473,7 @@ class MergeSimModel(SimModel):
                                / torch.sum(sim_weights[start:end], dim=0)
 
                     if self.task in ['binary_cls', 'regression']:
-                        # bound threshold
+                        # bound threshold to prevent CUDA error
                         output_i[output_i > 1.] = 1.
                         output_i[output_i < 0.] = 0.
 

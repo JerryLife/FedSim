@@ -3,7 +3,7 @@ import sys
 import argparse
 from datetime import datetime
 
-from model.vertical_fl.FedSimModelV3 import FedSimModel
+from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
 parser = argparse.ArgumentParser()
@@ -61,6 +61,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     cut_dims=[50, 50],
 
                     # fedsim parameters
+                    use_conv=False,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),

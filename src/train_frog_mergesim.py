@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import argparse
 
-from model.vertical_fl.MergeSimModelV2 import MergeSimModel
+from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
@@ -47,9 +47,9 @@ model = MergeSimModel(num_common_features=num_common_features,
                       test_batch_size=4096,
                       num_epochs=100,
                       learning_rate=3e-3,
-                      weight_decay=1e-4,
+                      weight_decay=1e-3,
                       sim_learning_rate=3e-3,
-                      sim_weight_decay=1e-4,
+                      sim_weight_decay=1e-3,
                       sim_batch_size=4096,
                       update_sim_freq=1,
                       num_workers=4 if sys.gettrace() is None else 0,
