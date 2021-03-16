@@ -65,6 +65,8 @@ class BaseModel:
             return metric.RMSE()
         elif metric_str == 'r2_score':
             return metric.R2Score()
+        elif metric_str == 'mae':
+            return metric.MAE()
         else:
             assert False, "Unsupported metric"
 
@@ -227,7 +229,7 @@ class BaseModel:
             # The first metric determines early stopping
             if self.metrics[0] in ['accuracy', 'r2_score']:
                 is_best = (val_metric_scores[0] > best_val_metric_scores[0])
-            elif self.metrics[0] in ['rmse']:
+            elif self.metrics[0] in ['rmse', 'mae']:
                 is_best = (val_metric_scores[0] < best_val_metric_scores[0])
             else:
                 assert False, "Unsupported metric"

@@ -27,7 +27,7 @@ name = "song_A"
 
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='regression',
-                      metrics=['r2_score', 'rmse'],
+                      metrics=['mae', 'r2_score', 'rmse'],
                       n_classes=2,
                       val_rate=0.05,
                       test_rate=0.05,
