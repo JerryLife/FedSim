@@ -4,34 +4,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-def read_file(file_path, metrics: list):
-    """
-    Read information from one file, including best performance and training time
-    :param metrics: the metrics to be read from the file (e.g. RMSE, Accuracy)
-    :param file_path: path of the file
-    :return: metric_values: List, time_sec: int; the order of metric values follows the order of metrics
-    """
-    assert os.path.isfile(file_path), "{} does not exist".format(file_path)
-
-    time_sec = None
-    metric_values = [np.nan for _ in metrics]
-    with open(file_path, "r") as f:
-        for line in reversed(f.readlines()):
-            if "time" in line:
-                time_sec = int(line.split()[-1])    # get the value of time in seconds (must be integer)
-            elif "Best" in line:
-                break
-            else:
-                metric, test_value = line.split()[0], float(line.split()[-1])
-                if metric in metrics:
-                    metric_values[metrics.index(metric)] = test_value
-
-    # return a single value if there is only one metric
-    if len(metric_values) == 1:
-        metric_values = metric_values[0]
-
-    return metric_values, time_sec
+from plot.file_reader import read_file
 
 
 def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, noises: list, save_path=None, decimal=2):
@@ -84,12 +57,12 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
 
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../")  # change working directory
-    # plot_noise(result_dir="./out/syn/", dataset_name="syn", metric="Accuracy", n_round=1,
-    #            algorithms=['all', 'fedsim', 'ordersim', 'mergesim', 'top1sim', 'concatsim', 'avgsim', 'A'],
-    #            noises=[0.0, 0.1, 0.2], save_path="fig/syn_noise.png")
-    # plot_noise(result_dir="./out/boone/", dataset_name="boone", metric="Accuracy", n_round=1,
-    #            algorithms=['all', 'ordersim', 'mergesim', 'top1sim', 'concatsim', 'avgsim', 'A'],
-    #            noises=[0.0, 0.1, 0.2], save_path="fig/boone_noise.png")
+    plot_noise(result_dir="./out/syn/", dataset_name="syn", metric="Accuracy", n_round=5,
+               algorithms=['all', 'fedsim', 'ordersim', 'concatsim', 'top1sim', 'avgsim', 'A'],
+               noises=[0.0, 0.1, 0.2], save_path="fig/syn_noise.png")
+    plot_noise(result_dir="./out/boone/", dataset_name="boone", metric="Accuracy", n_round=5,
+               algorithms=['all', 'fedsim', 'ordersim', 'concatsim', 'top1sim', 'avgsim', 'A'],
+               noises=[0.0, 0.1, 0.2], save_path="fig/boone_noise.png", decimal=1)
     plot_noise(result_dir="./out/frog/", dataset_name="frog", metric="Accuracy", n_round=5,
                algorithms=['all', 'fedsim', 'ordersim', 'concatsim', 'avgsim', 'top1sim', 'A'],
                noises=[0.0, 0.1, 0.2], save_path="fig/frog_noise.png", decimal=1)

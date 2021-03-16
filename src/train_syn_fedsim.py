@@ -55,6 +55,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     writer_path="runs/{}_{}".format(name, now_string),
                     model_save_path="ckp/{}_{}.pth".format(name, now_string),
                     sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
+                    log_dir="log/{}_{}/".format(name, now_string),
                     # SplitNN parameters
                     local_hidden_sizes=[[100], [100]],
                     agg_hidden_sizes=[100],

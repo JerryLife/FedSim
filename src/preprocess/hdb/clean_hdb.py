@@ -59,6 +59,8 @@ def clean_hdb(hdb_path, out_hdb_path):
                             columns=['town', 'flat_type', 'storey_range', 'flat_model'],
                             prefix=['tn', 'ft', 'sr', 'fm'], drop_first=True)
 
+    hdb_df['resale_price'] = hdb_df['resale_price'] / 1000  # change to kS$
+
     hdb_df.to_csv(out_hdb_path, index=False)
 
 

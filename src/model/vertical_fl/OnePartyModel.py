@@ -113,13 +113,13 @@ class BaseModel:
         elif self.task == 'regression':
             output_dim = 1
             model = MLP(input_size=train_X.shape[1], hidden_sizes=self.hidden_sizes, output_size=output_dim,
-                        activation='sigmoid')
+                        activation=None)
             criterion = nn.MSELoss()
         else:
             assert False, "Unsupported task"
         model = model.to(self.device)
         self.model = model
-        optimizer = adv_optim.Lamb(model.parameters(),
+        optimizer = optim.Adam(model.parameters(),
                                    lr=self.learning_rate, weight_decay=self.weight_decay)
 
         if self.use_scheduler:
@@ -440,6 +440,11 @@ class BaseModel:
                 all_labels.append(answer_all[i])
             all_preds = np.array(all_preds)
             all_labels = np.array(all_labels)
+
+        if loss_criterion is not None:
+            val_loss /= n_val_batches
+        else:
+            val_loss = -1.
 
         metric_scores = []
         for metric_f in self.metrics_f:

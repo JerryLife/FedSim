@@ -15,7 +15,7 @@ now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 dataset = "MiniBooNE_PID.txt"
-num_common_features = 4
+num_common_features = 30
 noise_scale = args.noise_scale
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")

@@ -20,16 +20,16 @@ os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/"
 dataset = "MiniBooNE_PID.txt"
 num_features = 50
-num_common_features = 4
+num_common_features = 30
 noise_scale = args.noise_scale
 
-data_loader = TwoPartyLoader(num_features=num_features,
-                             num_common_features=num_common_features,
-                             common_feature_noise_scale=noise_scale,
-                             data_fmt=load_miniboone, dataset_name=dataset, n_classes=2,
-                             seed=0)
-data_loader.load_parties(root + dataset)
-data_loader.to_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
+# data_loader = TwoPartyLoader(num_features=num_features,
+#                              num_common_features=num_common_features,
+#                              common_feature_noise_scale=noise_scale,
+#                              data_fmt=load_miniboone, dataset_name=dataset, n_classes=2,
+#                              seed=0)
+# data_loader.load_parties(root + dataset)
+# data_loader.to_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 
 data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()

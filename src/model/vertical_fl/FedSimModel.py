@@ -286,13 +286,16 @@ class FedSimModel(SimModel):
                     outputs_sorted = outputs[start:end][indices]
 
                     sim_scores_sorted = sim_scores[start:end][indices]
-                    sim_weights = self.sim_model(sim_scores_sorted)
+                    sim_weights = self.sim_model(sim_scores_sorted) + 1e-7
 
-                    outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
+                    if self.use_conv:
+                        outputs_weighted = outputs_sorted * sim_weights
+                    else:
+                        outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
 
                     output_i = self.merge_model(outputs_weighted.unsqueeze(0))
 
-                    if self.task in ['binary_cls', 'regression']:
+                    if self.task in ['binary_cls', 'regression'] and self.use_conv is False:
                         # bound threshold to prevent CUDA error
                         output_i[output_i > 1.] = 1.
                         output_i[output_i < 0.] = 0.
@@ -444,12 +447,15 @@ class FedSimModel(SimModel):
                     outputs_sorted = outputs[start:end][indices]
 
                     sim_scores_sorted = sim_scores[start:end][indices]
-                    sim_weights = self.sim_model(sim_scores_sorted)
+                    sim_weights = self.sim_model(sim_scores_sorted) + 1e-7
 
-                    outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
+                    if self.use_conv:
+                        outputs_weighted = outputs_sorted * sim_weights
+                    else:
+                        outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
                     output_i = self.merge_model(outputs_weighted.unsqueeze(0))
 
-                    if self.task in ['binary_cls', 'regression']:
+                    if self.task in ['binary_cls', 'regression'] and self.use_conv is False:
                         # bound threshold to prevent CUDA error
                         output_i[output_i > 1.] = 1.
                         output_i[output_i < 0.] = 0.

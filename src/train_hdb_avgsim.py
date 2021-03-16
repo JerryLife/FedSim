@@ -4,51 +4,47 @@ from datetime import datetime
 import argparse
 
 from model.vertical_fl.MergeSimModel import MergeSimModel
-from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
+from preprocess.hdb import load_both
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--noise-scale', type=float, default=0.2)
-args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-
 os.chdir(sys.path[0] + "/../")  # change working directory
-root = "data/"
-dataset = "MiniBooNE_PID.txt"
-num_common_features = 30
-noise_scale = args.noise_scale
+root = "data/hdb/"
+hdb_dataset = root + "hdb_clean.csv"
+school_dataset = root + "school_clean.csv"
 
-data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
-[X1, X2], y = data_loader.load_parties()
-name = "boone_mergesim_noise_{:.2f}".format(noise_scale)
+num_common_features = 2
+[X1, X2], y = load_both(hdb_path=hdb_dataset, airbnb_path=school_dataset, active_party='hdb')
+name = "hdb_avgsim"
+
 
 model = MergeSimModel(num_common_features=num_common_features,
                       sim_hidden_sizes=[10, 10],
-                      merge_mode='sim_model_avg',
+                      merge_mode='avg',
                       feature_wise_sim=False,
-                      task='binary_cls',
-                      dataset_type='syn',
-                      metrics=['accuracy'],
+                      task='regression',
+                      metrics=['r2_score', 'rmse'],
+                      dataset_type='real',
                       blocking_method='knn',
                       n_classes=2,
                       grid_min=-10.0,
                       grid_max=10.0,
                       grid_width=1.5,
-                      knn_k=100,
-                      kd_tree_radius=2,
+                      knn_k=50,
+                      kd_tree_radius=1e-2,
                       kd_tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
                       val_rate=0.1,
                       test_rate=0.2,
                       drop_key=True,
-                      device='cuda:0',
-                      hidden_sizes=[100, 100],
-                      train_batch_size=64,
-                      test_batch_size=4096,
+                      device='cuda:1',
+                      hidden_sizes=[200, 100],
+                      train_batch_size=128,
+                      test_batch_size=1024 * 4,
                       num_epochs=100,
-                      learning_rate=2e-3,
+                      learning_rate=1e-3,
                       weight_decay=1e-5,
-                      sim_learning_rate=5e-3,
+                      sim_learning_rate=1e-3,
                       sim_weight_decay=1e-5,
                       sim_batch_size=4096,
                       update_sim_freq=1,
@@ -59,9 +55,9 @@ model = MergeSimModel(num_common_features=num_common_features,
                       sim_model_save_path="ckp/{}_{}_sim.pth".format(name, now_string),
                       log_dir="log/{}_{}/".format(name, now_string),
                       # SplitNN parameters
-                      local_hidden_sizes=[[100], [100]],
-                      agg_hidden_sizes=[100],
-                      cut_dims=[50, 50]
+                      local_hidden_sizes=[[200], [200]],
+                      agg_hidden_sizes=[400],
+                      cut_dims=[100, 100]
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/boone_sim_noise_{:.2f}.pkl".format(noise_scale))
-# model.train_splitnn(X1, X2, y)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
+
