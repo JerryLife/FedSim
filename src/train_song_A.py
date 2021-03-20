@@ -9,16 +9,16 @@ import sklearn.metrics as metrics
 import numpy as np
 
 from model.vertical_fl.OnePartyModel import OnePartyModel
-from preprocess.song import load_msd
+from preprocess.song import load_msd, load_fma
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
 os.chdir(sys.path[0] + "/../")  # change working directory
 
 root = "data/song/"
-dataset = "msd_clean.csv"
+dataset = "fma_clean.csv"
 
-X, y = load_msd(root + dataset)
+X, y = load_fma(root + dataset)
 print("X got {} dimensions".format(X.shape[1]))
 name = "song_A"
 # reg = LinearRegression().fit(X, y)
@@ -27,12 +27,12 @@ name = "song_A"
 
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='regression',
-                      metrics=['mae', 'r2_score', 'rmse'],
+                      metrics=['r2_score', 'rmse', 'mae'],
                       n_classes=2,
                       val_rate=0.05,
                       test_rate=0.05,
                       device='cuda:0',
-                      hidden_sizes=[56, 14],
+                      hidden_sizes=[200, 100, 100, 50],
                       train_batch_size=4096,
                       test_batch_size=4096,
                       num_epochs=200,

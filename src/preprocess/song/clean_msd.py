@@ -1,6 +1,7 @@
 import os
 import sys
 import pickle
+import re
 
 import pandas as pd
 
@@ -13,15 +14,22 @@ def clean_msd(msd_path, out_clean_msd_path):
     with open(msd_path, 'rb') as f:
         msd_data_labels = pickle.load(f)
         for title, datum, label in msd_data_labels:
-            title = "".join(title.split())  # remove all whitespaces
-            msd_titles.append(title.lower())
-            msd_data.append(datum)
-            msd_labels.append(label)
+            # title = "".join(title.split())  # remove all whitespaces
+            title = re.sub(r'\W', '', title)
+            if len(title) > 0:
+                msd_titles.append(title.lower())
+                msd_data.append(datum)
+                msd_labels.append(label)
     msd_df = pd.DataFrame(msd_data)
     msd_df['title'] = msd_titles
     msd_df['label'] = msd_labels
+
+    # remove duplicate titles
+    msd_df.set_index('title', inplace=True)
+    msd_df = msd_df[~msd_df.index.duplicated(keep="first")]
+
     print("Saving to {}".format(out_clean_msd_path))
-    msd_df.to_csv(out_clean_msd_path, index=False)
+    msd_df.to_csv(out_clean_msd_path)
     print("Done")
 
 

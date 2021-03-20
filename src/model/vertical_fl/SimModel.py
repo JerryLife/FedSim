@@ -20,6 +20,9 @@ import deprecation
 import networkx as nx
 import matplotlib.pyplot as plt
 from captum.attr import IntegratedGradients
+from lhbf import BloomFilter
+from nltk import ngrams
+import faiss
 
 from .TwoPartyModel import TwoPartyBaseModel
 
@@ -192,9 +195,18 @@ class SimModel(TwoPartyBaseModel):
                  blocking_method='grid', feature_wise_sim=False,
                  # Split Learning
                  local_hidden_sizes=None, agg_hidden_sizes=None, cut_dims=None,
+                 edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
+                 qgram_q=2, link_delta=0.1, n_hash_lsh=20,
+
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
 
+        self.n_hash_lsh = n_hash_lsh
+        self.edit_distance_threshold = edit_distance_threshold
+        self.n_hash_func = n_hash_func
+        self.collision_rate = collision_rate
+        self.qgram_q = qgram_q
+        self.link_delta = link_delta
         self.feature_wise_sim = feature_wise_sim
         self.blocking_method = blocking_method
         self.center_threshold = center_threshold
@@ -418,6 +430,101 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
+    def cal_sim_score_knn_priv(self, key1, key2, key_type, knn_k=3):
+        """
+        Calculate sim_scores based on the distance of bit-vectors/bloom-filters.
+        Ref: FEDERAL: A Framework for Distance-Aware Privacy-Preserving Record Linkage
+        :param key_type: Type of keys. Support str and float.
+        :param key1: Common features in party 1
+        :param key2: Common features in party 2
+        :param knn_k: number of nearest neighbors to be calculated
+        :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
+        """
+        if key_type == 'str':
+            key1 = key1.astype('str')
+            key2 = key2.astype('str')
+            bf1_vecs, bf2_vecs = self.str_to_bloom_filter(key1, key2,
+                                                          edit_distance_threshold=self.edit_distance_threshold,
+                                                          n_hash_func=self.n_hash_func,
+                                                          collision_rate=self.collision_rate,
+                                                          qgram_q=self.qgram_q, delta=self.link_delta)
+        else:
+            raise NotImplementedError
+
+        # link the bloom filters of party 1 and 2
+        res = faiss.StandardGpuResources()
+        index = faiss.IndexFlat(bf2_vecs.shape[1])
+
+        # this f**king index does not GPU
+        gpu_index = faiss.index_cpu_to_gpu(res, 0, index)
+
+        # Pycharm false warning
+        # noinspection PyArgumentList
+        gpu_index.add(bf2_vecs.astype('float32'))
+        print("Indexing done. Got {} samples.".format(gpu_index.ntotal))
+
+        print("KNN Query")
+        dists, idx2 = gpu_index.search(bf1_vecs.astype('float32'), k=knn_k)
+        print("Done")
+
+        print("Calculate sim_scores")
+        repeat_times = [x.shape[0] for x in idx2]
+        idx1 = np.repeat(np.arange(key1.shape[0]), repeat_times)
+        idx2 = np.concatenate(idx2[np.array(repeat_times) > 0])
+        if self.feature_wise_sim:
+            sims = -(bf1_vecs[idx1] - bf2_vecs[idx2]) ** 2
+        else:
+            sims = -np.concatenate(dists[np.array(repeat_times) > 0]).reshape(-1, 1)
+        # assert np.isclose(sims, -np.sqrt(np.sum((key1[idx1] - key2[idx2]) ** 2, axis=1)))
+        sim_scores = np.concatenate([idx1.reshape(-1, 1), idx2.reshape(-1, 1), sims], axis=1)
+        if self.sim_scaler is not None:
+            sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
+        else:
+            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
+        print("Done scaling")
+
+        return sim_scores
+
+    def str_to_bloom_filter(self, key1, key2, edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
+                               qgram_q=2, delta=0.1):
+        # Get the expected number of qgrams of each record
+        n_qgrams = 0
+        for k in np.concatenate([key1, key2]):
+            n = sum([len(s) - qgram_q + 1 for s in k])
+            n_qgrams += n
+        n_qgrams //= key1.shape[0] + key2.shape[0]
+
+        # calculate the optimal size of bloom filter according to the paper
+        collision_num = np.ceil(4 * edit_distance_threshold * n_hash_func * collision_rate)
+        bf_size = np.ceil((2 * edit_distance_threshold * n_hash_func * n_qgrams) /
+                           ((collision_num + 1) * delta)).astype('int')
+        bf_size = int(np.ceil(bf_size / 8) * 8)     # Match binary index of faiss
+        print("Size of bloom filter = {}".format(bf_size))
+
+        bf1_vecs = []
+        for k in tqdm(key1, desc='BF of key1'):
+            # Generate q-grams
+            qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
+
+            # Generate bloom filter
+            bf = BloomFilter(m=bf_size, k=n_hash_func)
+            for gram in qgrams:
+                bf.add(gram)
+            bf1_vecs.append(bf.vector)
+
+        bf2_vecs = []
+        for k in tqdm(key2, desc='BF of key2'):
+            # Generate q-grams
+            qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
+
+            # Generate bloom filter
+            bf = BloomFilter(m=bf_size, k=n_hash_func)
+            for gram in qgrams:
+                bf.add(gram)
+            bf2_vecs.append(bf.vector)
+        return np.vstack(bf1_vecs), np.vstack(bf2_vecs)
+
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0, grid_min=-3., grid_max=3.01,
               grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1):
         """
@@ -451,15 +558,17 @@ class SimModel(TwoPartyBaseModel):
             sim_scores = self.cal_sim_score_knn(key1, key2, knn_k=knn_k, kd_tree_leaf_size=kd_tree_leaf_size)
         elif self.blocking_method == 'radius':
             sim_scores = self.cal_sim_score_radius(key1, key2, radius=radius, kd_tree_leaf_size=kd_tree_leaf_size)
+        elif self.blocking_method == 'knn_priv_str':
+            sim_scores = self.cal_sim_score_knn_priv(key1, key2, key_type='str', knn_k=knn_k)
         else:
             assert False, "Unsupported blocking method"
 
         if preserve_key:
-            remain_data1 = data1
-            remain_data2 = data2
+            remain_data1 = data1.astype('float32')
+            remain_data2 = data2.astype('float32')
         else:
-            remain_data1 = data1[:, :-self.num_common_features]
-            remain_data2 = data2[:, self.num_common_features:]
+            remain_data1 = data1[:, :-self.num_common_features].astype('float32')
+            remain_data2 = data2[:, self.num_common_features:].astype('float32')
 
         # real_sim_scores = []
         # for idx1, idx2, score in sim_scores:
@@ -579,8 +688,6 @@ class SimModel(TwoPartyBaseModel):
                                                    preserve_key=preserve_key, grid_min=self.grid_min,
                                                    grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
                                                    kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
-
-            # debug
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")

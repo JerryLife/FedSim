@@ -129,7 +129,7 @@ class FedSimModel(SimModel):
         self.data1_shape = None
         self.data2_shape = None
 
-        assert self.blocking_method == 'knn'  # the pairing must be consistent
+        assert 'knn' in self.blocking_method  # the pairing must be consistent
 
     def train_splitnn(self, data1, data2, labels, data_cache_path=None, scale=False, torch_seed=None,
                       sim_model_path=None):

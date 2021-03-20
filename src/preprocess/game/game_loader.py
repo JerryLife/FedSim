@@ -3,18 +3,18 @@ import pandas as pd
 from utils import move_item_to_start_, move_item_to_end_
 
 
-def load_house(house_path):
-    print("Loading house from {}".format(house_path))
-    house_data = pd.read_csv(house_path)
+def load_rawg(rawg_path):
+    print("Loading rawg from {}".format(rawg_path))
+    rawg_data = pd.read_csv(rawg_path)
 
-    house_data.drop(columns=['lon', 'lat'], inplace=True)
+    rawg_data.drop(columns=['name'], inplace=True)
 
-    house_data.info(verbose=True)
+    rawg_data.info(verbose=True)
 
-    labels = house_data['totalPrice'].to_numpy()
-    house_data = house_data.drop(columns=['totalPrice']).to_numpy()
+    labels = rawg_data['playtime'].to_numpy()
+    rawg_data = rawg_data.drop(columns=['playtime']).to_numpy()
 
-    return house_data, labels
+    return rawg_data, labels
 
 
 def load_both(house_path, airbnb_path, active_party='house'):
