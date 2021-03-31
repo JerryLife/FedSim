@@ -9,7 +9,7 @@ def clean_rawg(rawg_path, out_rawg_path):
 
     print("Dropping unrelated columns")
     rawg_df.drop(columns=['id', 'slug', 'tba', 'metacritic', 'developers', 'publishers',
-                          'esrb_rating'], inplace=True)
+                          'esrb_rating', 'rating_top', 'ratings_count'], inplace=True)
 
     print("Mapping website to bool")
     rawg_df['has_website'] = pd.isnull(rawg_df['website'])
@@ -28,7 +28,10 @@ def clean_rawg(rawg_path, out_rawg_path):
     rawg_df.drop(columns=['platforms', 'genres'], inplace=True)
     rawg_df = pd.concat([rawg_df, platform_df, genre_df], axis=1)
 
-    print("Saving to file")
+    rawg_df.dropna(inplace=True)
+    rawg_df = rawg_df[rawg_df['playtime'] < 100]
+
+    print("Saving to file, got {} samples".format(len(rawg_df.index)))
     rawg_df.to_csv(out_rawg_path, index=False)
     print("Done")
 

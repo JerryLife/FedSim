@@ -121,7 +121,7 @@ class BaseModel:
             assert False, "Unsupported task"
         model = model.to(self.device)
         self.model = model
-        optimizer = optim.Adam(model.parameters(),
+        optimizer = adv_optim.Lamb(model.parameters(),
                                    lr=self.learning_rate, weight_decay=self.weight_decay)
 
         if self.use_scheduler:

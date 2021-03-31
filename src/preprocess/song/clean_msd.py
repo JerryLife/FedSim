@@ -28,6 +28,9 @@ def clean_msd(msd_path, out_clean_msd_path):
     msd_df.set_index('title', inplace=True)
     msd_df = msd_df[~msd_df.index.duplicated(keep="first")]
 
+    # filter out extreme years
+    msd_df = msd_df[msd_df['label'] > 1970]
+
     print("Saving to {}".format(out_clean_msd_path))
     msd_df.to_csv(out_clean_msd_path)
     print("Done")

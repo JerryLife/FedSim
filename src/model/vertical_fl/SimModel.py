@@ -467,6 +467,8 @@ class SimModel(TwoPartyBaseModel):
         dists, idx2 = gpu_index.search(bf1_vecs.astype('float32'), k=knn_k)
         print("Done")
 
+        gpu_index.reset()
+
         print("Calculate sim_scores")
         repeat_times = [x.shape[0] for x in idx2]
         idx1 = np.repeat(np.arange(key1.shape[0]), repeat_times)
