@@ -9,7 +9,8 @@ from model.vertical_fl.OnePartyModel import OnePartyModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--noise-scale', type=float, default=0.2)
+parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=0)
 args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -21,7 +22,7 @@ dataset = "MiniBooNE_PID.txt"
 num_common_features = 30
 noise_scale = args.noise_scale
 
-data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
+data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.1f}".format(noise_scale) + "_loader.pkl")
 (X1, X2), y = data_loader.load_parties()
 X = X1[:, :-num_common_features]
 # X = X1
@@ -33,7 +34,7 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       metrics=['accuracy'],
                       val_rate=0.1,
                       test_rate=0.2,
-                      device='cuda:0',
+                      device='cuda:{}'.format(args.gpu),
                       hidden_sizes=[100, 100],
                       train_batch_size=4096,
                       test_batch_size=4096,

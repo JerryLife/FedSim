@@ -190,8 +190,9 @@ class Top1SimModel(SimModel):
         else:  # need to calculate final accuracy
             train_dataset = TensorDataset(torch.tensor(train_X).float(), torch.tensor(train_y).float(),
                                           torch.tensor(train_idx).int())
+        # IMPORTANT: Set num_workers to 0 to prevent deadlock on RTX3090 for unknown reason.
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
-                                  num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
+                                  num_workers=0)
 
         print("Prepare for training")
         self.data1_shape = data1.shape

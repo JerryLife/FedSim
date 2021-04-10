@@ -210,7 +210,7 @@ class FedSimModel(SimModel):
         else:
             if self.task in ['binary_cls', 'regression']:
                 self.merge_model = AvgSumModel(activation=None).to(self.device)
-            else:   # multi-cls
+            else:  # multi-cls
                 self.merge_model = AvgSumModel(activation=None).to(self.device)
 
         if self.feature_wise_sim:
@@ -339,17 +339,14 @@ class FedSimModel(SimModel):
             # visualize merge_model
             if self.log_dir is not None:
                 if self.use_conv:
-                    try:
-                        viz_data = torch.rand([1000, self.knn_k, self.raw_output_dim]) \
-                            .to(self.device)
-                        self.visualize_model(self.merge_model, viz_data, target=0,
-                                             save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
-                    except Exception:
-                        pass
+                    viz_data = torch.rand([1000, self.knn_k, self.raw_output_dim]) \
+                        .to(self.device)
+                    self.visualize_model(self.merge_model, viz_data, target=0,
+                                         save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
 
                 # visualize sim_model
                 if self.feature_wise_sim:
-                    raise NotImplementedError  # todo
+                    raise NotImplementedError
                 else:
                     self.plot_model(self.sim_model, input_dim=1,
                                     save_fig_path="{}/sim_epoch_{}.jpg".format(self.log_dir, epoch),

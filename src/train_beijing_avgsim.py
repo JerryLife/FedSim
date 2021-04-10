@@ -13,6 +13,11 @@ root = "data/beijing/"
 house_dataset = root + "house_clean.csv"
 airbnb_dataset = root + "airbnb_clean.csv"
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=0)
+args = parser.parse_args()
+
 num_common_features = 2
 [X1, X2], y = load_both(house_path=house_dataset, airbnb_path=airbnb_dataset, active_party='house')
 name = "beijing_avgsim"
@@ -37,7 +42,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       val_rate=0.1,
                       test_rate=0.2,
                       drop_key=True,
-                      device='cuda:0',
+                      device='cuda:{}'.format(args.gpu),
                       hidden_sizes=[200, 100],
                       train_batch_size=128,
                       test_batch_size=1024 * 4,
@@ -57,7 +62,13 @@ model = MergeSimModel(num_common_features=num_common_features,
                       # SplitNN parameters
                       local_hidden_sizes=[[200], [200]],
                       agg_hidden_sizes=[100],
-                      cut_dims=[100, 100]
+                      cut_dims=[100, 100],
+
+                      # private link parameters
+                      link_epsilon=0.1,
+                      link_delta=0.1,
+                      link_threshold_t=0.1,
+                      sim_noise_scale=args.perturb_sim
                       )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
 

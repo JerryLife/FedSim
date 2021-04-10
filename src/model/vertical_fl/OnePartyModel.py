@@ -14,6 +14,7 @@ from torchsummaryX import summary
 import torch_optimizer as adv_optim
 from tqdm import tqdm
 import deprecation
+import warnings
 
 from model.base.MLP import MLP
 import metric
@@ -34,7 +35,11 @@ class BaseModel:
         self.sche_factor = sche_factor
         self.use_scheduler = use_scheduler
         self.num_workers = num_workers
-        self.device = torch.device(device) if torch.cuda.is_available() else torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device(device)
+        else:
+            warnings.warn("GPU is not available, use CPU instead.")
+            self.device = torch.device('cpu')
         self.test_batch_size = test_batch_size
         self.train_batch_size = train_batch_size
         self.learning_rate = learning_rate
@@ -98,8 +103,9 @@ class BaseModel:
         else:  # need to calculate final accuracy
             train_dataset = TensorDataset(torch.tensor(train_X).float(), torch.tensor(train_y).float(),
                                           torch.tensor(train_idx).int())
+        # IMPORTANT: Set num_workers to 0 to prevent deadlock on RTX3090 for unknown reason.
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
-                                  num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
+                                  num_workers=0)
 
         print("Prepare for training")
         if self.task == 'binary_cls':
@@ -115,7 +121,7 @@ class BaseModel:
         elif self.task == 'regression':
             output_dim = 1
             model = MLP(input_size=train_X.shape[1], hidden_sizes=self.hidden_sizes, output_size=output_dim,
-                        activation=None)
+                        activation='sigmoid')
             criterion = nn.MSELoss()
         else:
             assert False, "Unsupported task"
@@ -365,9 +371,13 @@ class BaseModel:
         else:
             val_dataset = TensorDataset(torch.tensor(val_X).float(), torch.tensor(val_y).float(),
                                         torch.tensor(val_idx).int())
-        val_loader = DataLoader(val_dataset, batch_size=self.test_batch_size, shuffle=False,
-                                num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
 
+        # IMPORTANT: Set num_workers of val_loader to 0 to prevent deadlock on RTX3090 for unknown reason.
+        #            multiprocessing_context should also be set to default.
+        # val_loader = DataLoader(val_dataset, batch_size=self.test_batch_size, shuffle=False,
+        #                         num_workers=self.num_workers, multiprocessing_context=self.multiprocess_context)
+        val_loader = DataLoader(val_dataset, batch_size=self.test_batch_size, shuffle=False,
+                                num_workers=0)
         val_loss = 0.0
         n_val_batches = 0
         # output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
@@ -486,11 +496,16 @@ class OnePartyModel(BaseModel):
         return pred_all[0][0]
 
     def train_all(self, data, labels):
+        start_time = datetime.now()
         train_X, val_X, test_X, train_y, val_y, test_y, _, _, _ = \
             self.split_data(data, labels, val_rate=0.1, test_rate=0.2)
 
-        return self._train(train_X, val_X, test_X, train_y, val_y, test_y,
+        result = self._train(train_X, val_X, test_X, train_y, val_y, test_y,
                            np.arange(train_X.shape[0]), np.arange(val_X.shape[0]), np.arange(test_X.shape[0]))
+        time_duration_sec = (datetime.now() - start_time).seconds
+        print("Training time (sec): {}".format(time_duration_sec))
+        return result
+
 
     def train_single(self, data, labels, scale=True):
         train_X, val_X, test_X, train_y, val_y, test_y, _, _, _ = \

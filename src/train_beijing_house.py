@@ -18,6 +18,11 @@ os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/beijing/"
 dataset = "house_clean.csv"
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=3)
+args = parser.parse_args()
+
 X, y = load_house(root + dataset)
 print("X got {} dimensions".format(X.shape[1]))
 name = "beijing_house"
@@ -31,7 +36,7 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       n_classes=2,
                       val_rate=0.1,
                       test_rate=0.2,
-                      device='cuda:0',
+                      device='cuda:{}'.format(args.gpu),
                       hidden_sizes=[400, 200],
                       train_batch_size=4096,
                       test_batch_size=4096,

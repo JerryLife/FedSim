@@ -196,11 +196,15 @@ class SimModel(TwoPartyBaseModel):
                  # Split Learning
                  local_hidden_sizes=None, agg_hidden_sizes=None, cut_dims=None,
                  edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
-                 qgram_q=2, link_delta=0.1, n_hash_lsh=20,
-
+                 qgram_q=2, link_delta=0.1, n_hash_lsh=20, link_threshold_t=0.1,
+                 link_epsilon=0.1, sim_noise_scale=0.0,
+ 
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
 
+        self.sim_noise_scale = sim_noise_scale
+        self.link_threshold_t = link_threshold_t
+        self.link_epsilon = link_epsilon
         self.n_hash_lsh = n_hash_lsh
         self.edit_distance_threshold = edit_distance_threshold
         self.n_hash_func = n_hash_func
@@ -226,6 +230,9 @@ class SimModel(TwoPartyBaseModel):
             self.agg_hidden_sizes = [10]
         else:
             self.agg_hidden_sizes = agg_hidden_sizes
+
+        if "priv" not in blocking_method:
+            assert np.equal(self.sim_noise_scale, 0.0)
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -295,7 +302,7 @@ class SimModel(TwoPartyBaseModel):
         if self.sim_scaler is not None:
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
-            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
@@ -350,7 +357,7 @@ class SimModel(TwoPartyBaseModel):
         if self.sim_scaler is not None:
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
-            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
@@ -390,7 +397,7 @@ class SimModel(TwoPartyBaseModel):
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
             # generate train scaler
-            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
@@ -424,13 +431,13 @@ class SimModel(TwoPartyBaseModel):
         if self.sim_scaler is not None:
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
-            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
 
         return sim_scores
 
-    def cal_sim_score_knn_priv(self, key1, key2, key_type, knn_k=3):
+    def cal_sim_score_knn_priv(self, key1, key2, sim_noise_scale, key_type, knn_k=3):
         """
         Calculate sim_scores based on the distance of bit-vectors/bloom-filters.
         Ref: FEDERAL: A Framework for Distance-Aware Privacy-Preserving Record Linkage
@@ -448,8 +455,13 @@ class SimModel(TwoPartyBaseModel):
                                                           n_hash_func=self.n_hash_func,
                                                           collision_rate=self.collision_rate,
                                                           qgram_q=self.qgram_q, delta=self.link_delta)
+        elif key_type == 'float':
+            bf1_vecs, bf2_vecs = self.float_to_bloom_filter(key1, key2,
+                                                            dist_threshold_t=self.link_threshold_t,
+                                                            epsilon=self.link_epsilon,
+                                                            delta=self.link_delta)
         else:
-            raise NotImplementedError
+            assert False, "Not Supported key type"
 
         # link the bloom filters of party 1 and 2
         res = faiss.StandardGpuResources()
@@ -477,14 +489,19 @@ class SimModel(TwoPartyBaseModel):
             sims = -(bf1_vecs[idx1] - bf2_vecs[idx2]) ** 2
         else:
             sims = -np.concatenate(dists[np.array(repeat_times) > 0]).reshape(-1, 1)
+
         # assert np.isclose(sims, -np.sqrt(np.sum((key1[idx1] - key2[idx2]) ** 2, axis=1)))
         sim_scores = np.concatenate([idx1.reshape(-1, 1), idx2.reshape(-1, 1), sims], axis=1)
         if self.sim_scaler is not None:
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
-            self.sim_scaler = MinMaxScaler(feature_range=(0, 1))
+            self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
+
+        print("Adding noise of scale {} to sim_scores".format(sim_noise_scale))
+        sim_noise = np.random.normal(0, scale=sim_noise_scale, size=sim_scores[:, 2].shape)
+        sim_scores[:, 2] += sim_noise
 
         return sim_scores
 
@@ -527,6 +544,41 @@ class SimModel(TwoPartyBaseModel):
             bf2_vecs.append(bf.vector)
         return np.vstack(bf1_vecs), np.vstack(bf2_vecs)
 
+    def float_to_bloom_filter(self, key1, key2, dist_threshold_t=0.1, epsilon=0.1, delta=0.1):
+        key1_min, key1_max = np.min(key1, axis=0), np.max(key1, axis=0)
+        key2_min, key2_max = np.min(key2, axis=0), np.max(key2, axis=0)
+
+        key_min = np.minimum(key1_min, key2_min)
+        key_max = np.maximum(key1_max, key2_max)
+
+        key_range = key_max - key_min
+
+        bv_size = np.ceil((2 * key_range * np.log(1/delta)) / (dist_threshold_t * epsilon ** 2)).astype('int')
+        bv_size = (np.ceil(bv_size / 8) * 8).astype('int')  # Match binary index of faiss
+        print("Size of bit vectors = {}".format(bv_size))
+
+        pivots = []
+        for k_min, k_max, m in zip(key1_min, key1_max, bv_size):
+            pivots.append(np.random.uniform(k_min, k_max, m))
+
+        bv1_vecs = []
+        for k in tqdm(key1, desc='BV of key1'):
+            bv1_vec = np.zeros(0)
+            for num, pivot in zip(k, pivots):
+                vec = (num >= pivot - dist_threshold_t) & (num <= pivot + dist_threshold_t)
+                bv1_vec = np.concatenate([bv1_vec, vec.astype('int')], axis=0)
+            bv1_vecs.append(bv1_vec)
+
+        bv2_vecs = []
+        for k in tqdm(key1, desc='BV of key1'):
+            bv2_vec = np.zeros(0)
+            for num, pivot in zip(k, pivots):
+                vec = (num >= pivot - dist_threshold_t) & (num <= pivot + dist_threshold_t)
+                bv2_vec = np.concatenate([bv2_vec, vec.astype('int')], axis=0)
+            bv2_vecs.append(bv2_vec)
+
+        return np.vstack(bv1_vecs), np.vstack(bv2_vecs)
+
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0, grid_min=-3., grid_max=3.01,
               grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1):
         """
@@ -561,7 +613,9 @@ class SimModel(TwoPartyBaseModel):
         elif self.blocking_method == 'radius':
             sim_scores = self.cal_sim_score_radius(key1, key2, radius=radius, kd_tree_leaf_size=kd_tree_leaf_size)
         elif self.blocking_method == 'knn_priv_str':
-            sim_scores = self.cal_sim_score_knn_priv(key1, key2, key_type='str', knn_k=knn_k)
+            sim_scores = self.cal_sim_score_knn_priv(key1, key2, self.sim_noise_scale, key_type='str', knn_k=knn_k)
+        elif self.blocking_method == 'knn_priv_float':
+            sim_scores = self.cal_sim_score_knn_priv(key1, key2, self.sim_noise_scale, key_type='float', knn_k=knn_k)
         else:
             assert False, "Unsupported blocking method"
 
@@ -585,9 +639,9 @@ class SimModel(TwoPartyBaseModel):
         # elif not np.isclose(sim_threshold, 0.0):
         #     warnings.warn("Threshold is not used for feature-wise similarity")
 
-        # save sim scores
-        with open("cache/sim_scores.pkl", "wb") as f:
-            pickle.dump(real_sim_scores, f)
+        # # save sim scores
+        # with open("cache/sim_scores.pkl", "wb") as f:
+        #     pickle.dump(real_sim_scores, f)
 
         remain_data1_shape1 = remain_data1.shape[1]
 
@@ -758,7 +812,7 @@ class SimModel(TwoPartyBaseModel):
         assert int(input_dim) == input_dim
 
         if input_dim == 1:
-            x = np.arange(0, 1, 0.01)
+            x = np.arange(-3, 3, 0.01)
             x_tensor = torch.tensor(x).float().reshape(-1, 1).to(self.device)
             z = model(x_tensor).detach().cpu().numpy()
             assert ((0 <= z) & (z <= 1)).all(), "{}".format(z)
@@ -767,14 +821,14 @@ class SimModel(TwoPartyBaseModel):
             plt.close()
             return
 
-        xs_raw = [np.arange(0, 1, 0.01) for _ in range(input_dim)]
+        xs_raw = [np.arange(-3, 3, 0.01) for _ in range(input_dim)]
         xs = np.meshgrid(*xs_raw)
         xs_tensor = torch.tensor(np.concatenate(
             [x.reshape(-1, 1) for x in xs], axis=1)).float().to(self.device)
         z = model(xs_tensor).detach().cpu().numpy().reshape(xs[0].shape)
 
         if dim_wise:
-            raise NotImplementedError   # todo
+            raise NotImplementedError
         else:
             assert input_dim == 2, "Cannot plot high dimensional functions"
             assert len(xs) == 2

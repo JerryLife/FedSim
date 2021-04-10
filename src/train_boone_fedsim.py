@@ -7,7 +7,9 @@ from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.ml_dataset.two_party_loader import TwoPartyLoader
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--noise-scale', type=float, default=0.2)
+parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
+parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=0)
 args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -18,9 +20,9 @@ dataset = "MiniBooNE_PID.txt"
 num_common_features = 30
 noise_scale = args.noise_scale
 
-data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
+data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.1f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
-name = "boone_fedsim_noise_{:.2f}".format(noise_scale)
+name = "boone_fedsim_noise_{:.1f}".format(noise_scale)
 
 model = FedSimModel(num_common_features=num_common_features,
                     raw_output_dim=3,
@@ -40,7 +42,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     val_rate=0.1,
                     test_rate=0.2,
                     drop_key=True,
-                    device='cuda:0',
+                    device='cuda:{}'.format(args.gpu),
                     hidden_sizes=[100, 100],
                     train_batch_size=64,
                     test_batch_size=4096,
@@ -68,8 +70,14 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
                     merge_dropout_p=0.7,
                     conv_n_channels=4,
-                    conv_kernel_v_size=7
+                    conv_kernel_v_size=7,
+
+                    # private link parameters
+                    link_epsilon=0.1,
+                    link_delta=0.1,
+                    link_threshold_t=0.1,
+                    sim_noise_scale=args.perturb_sim
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/boone_sim_noise_{:.2f}.pkl".format(noise_scale),
+model.train_splitnn(X1, X2, y, data_cache_path="cache/boone_sim_noise_{:.1f}.pkl".format(noise_scale),
                     sim_model_path=None)
 # model.train_splitnn(X1, X2, y)

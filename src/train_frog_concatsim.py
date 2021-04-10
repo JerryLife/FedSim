@@ -18,9 +18,9 @@ dataset = "Frogs_MFCCs.csv"
 num_common_features = 16
 noise_scale = args.noise_scale
 
-data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.2f}".format(noise_scale) + "_loader.pkl")
+data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.1f}".format(noise_scale) + "_loader.pkl")
 [X1, X2], y = data_loader.load_parties()
-name = "frog_concatsim_noise_{:.2f}".format(noise_scale)
+name = "frog_concatsim_noise_{:.1f}".format(noise_scale)
 
 model = ConcatSimModel(num_common_features=num_common_features,
                        sim_hidden_sizes=[50],
@@ -63,7 +63,13 @@ model = ConcatSimModel(num_common_features=num_common_features,
                        agg_hidden_sizes=[100],
                        cut_dims=[50, 50],
 
-                       use_sim=True
+                       use_sim=True,
+                       # private link parameters
+                       link_epsilon=0.1,
+                       link_delta=0.1,
+                       link_threshold_t=0.1,
+                       sim_noise_scale=args.perturb_sim
                        )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_noise_{:.2f}.pkl".format(noise_scale))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_{:.1f}_noise_{:.1f}.pkl"
+                    .format(noise_scale, args.perturb_sim))
 # model.train_splitnn(X1, X2, y)

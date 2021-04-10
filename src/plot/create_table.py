@@ -8,7 +8,7 @@ import tabulate
 from plot.file_reader import read_file
 
 
-def create_table(result_dir, dataset_names, metrics, n_rounds, algorithms):
+def create_table(result_dir, priv_dir, dataset_names, metrics, n_rounds, algorithms):
     n_cols = 1 + sum([len(m) for m in metrics])
 
     table = []
@@ -18,10 +18,10 @@ def create_table(result_dir, dataset_names, metrics, n_rounds, algorithms):
             scores_all_round = []
             for i in range(n_rounds):
                 file_name = "{}_{}_{}.out".format(dataset.lower(), algo, i)
-                file_path = os.path.join(result_dir, file_name)
+                file_path = os.path.join(result_dir, dataset.lower(), priv_dir, file_name)
                 try:
                     scores, time = read_file(file_path, metric_list)
-                except FileNotFoundError:
+                except (FileNotFoundError, ValueError):
                     scores, time = [np.nan, np.nan], np.nan
                 scores_all_round.append(list(reversed(scores)))
             mean_score = np.mean(scores_all_round, axis=0)
@@ -38,8 +38,8 @@ def create_table(result_dir, dataset_names, metrics, n_rounds, algorithms):
 
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../")  # change working directory
-    table_str = create_table(result_dir="./out/beijing",
+    table_str = create_table(result_dir="./out/", priv_dir="no_priv",
                              dataset_names=['beijing', 'ny', 'hdb'],
                              metrics=[['R2_Score', 'RMSE'] for _ in range(3)], n_rounds=5,
-                             algorithms=reversed(['fedsim', 'ordersim', 'concatsim', 'top1sim', 'avgsim', 'A']))
+                             algorithms=reversed(['fedsim', 'top1sim', 'avgsim', 'featuresim', 'A']))
     print(table_str)

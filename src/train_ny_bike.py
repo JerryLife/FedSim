@@ -22,9 +22,10 @@ data_loader = NYBikeTaxiLoader(bike_path=root + dataset, taxi_path=None, link=Fa
 X, y = data_loader.load_single()
 print("X got {} dimensions".format(X.shape[1]))
 name = "ny_bike"
-# reg = LinearRegression().fit(X, y)
-# score = np.sqrt(metrics.mean_squared_error(reg.predict(X), y))
-# print(score)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-g', '--gpu', type=int, default=0)
+args = parser.parse_args()
 
 model = OnePartyModel(model_name=name + "_" + now_string,
                       task='regression',
@@ -32,7 +33,7 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       n_classes=2,
                       val_rate=0.1,
                       test_rate=0.2,
-                      device='cuda:0',
+                      device='cuda:{}'.format(args.gpu),
                       hidden_sizes=[200, 100],
                       train_batch_size=4096,
                       test_batch_size=4096,

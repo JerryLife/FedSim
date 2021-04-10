@@ -63,16 +63,16 @@ class FeatureSimModel(SimModel):
         num_parties = 2
         if self.drop_key:
             input_dims = [self.data1_shape[1] - self.num_common_features + 1,
-                          self.data2_shape[1] - self.num_common_features + 1]
+                          self.data2_shape[1] - self.num_common_features]
         else:
-            input_dims = [self.data1_shape[1] + 1, self.data2_shape[1] + 1]
+            input_dims = [self.data1_shape[1] + 1, self.data2_shape[1]]
         num_features = sum(input_dims)
 
         if self.task == 'binary_cls':
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
                             output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.BCELoss()
@@ -81,7 +81,7 @@ class FeatureSimModel(SimModel):
             output_dim = self.n_classes
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
                             output_size=output_dim, activation=None)
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.CrossEntropyLoss()
@@ -90,7 +90,7 @@ class FeatureSimModel(SimModel):
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
                                 output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.merge_hidden_sizes,
+            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
                             output_size=output_dim, activation='sigmoid')
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.MSELoss()
@@ -121,7 +121,7 @@ class FeatureSimModel(SimModel):
             n_train_batches = 0
 
             self.model.train()
-            all_preds = np.zeros((0, output_dim))
+            all_preds = np.zeros((0, 1))
             all_labels = np.zeros(0)
             for data_batch, labels, weights, idx1, idx1_unique in tqdm(train_loader, desc="Train Main"):
                 data_batch = data_batch.to(self.device).float()
@@ -134,8 +134,8 @@ class FeatureSimModel(SimModel):
                     sim_scores = data_batch[:, 0].reshape(-1, 1)
                     data = data_batch[:, 1:]
 
-                # assign sim score to both parties
-                data = torch.cat([sim_scores, data, sim_scores], dim=1)
+                # append sim_score to one party
+                data = torch.cat([sim_scores, data], dim=1)
 
                 # train main model
                 main_optimizer.zero_grad()
@@ -239,7 +239,7 @@ class FeatureSimModel(SimModel):
         val_loss = 0.0
         n_val_batches = 0
         output_dim = 1 if self.task in ['binary_cls', 'regression'] else self.n_classes
-        all_preds = np.zeros((0, output_dim))
+        all_preds = np.zeros((0, 1))
         all_labels = np.zeros(0)
         with torch.no_grad():
             self.model.eval()
@@ -255,7 +255,7 @@ class FeatureSimModel(SimModel):
                     data = data_batch[:, 1:]
 
                 # assign sim score to both parties
-                data = torch.cat([sim_scores, data, sim_scores], dim=1)
+                data = torch.cat([sim_scores, data], dim=1)
                 outputs_batch = self.model(data)
 
                 # expand labels

@@ -13,6 +13,11 @@ bike_dataset = "bike_201606_clean_sample_2e5.pkl"
 taxi_dataset = "taxi_201606_clean_sample_1e5.pkl"
 # taxi_dataset = "taxi_201606_clean.csv"
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=0)
+args = parser.parse_args()
+
 num_common_features = 4
 data_loader = NYBikeTaxiLoader(bike_path=root + bike_dataset, taxi_path=root + taxi_dataset, link=True)
 [X1, X2], y = data_loader.load_parties()
@@ -36,7 +41,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     val_rate=0.1,
                     test_rate=0.2,
                     drop_key=True,
-                    device='cuda',
+                    device='cuda:{}'.format(args.gpu),
                     hidden_sizes=[200, 100],
                     train_batch_size=64,
                     test_batch_size=4096,
@@ -64,6 +69,12 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
                     merge_dropout_p=0.3,
                     conv_n_channels=8,
-                    conv_kernel_v_size=5
+                    conv_kernel_v_size=5,
+
+                    # private link parameters
+                    link_epsilon=0.1,
+                    link_delta=0.1,
+                    link_threshold_t=0.1,
+                    sim_noise_scale=args.perturb_sim
                     )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/ny_sim.pkl", scale=True)
