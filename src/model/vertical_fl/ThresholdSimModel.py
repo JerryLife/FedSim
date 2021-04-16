@@ -19,7 +19,7 @@ class ThresholdSimModel(SimModel):
         self.sim_threshold = sim_threshold
 
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0, grid_min=-3., grid_max=3.01,
-              grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1) -> tuple:
+              grid_width=0.2, knn_k=3, tree_leaf_size=40, radius=0.1) -> tuple:
         [matched_data1, matched_data2], ordered_labels, data_indices = \
             super().match(data1, data2, labels, idx=idx, preserve_key=preserve_key, sim_threshold=self.sim_threshold)
         # remove similarity score from data

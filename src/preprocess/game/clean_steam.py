@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import sys
+import re
 
 
 def clean_steam(steam_path, out_steam_path):
@@ -25,10 +26,14 @@ def clean_steam(steam_path, out_steam_path):
     # steam_df = pd.get_dummies(steam_df, columns=['owners'], prefix=['owner'], drop_first=True)
     steam_df['owners'] = steam_df['owners'].apply(lambda x:
                                                   '0-20000' if x == '0-20000' else
-                                                  '20000-50000' if x == '20000-50000' else
-                                                  '50000-200000000')
+                                                  # '20000-50000' if x == '20000-50000' else
+                                                  '20000-200000000')
     steam_df['owners'] = pd.factorize(steam_df['owners'])[0]
     steam_df.dropna(inplace=True)
+
+    # remove non-alphanumeric characters and switch to lower cases
+    steam_df['name'] = steam_df['name'].apply(lambda s: re.sub(r'\W', '', s).lower())
+    steam_df.drop_duplicates(subset='name', keep='first', inplace=True)
 
     print("Saving to file, got {} samples".format(len(steam_df.index)))
     steam_df.to_csv(out_steam_path, index=False)

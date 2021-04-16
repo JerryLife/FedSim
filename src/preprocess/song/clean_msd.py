@@ -6,6 +6,9 @@ import re
 import pandas as pd
 
 
+def generate_msd(million_song_dir, out_msd_path):
+    pass
+
 def clean_msd(msd_path, out_clean_msd_path):
     msd_titles = []
     msd_data = []

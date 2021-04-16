@@ -26,9 +26,9 @@ def read_file(file_path, metrics: list):
                     if metric in metrics:
                         metric_values[metrics.index(metric)] = test_value
 
-        # return a single value if there is only one metric
-        if len(metric_values) == 1:
-            metric_values = metric_values[0]
+        # # return a single value if there is only one metric
+        # if len(metric_values) == 1:
+        #     metric_values = metric_values[0]
 
         return metric_values, time_sec
     except ValueError:

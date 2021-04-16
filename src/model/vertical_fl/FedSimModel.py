@@ -95,8 +95,10 @@ class FedSimModel(SimModel):
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
                  log_dir=None, merge_hidden_sizes=None, merge_model_save_path=None,
                  merge_dropout_p=0.0, conv_n_channels=1, conv_kernel_v_size=3, use_conv=False,
+                 use_sim=True,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.use_sim = use_sim
         self.use_conv = use_conv
         self.conv_kernel_v_size = conv_kernel_v_size
         self.conv_n_channels = conv_n_channels
@@ -288,7 +290,9 @@ class FedSimModel(SimModel):
                     sim_scores_sorted = sim_scores[start:end][indices]
                     sim_weights = self.sim_model(sim_scores_sorted) + 1e-7
 
-                    if self.use_conv:
+                    if not self.use_sim:
+                        outputs_weighted = outputs_sorted
+                    elif self.use_conv:
                         outputs_weighted = outputs_sorted * sim_weights
                     else:
                         outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
@@ -339,7 +343,12 @@ class FedSimModel(SimModel):
             # visualize merge_model
             if self.log_dir is not None:
                 if self.use_conv:
-                    viz_data = torch.rand([1000, self.knn_k, self.raw_output_dim]) \
+                    # viz_data = torch.normal(0, 1, [1000, self.knn_k, self.raw_output_dim + sim_dim]) \
+                    #     .to(self.device)
+                    # self.visualize_model(self.merge_model, viz_data, target=0,
+                    #                      save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch),
+                    #                      sim_model=self.sim_model, sim_dim=sim_dim)
+                    viz_data = torch.normal(0, 1, [1000, self.knn_k, self.raw_output_dim]) \
                         .to(self.device)
                     self.visualize_model(self.merge_model, viz_data, target=0,
                                          save_fig_path="{}/merge_epoch_{}.jpg".format(self.log_dir, epoch))
@@ -446,7 +455,9 @@ class FedSimModel(SimModel):
                     sim_scores_sorted = sim_scores[start:end][indices]
                     sim_weights = self.sim_model(sim_scores_sorted) + 1e-7
 
-                    if self.use_conv:
+                    if not self.use_sim:
+                        outputs_weighted = outputs_sorted
+                    elif self.use_conv:
                         outputs_weighted = outputs_sorted * sim_weights
                     else:
                         outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)

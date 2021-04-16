@@ -1,3 +1,5 @@
+from nltk.metrics.distance import edit_distance
+
 
 def get_split_points(array, size):
     assert size > 1
@@ -21,4 +23,8 @@ def move_item_to_end_(arr, items):
 def move_item_to_start_(arr, items):
     for item in items[::-1]:
         arr.insert(0, arr.pop(arr.index(item)))
+
+
+def scaled_edit_distance(a: str, b: str):
+    return edit_distance(a, b) / max(len(a), len(b))
 

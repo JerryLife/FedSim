@@ -44,4 +44,4 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       writer_path="runs/{}_{}".format(name, now_string),
                       model_save_path="ckp/{}_{}.pth".format(name, now_string)
                       )
-model.train_single(X, y, scale=True)
+model.train_single(X, y)

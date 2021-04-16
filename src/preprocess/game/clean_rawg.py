@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import sys
+import re
 
 
 def clean_rawg(rawg_path, out_rawg_path):
@@ -30,6 +31,10 @@ def clean_rawg(rawg_path, out_rawg_path):
 
     rawg_df.dropna(inplace=True)
     rawg_df = rawg_df[rawg_df['playtime'] < 100]
+
+    # remove non-alphanumeric characters and switch to lower cases
+    rawg_df['name'] = rawg_df['name'].apply(lambda s: re.sub(r'\W', '', s).lower())
+    rawg_df.drop_duplicates(subset='name', keep='first', inplace=True)
 
     print("Saving to file, got {} samples".format(len(rawg_df.index)))
     rawg_df.to_csv(out_rawg_path, index=False)

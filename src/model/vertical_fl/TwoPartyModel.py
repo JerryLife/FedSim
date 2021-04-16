@@ -15,7 +15,7 @@ from .OnePartyModel import BaseModel
 
 class TwoPartyBaseModel(abc.ABC, BaseModel):
     def __init__(self, num_common_features, drop_key=True, grid_min=-3., grid_max=3.01, grid_width=0.2,
-                 knn_k=3, kd_tree_leaf_size=40, kd_tree_radius=0.1,
+                 knn_k=3, tree_leaf_size=40, kd_tree_radius=0.1,
                  dataset_type='syn', **kwargs):
 
         super().__init__(**kwargs)
@@ -23,8 +23,8 @@ class TwoPartyBaseModel(abc.ABC, BaseModel):
         self.dataset_type = dataset_type
         self.drop_key = drop_key
         self.num_common_features = num_common_features
-        self.kd_tree_radius = kd_tree_radius
-        self.kd_tree_leaf_size = kd_tree_leaf_size
+        self.tree_radius = kd_tree_radius
+        self.tree_leaf_size = tree_leaf_size
         self.knn_k = knn_k
         self.grid_min = grid_min
         self.grid_max = grid_max
@@ -33,12 +33,12 @@ class TwoPartyBaseModel(abc.ABC, BaseModel):
 
     @abc.abstractmethod
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0,
-              grid_min=-3., grid_max=3.01, grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1) -> tuple:
+              grid_min=-3., grid_max=3.01, grid_width=0.2, knn_k=3, tree_leaf_size=40, radius=0.1) -> tuple:
         """
         Match the data of two parties, return the matched data
         :param radius:
         :param knn_k:
-        :param kd_tree_leaf_size:
+        :param tree_leaf_size:
         :param idx: Index of data1, only for evaluation. It should not be involved in linkage.
         :param sim_threshold: threshold of similarity score, everything below the threshold will be removed
         :param data1: data in party 1

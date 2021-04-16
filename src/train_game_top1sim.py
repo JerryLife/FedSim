@@ -12,28 +12,33 @@ root = "data/game/"
 rawg_dataset = root + "rawg_clean.csv"
 steam_dataset = root + "steam_clean.csv"
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=0)
+args = parser.parse_args()
+
 num_common_features = 1
 [X1, X2], y = load_both(rawg_path=rawg_dataset, steam_path=steam_dataset,
                         active_party='steam')
 name = "game_top1sim"
 
 model = Top1SimModel(num_common_features=num_common_features,
-                     task='multi_cls',
+                     task='binary_cls',
                      dataset_type='real',
-                     blocking_method='knn_priv_str',
+                     blocking_method='knn_str',
                      metrics=['accuracy'],
-                     n_classes=3,
+                     n_classes=2,
                      grid_min=-10.0,
                      grid_max=10.0,
                      grid_width=1.5,
                      knn_k=50,
                      kd_tree_radius=0.01,
-                     kd_tree_leaf_size=1000,
+                     tree_leaf_size=1000,
                      model_name=name + "_" + now_string,
                      val_rate=0.1,
                      test_rate=0.2,
                      drop_key=True,
-                     device='cuda:0',
+                     device='cuda:{}'.format(args.gpu),
                      hidden_sizes=[200, 100],
                      train_batch_size=1024 * 4,
                      test_batch_size=1024 * 4,
@@ -46,7 +51,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      model_save_path="ckp/{}_{}.pth".format(name, now_string),
                      # SplitNN parameters
                      local_hidden_sizes=[[100], [100]],
-                     agg_hidden_sizes=[100],
+                     agg_hidden_sizes=[400],
                      cut_dims=[50, 50],
 
                      # linkage parameters
@@ -56,6 +61,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      qgram_q=2,
                      link_delta=0.1,
                      n_hash_lsh=20,
+                     psig_p=7
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/game_top1sim.pkl".format(name))
 # model.train_splitnn(X1, X2, y, scale=True)

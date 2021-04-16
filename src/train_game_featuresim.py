@@ -5,29 +5,30 @@ import argparse
 import numpy as np
 
 from model.vertical_fl.FeatureSimModel import FeatureSimModel
-from preprocess.hdb import load_both
+from preprocess.game import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
-root = "data/hdb/"
-hdb_dataset = root + "hdb_clean.csv"
-school_dataset = root + "school_clean.csv"
+root = "data/game/"
+rawg_dataset = root + "rawg_clean.csv"
+steam_dataset = root + "steam_clean.csv"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
 args = parser.parse_args()
 
-num_common_features = 2
-[X1, X2], y = load_both(hdb_path=hdb_dataset, airbnb_path=school_dataset, active_party='hdb')
-name = "hdb_featuresim"
+num_common_features = 1
+[X1, X2], y = load_both(rawg_path=rawg_dataset, steam_path=steam_dataset,
+                        active_party='steam')
+name = "game_featuresim"
 
 model = FeatureSimModel(num_common_features=num_common_features,
                         feature_wise_sim=False,
-                        task='regression',
-                        metrics=['r2_score', 'rmse'],
+                        task='binary_cls',
+                        metrics=['accuracy'],
                         dataset_type='real',
-                        blocking_method='knn',
+                        blocking_method='knn_str',
                         n_classes=2,
                         grid_min=-10.0,
                         grid_max=10.0,
@@ -52,15 +53,19 @@ model = FeatureSimModel(num_common_features=num_common_features,
                         model_save_path="ckp/{}_{}.pth".format(name, now_string),
 
                         # SplitNN parameters
-                        local_hidden_sizes=[[200], [200]],
+                        local_hidden_sizes=[[100], [100]],
                         agg_hidden_sizes=[100],
-                        cut_dims=[100, 100],
+                        cut_dims=[50, 50],
 
-                        # private link parameters
-                        link_epsilon=0.1,
+                        # linkage parameters
+                        edit_distance_threshold=1,
+                        n_hash_func=10,
+                        collision_rate=0.05,
+                        qgram_q=4,
                         link_delta=0.1,
-                        link_threshold_t=0.1,
-                        sim_noise_scale=args.perturb_sim
+                        n_hash_lsh=20,
+                        sim_noise_scale=args.perturb_sim,
+                        psig_p=7
                         )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/hdb_sim.pkl".format(name), scale=True)
-# model.train_splitnn(X1, X2, y, scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim.pkl".format(name))
+# model.train_splitnn(X1, X2, y)

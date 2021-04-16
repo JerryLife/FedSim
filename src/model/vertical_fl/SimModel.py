@@ -4,12 +4,13 @@ import pickle
 import warnings
 import gc
 from datetime import datetime
+from queue import PriorityQueue
 
 import numpy as np
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.neighbors import KDTree
+from sklearn.neighbors import KDTree, BallTree
 import joblib
 
 import torch
@@ -19,12 +20,14 @@ from tqdm import tqdm
 import deprecation
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from captum.attr import IntegratedGradients
 from lhbf import BloomFilter
 from nltk import ngrams
 import faiss
 
 from .TwoPartyModel import TwoPartyBaseModel
+from utils import scaled_edit_distance
 
 
 def remove_conflict(matched_indices, n_batches: int):
@@ -99,7 +102,7 @@ def remove_conflict(matched_indices, n_batches: int):
 
 
 class SimDataset(Dataset):
-    @torch.no_grad()    # disable auto_grad in __init__
+    @torch.no_grad()  # disable auto_grad in __init__
     def __init__(self, data1, data2, labels, data_idx, batch_sizes=1, sim_dim=1):
         # data1[:, 0] and data2[:, 0] are both sim_scores
         assert data1.shape[0] == data2.shape[0] == data_idx.shape[0]
@@ -192,16 +195,17 @@ class SimDataset(Dataset):
 
 class SimModel(TwoPartyBaseModel):
     def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
-                 blocking_method='grid', feature_wise_sim=False,
+                 blocking_method='grid', feature_wise_sim=False, psig_p=7,
                  # Split Learning
                  local_hidden_sizes=None, agg_hidden_sizes=None, cut_dims=None,
                  edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
                  qgram_q=2, link_delta=0.1, n_hash_lsh=20, link_threshold_t=0.1,
                  link_epsilon=0.1, sim_noise_scale=0.0,
- 
+
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
 
+        self.psig_p = psig_p
         self.sim_noise_scale = sim_noise_scale
         self.link_threshold_t = link_threshold_t
         self.link_epsilon = link_epsilon
@@ -363,25 +367,21 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
-    def cal_sim_score_knn(self, key1, key2, knn_k=3, kd_tree_leaf_size=40):
+    def cal_sim_score_knn(self, key1, key2, knn_k=3, tree_leaf_size=40):
         """
-        :param kd_tree_leaf_size: leaf size to build kd-tree
+        :param tree_leaf_size: leaf size to build kd-tree
         :param knn_k: number of nearest neighbors to be calculated
-        :param radius: only the distance with radius will be returned
         :param key1: Common features in party 1
         :param key2: Common features in party 2
         :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
         """
-        print("Build KD-tree")
-        tree = KDTree(key2, leaf_size=kd_tree_leaf_size)
+        tree = KDTree(key2, leaf_size=tree_leaf_size)
 
-        print("Query KD-tree")
+        print("Query tree")
         # sort_results should be marked False to avoid the order leaking information
         dists, idx2 = tree.query(key1, k=knn_k, return_distance=True, sort_results=False)
 
         repeat_times = [x.shape[0] for x in idx2]
-        non_empty_idx = [x > 0 for x in repeat_times]
-        idx1 = np.repeat(np.arange(key1.shape[0]), repeat_times)
         idx2 = np.concatenate(idx2[np.array(repeat_times) > 0])
 
         print("Calculate sim_scores")
@@ -403,16 +403,85 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
-    def cal_sim_score_radius(self, key1, key2, radius=3, kd_tree_leaf_size=40):
+    def cal_sim_score_knn_str(self, key1, key2, knn_k=3, psig_p=8):
+        key1 = key1.astype('str').flatten()
+        key2 = key2.astype('str').flatten()
+        assert len(np.unique(key1)) == len(key1) and len(np.unique(key2)) == len(key2)
+
+        key1_to_idx1 = {k: v for k, v in zip(key1, range(key1.shape[0]))}
+        key2_to_idx2 = {k: v for k, v in zip(key2, range(key2.shape[0]))}
+
+        # blocking
+        block_dict1 = {}
+        for title in key1:
+            key = title[:psig_p]
+            if key in block_dict1:
+                block_dict1[key].append(title)
+            else:
+                block_dict1[key] = [title]
+
+        block_dict2 = {}
+        for title in key2:
+            key = title[:psig_p]
+            if key in block_dict2:
+                block_dict2[key].append(title)
+            else:
+                block_dict2[key] = [title]
+
+        print("#blocks in party 1: {}".format(len(block_dict1)))
+        print("#blocks in party 2: {}".format(len(block_dict2)))
+
+        # Compare
+        title_sim_scores = {}
+        for party1_key, party1_block in tqdm(block_dict1.items()):
+            if party1_key not in block_dict2:
+                continue
+
+            party2_block = block_dict2[party1_key]
+            for party1_title in party1_block:
+                for party2_title in party2_block:
+                    dist = scaled_edit_distance(party1_title, party2_title)
+                    idx1 = key1_to_idx1[party1_title]
+                    idx2 = key2_to_idx2[party2_title]
+
+                    if idx1 not in title_sim_scores:
+                        title_sim_scores[idx1] = PriorityQueue()
+                    title_sim_scores[idx1].put((dist, idx2))
+
+        dist_idx2_all = []
+        for idx1 in range(key1.shape[0]):
+            indices2_dist = [(1, -1) if idx1 not in title_sim_scores or
+                             title_sim_scores[idx1].empty() else
+                             title_sim_scores[idx1].get() for _ in range(knn_k)]
+            dist_idx2_all += indices2_dist
+        idx2_dist_all = np.array(dist_idx2_all)[:, ::-1]
+
+        idx1_all = np.repeat(np.arange(key1.shape[0]), knn_k).reshape(-1, 1)
+
+        sim_scores = np.concatenate([idx1_all, idx2_dist_all], axis=1)
+        sim_scores[:, 2] = 1 - sim_scores[:, 2]
+
+        if self.sim_scaler is not None:
+            # use train scaler
+            sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
+        else:
+            # generate train scaler
+            self.sim_scaler = StandardScaler()
+            sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
+        print("Done scaling")
+
+        return sim_scores
+
+    def cal_sim_score_radius(self, key1, key2, radius=3, tree_leaf_size=40):
         """
-        :param kd_tree_leaf_size: leaf size to build kd-tree
+        :param tree_leaf_size: leaf size to build kd-tree
         :param radius: only the distance with radius will be returned
         :param key1: Common features in party 1
         :param key2: Common features in party 2
         :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
         """
         print("Build KD-tree")
-        tree = KDTree(key2, leaf_size=kd_tree_leaf_size)
+        tree = KDTree(key2, leaf_size=tree_leaf_size)
 
         print("Query KD-tree")
         idx2, dists = tree.query_radius(key1, r=radius, return_distance=True, sort_results=False)
@@ -467,7 +536,6 @@ class SimModel(TwoPartyBaseModel):
         res = faiss.StandardGpuResources()
         index = faiss.IndexFlat(bf2_vecs.shape[1])
 
-        # this f**king index does not GPU
         gpu_index = faiss.index_cpu_to_gpu(res, 0, index)
 
         # Pycharm false warning
@@ -506,7 +574,7 @@ class SimModel(TwoPartyBaseModel):
         return sim_scores
 
     def str_to_bloom_filter(self, key1, key2, edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
-                               qgram_q=2, delta=0.1):
+                            qgram_q=2, delta=0.1):
         # Get the expected number of qgrams of each record
         n_qgrams = 0
         for k in np.concatenate([key1, key2]):
@@ -517,8 +585,8 @@ class SimModel(TwoPartyBaseModel):
         # calculate the optimal size of bloom filter according to the paper
         collision_num = np.ceil(4 * edit_distance_threshold * n_hash_func * collision_rate)
         bf_size = np.ceil((2 * edit_distance_threshold * n_hash_func * n_qgrams) /
-                           ((collision_num + 1) * delta)).astype('int')
-        bf_size = int(np.ceil(bf_size / 8) * 8)     # Match binary index of faiss
+                          ((collision_num + 1) * delta)).astype('int')
+        bf_size = int(np.ceil(bf_size / 8) * 8)  # Match binary index of faiss
         print("Size of bloom filter = {}".format(bf_size))
 
         bf1_vecs = []
@@ -553,7 +621,7 @@ class SimModel(TwoPartyBaseModel):
 
         key_range = key_max - key_min
 
-        bv_size = np.ceil((2 * key_range * np.log(1/delta)) / (dist_threshold_t * epsilon ** 2)).astype('int')
+        bv_size = np.ceil((2 * key_range * np.log(1 / delta)) / (dist_threshold_t * epsilon ** 2)).astype('int')
         bv_size = (np.ceil(bv_size / 8) * 8).astype('int')  # Match binary index of faiss
         print("Size of bit vectors = {}".format(bv_size))
 
@@ -580,15 +648,15 @@ class SimModel(TwoPartyBaseModel):
         return np.vstack(bv1_vecs), np.vstack(bv2_vecs)
 
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0, grid_min=-3., grid_max=3.01,
-              grid_width=0.2, knn_k=3, kd_tree_leaf_size=40, radius=0.1):
+              grid_width=0.2, knn_k=3, tree_leaf_size=40, radius=0.1):
         """
         Match data1 and data2 according to common features
         :param radius:
         :param knn_k:
-        :param kd_tree_leaf_size:
+        :param tree_leaf_size:
         :param blocking_method: method of blocking before matching
         :param knn_k: number of nearest neighbors to be calculated
-        :param kd_tree_leaf_size: leaf size to build kd-tree
+        :param tree_leaf_size: leaf size to build kd-tree
         :param idx: Index of training data1, not involved in linkage
         :param sim_threshold: sim_threshold: threshold of similarity score.
                Everything below the threshold will be removed
@@ -609,9 +677,11 @@ class SimModel(TwoPartyBaseModel):
             sim_scores = self.cal_sim_score_grid(key1, key2, grid_min=grid_min, grid_max=grid_max,
                                                  grid_width=grid_width)
         elif self.blocking_method == 'knn':
-            sim_scores = self.cal_sim_score_knn(key1, key2, knn_k=knn_k, kd_tree_leaf_size=kd_tree_leaf_size)
+            sim_scores = self.cal_sim_score_knn(key1, key2, knn_k=knn_k, tree_leaf_size=tree_leaf_size)
+        elif self.blocking_method == 'knn_str':
+            sim_scores = self.cal_sim_score_knn_str(key1, key2, knn_k=knn_k, psig_p=self.psig_p)
         elif self.blocking_method == 'radius':
-            sim_scores = self.cal_sim_score_radius(key1, key2, radius=radius, kd_tree_leaf_size=kd_tree_leaf_size)
+            sim_scores = self.cal_sim_score_radius(key1, key2, radius=radius, tree_leaf_size=tree_leaf_size)
         elif self.blocking_method == 'knn_priv_str':
             sim_scores = self.cal_sim_score_knn_priv(key1, key2, self.sim_noise_scale, key_type='str', knn_k=knn_k)
         elif self.blocking_method == 'knn_priv_float':
@@ -730,20 +800,20 @@ class SimModel(TwoPartyBaseModel):
             train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
                                                       preserve_key=preserve_key, grid_min=self.grid_min,
                                                       grid_max=self.grid_max, grid_width=self.grid_width,
-                                                      knn_k=self.knn_k, kd_tree_leaf_size=self.kd_tree_leaf_size,
-                                                      radius=self.kd_tree_radius)
+                                                      knn_k=self.knn_k, tree_leaf_size=self.tree_leaf_size,
+                                                      radius=self.tree_radius)
             assert self.sim_scaler is not None
             print("Matching validation set")
             val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1,
                                                 preserve_key=preserve_key, grid_min=self.grid_min,
                                                 grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
-                                                kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
+                                                tree_leaf_size=self.tree_leaf_size, radius=self.tree_radius)
             assert self.sim_scaler is not None
             print("Matching test set")
             test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
                                                    preserve_key=preserve_key, grid_min=self.grid_min,
                                                    grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
-                                                   kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
+                                                   tree_leaf_size=self.tree_leaf_size, radius=self.tree_radius)
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
@@ -771,7 +841,7 @@ class SimModel(TwoPartyBaseModel):
                     print("Scale done.")
 
             y_scaler = None
-            if scale:
+            if scale and self.task == 'regression':
                 print("Scaling y")
                 y_scaler = MinMaxScaler(feature_range=(0, 1))
                 train_y = y_scaler.fit_transform(train_y.reshape(-1, 1)).flatten()
@@ -839,12 +909,16 @@ class SimModel(TwoPartyBaseModel):
                                    linewidth=0, antialiased=False)
             plt.savefig(save_fig_path)
 
-    def visualize_model(self, model, data, target, save_fig_path):
+    def visualize_model(self, model, data, target, save_fig_path, sim_model=None, sim_dim=1):
         model.eval()
         baselines = torch.zeros(data.shape).to(self.device)
 
         # Get feature importance by integrated gradients
-        ig = IntegratedGradients(model)
+        if sim_model is None:
+            ig = IntegratedGradients(model)
+        else:
+            model_with_sim = lambda x: model(x[:, :, sim_dim:] * sim_model(x[:, :, :sim_dim]))
+            ig = IntegratedGradients(model_with_sim)
         attributions, delta = ig.attribute(data, baselines, target=target, return_convergence_delta=True)
         avg_attrs = torch.mean(attributions, dim=0).detach().cpu().numpy()
 
@@ -853,7 +927,7 @@ class SimModel(TwoPartyBaseModel):
             fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
             x = np.arange(0, data.shape[1])
             extent = [x[0] - (x[1] - x[0]) / 2., x[-1] + (x[1] - x[0]) / 2., 0, 1]
-            ax1.imshow(avg_attrs.reshape(1, -1), cmap='plasma', aspect='auto', extent=extent)
+            ax1.imshow(avg_attrs.reshape(1, -1), cmap='plasma_r', aspect='auto', extent=extent)
             ax1.set_yticks([])
             ax1.set_xlim(extent[0], extent[1])
 
@@ -862,8 +936,13 @@ class SimModel(TwoPartyBaseModel):
             plt.savefig(save_fig_path)
             plt.close()
         elif len(avg_attrs.shape) == 2:
+            # if sim_model is not None:
+            #     # do not plot sim column
+            #     avg_attrs = avg_attrs[:, sim_dim:]
+
             # plot 2d heat map for the attributes
-            plt.imshow(avg_attrs, cmap='plasma')
+            plt.imshow(avg_attrs, cmap=cm.get_cmap('cool'))
+            plt.xticks(color='w')
             plt.tight_layout()
             plt.savefig(save_fig_path)
             plt.close()

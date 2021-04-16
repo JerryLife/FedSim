@@ -135,20 +135,20 @@ class AvgSimModel(SimModel):
             train_Xs, train_y, train_idx = self.match(train_data1, train_data2, train_labels, idx=train_idx1,
                                                       preserve_key=preserve_key, grid_min=self.grid_min,
                                                       grid_max=self.grid_max, grid_width=self.grid_width,
-                                                      knn_k=self.knn_k, kd_tree_leaf_size=self.kd_tree_leaf_size,
-                                                      radius=self.kd_tree_radius)
+                                                      knn_k=self.knn_k, tree_leaf_size=self.tree_leaf_size,
+                                                      radius=self.tree_radius)
             assert self.sim_scaler is not None
             print("Matching validation set")
             val_Xs, val_y, val_idx = self.match(val_data1, val_data2, val_labels, idx=val_idx1,
                                                 preserve_key=preserve_key, grid_min=self.grid_min,
                                                 grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
-                                                kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
+                                                tree_leaf_size=self.tree_leaf_size, radius=self.tree_radius)
             assert self.sim_scaler is not None
             print("Matching test set")
             test_Xs, test_y, test_idx = self.match(test_data1, test_data2, test_labels, idx=test_idx1,
                                                    preserve_key=preserve_key, grid_min=self.grid_min,
                                                    grid_max=self.grid_max, grid_width=self.grid_width, knn_k=self.knn_k,
-                                                   kd_tree_leaf_size=self.kd_tree_leaf_size, radius=self.kd_tree_radius)
+                                                   tree_leaf_size=self.tree_leaf_size, radius=self.tree_radius)
 
             for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
                 print("Replace NaN with mean value")
