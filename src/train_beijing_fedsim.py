@@ -13,13 +13,13 @@ house_dataset = root + "house_clean.csv"
 airbnb_dataset = root + "airbnb_clean.csv"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-p', '--leak-p', type=float, default=1)
 parser.add_argument('-g', '--gpu', type=int, default=0)
 args = parser.parse_args()
 
 num_common_features = 2
 [X1, X2], y = load_both(house_path=house_dataset, airbnb_path=airbnb_dataset, active_party='house')
-name = "beijing_fedsim"
+name = "beijing_fedsim_p_{:.0E}".format(args.leak_p)
 
 model = FedSimModel(num_common_features=num_common_features,
                     raw_output_dim=10,
@@ -27,7 +27,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='regression',
                     metrics=['r2_score', 'rmse'],
                     dataset_type='real',
-                    blocking_method='knn',
+                    blocking_method='knn_priv_float',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
@@ -46,9 +46,6 @@ model = FedSimModel(num_common_features=num_common_features,
                     num_epochs=100,
                     learning_rate=3e-3,
                     weight_decay=1e-5,
-                    sim_learning_rate=3e-3,
-                    sim_weight_decay=1e-5,
-                    sim_batch_size=4096,
                     update_sim_freq=1,
                     num_workers=4 if sys.gettrace() is None else 0,
                     use_scheduler=False, sche_factor=0.1, sche_patience=10, sche_threshold=0.0001,
@@ -66,15 +63,15 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.3,
+                    merge_dropout_p=0.8,
                     conv_n_channels=8,
                     conv_kernel_v_size=7,
 
                     # private link parameters
-                    link_epsilon=0.1,
-                    link_delta=0.1,
-                    link_threshold_t=0.1,
-                    sim_noise_scale=args.perturb_sim
+                    link_epsilon=5e-2,
+                    link_delta=1e-2,
+                    link_threshold_t=1e-2,
+                    sim_leak_p=args.leak_p
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base.pkl".format(args.leak_p), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

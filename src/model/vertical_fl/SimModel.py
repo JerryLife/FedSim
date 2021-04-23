@@ -27,7 +27,8 @@ from nltk import ngrams
 import faiss
 
 from .TwoPartyModel import TwoPartyBaseModel
-from utils import scaled_edit_distance
+from utils import scaled_edit_distance, custom_index_cpu_to_gpu_multiple
+from utils.privacy import SimNoiseScale
 
 
 def remove_conflict(matched_indices, n_batches: int):
@@ -103,7 +104,9 @@ def remove_conflict(matched_indices, n_batches: int):
 
 class SimDataset(Dataset):
     @torch.no_grad()  # disable auto_grad in __init__
-    def __init__(self, data1, data2, labels, data_idx, batch_sizes=1, sim_dim=1):
+    def __init__(self, data1, data2, labels, data_idx, sim_dim=1):
+        self.sim_dim = sim_dim
+
         # data1[:, 0] and data2[:, 0] are both sim_scores
         assert data1.shape[0] == data2.shape[0] == data_idx.shape[0]
         # remove similarity scores in data1 (at column 0)
@@ -112,15 +115,17 @@ class SimDataset(Dataset):
         print("Grouping data")
         grouped_data1 = {}
         grouped_data2 = {}
-        for i in range(data_idx.shape[0]):
+        for i in tqdm(range(data_idx.shape[0])):
             idx1, idx2 = data_idx[i]
             new_data2 = np.concatenate([idx2.reshape(1, 1), data2[i].reshape(1, -1)], axis=1)
             if idx1 in grouped_data2:
-                grouped_data2[idx1] = np.concatenate([grouped_data2[idx1], new_data2], axis=0)
+                grouped_data2[idx1].append(new_data2)
             else:
-                grouped_data2[idx1] = new_data2
+                grouped_data2[idx1] = [new_data2]
             np.random.shuffle(grouped_data2[idx1])  # shuffle to avoid information leakage of the order
             grouped_data1[idx1] = data1_labels[i]
+        for k, v in tqdm(grouped_data2.items()):
+            grouped_data2[k] = np.vstack(v)
         print("Done")
 
         print("Checking if B is sorted by similarity: ", end="")
@@ -159,9 +164,9 @@ class SimDataset(Dataset):
         weight_list = []
         data_idx_list = []
         self.data_idx_split_points = [0]
-        for i in range(self.data1_idx.shape[0]):
+        for i in tqdm(range(self.data1_idx.shape[0])):
             d2 = torch.from_numpy(data2[i].astype(np.float)[:, 1:])  # remove index
-            d2_idx = data2[i].astype(np.float)[:, 0].reshape(-1, 1)
+            # d2_idx = data2[i].astype(np.float)[:, 0].reshape(-1, 1)
             d1 = torch.from_numpy(np.repeat(data1[i].reshape(1, -1), d2.shape[0], axis=0))
             d = torch.cat([d2[:, :sim_dim], d1, d2[:, sim_dim:]], dim=1)  # move similarity to index 0
             data_list.append(d)
@@ -192,6 +197,11 @@ class SimDataset(Dataset):
         return self.data[start:end], self.labels[idx], self.weights[start:end], \
                self.data_idx[start:end], self.data1_idx[idx]
 
+    def add_noise_to_sim_(self, noise_scale=0.0):
+        print("Adding noise of scale {} to sim_scores".format(noise_scale))
+        sim_noise = np.random.normal(0, scale=noise_scale, size=(self.data.shape[0], self.sim_dim))
+        self.data[:, :self.sim_dim] += sim_noise.astype('float64')
+
 
 class SimModel(TwoPartyBaseModel):
     def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
@@ -200,13 +210,13 @@ class SimModel(TwoPartyBaseModel):
                  local_hidden_sizes=None, agg_hidden_sizes=None, cut_dims=None,
                  edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
                  qgram_q=2, link_delta=0.1, n_hash_lsh=20, link_threshold_t=0.1,
-                 link_epsilon=0.1, sim_noise_scale=0.0,
+                 link_epsilon=0.1, sim_leak_p=0.0,
 
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
 
         self.psig_p = psig_p
-        self.sim_noise_scale = sim_noise_scale
+        self.sim_leak_p = sim_leak_p
         self.link_threshold_t = link_threshold_t
         self.link_epsilon = link_epsilon
         self.n_hash_lsh = n_hash_lsh
@@ -236,7 +246,9 @@ class SimModel(TwoPartyBaseModel):
             self.agg_hidden_sizes = agg_hidden_sizes
 
         if "priv" not in blocking_method:
-            assert np.equal(self.sim_noise_scale, 0.0)
+            assert self.sim_leak_p is None, "Noise will be added while no privacy is required"
+
+        self.scale_analysis = None
 
     def merge_pred(self, pred_all: list):
         sort_pred_all = list(sorted(pred_all, key=lambda t: t[0], reverse=True))
@@ -451,7 +463,7 @@ class SimModel(TwoPartyBaseModel):
         dist_idx2_all = []
         for idx1 in range(key1.shape[0]):
             indices2_dist = [(1, -1) if idx1 not in title_sim_scores or
-                             title_sim_scores[idx1].empty() else
+                                        title_sim_scores[idx1].empty() else
                              title_sim_scores[idx1].get() for _ in range(knn_k)]
             dist_idx2_all += indices2_dist
         idx2_dist_all = np.array(dist_idx2_all)[:, ::-1]
@@ -488,7 +500,7 @@ class SimModel(TwoPartyBaseModel):
 
         print("Calculate sim_scores")
         repeat_times = [x.shape[0] for x in idx2]
-        non_empty_idx = [x > 0 for x in repeat_times]
+        # non_empty_idx = [x > 0 for x in repeat_times]
         idx1 = np.repeat(np.arange(key1.shape[0]), repeat_times)
         idx2 = np.concatenate(idx2[np.array(repeat_times) > 0])
         if self.feature_wise_sim:
@@ -506,7 +518,7 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
-    def cal_sim_score_knn_priv(self, key1, key2, sim_noise_scale, key_type, knn_k=3):
+    def cal_sim_score_knn_priv(self, key1, key2, key_type, knn_k=3):
         """
         Calculate sim_scores based on the distance of bit-vectors/bloom-filters.
         Ref: FEDERAL: A Framework for Distance-Aware Privacy-Preserving Record Linkage
@@ -532,19 +544,45 @@ class SimModel(TwoPartyBaseModel):
         else:
             assert False, "Not Supported key type"
 
+        # Debug: sparsity check
+        # zeros_cols = np.all(np.isclose(bf1_vecs, 0), axis=0) & np.all(np.isclose(bf2_vecs, 0), axis=0)
+        # ones_cols = np.all(np.isclose(bf1_vecs, 1), axis=0) & np.all(np.isclose(bf2_vecs, 1), axis=0)
+        # sparsity = np.count_nonzero(zeros_cols | ones_cols) / bf1_vecs.shape[1]
+        # print("Sparsity of bloom filters is {}".format(sparsity))
+
         # link the bloom filters of party 1 and 2
         res = faiss.StandardGpuResources()
-        index = faiss.IndexFlat(bf2_vecs.shape[1])
+        ndim = bf2_vecs.shape[1] * 8
+        nlist = 100
+        index = faiss.IndexBinaryFlat(ndim)
+        # index = faiss.IndexBinaryIVF(quantizier, ndim, nlist)
+        # index.nprobe = 5
 
-        gpu_index = faiss.index_cpu_to_gpu(res, 0, index)
+        # n_subquantizers = 16
+        # nlist = 128
+        # quantizier = faiss.IndexFlatL2(bf2_vecs.shape[1])
+        # index = faiss.IndexIVFPQ(quantizier, bf2_vecs.shape[1], nlist, n_subquantizers, 8)
+
+        # gpu_index = faiss.index_cpu_to_gpu(res, self.device.index, index)
+        # gpu_index = faiss.index_cpu_to_all_gpus(index, ngpu=7)
+        gpu_index = index
+        print("Training index")
+        gpu_index.train(bf2_vecs)
 
         # Pycharm false warning
         # noinspection PyArgumentList
-        gpu_index.add(bf2_vecs.astype('float32'))
+        print("Adding index")
+        gpu_index.add(bf2_vecs)
         print("Indexing done. Got {} samples.".format(gpu_index.ntotal))
 
         print("KNN Query")
-        dists, idx2 = gpu_index.search(bf1_vecs.astype('float32'), k=knn_k)
+        dists = np.empty([bf1_vecs.shape[0], knn_k])
+        idx2 = np.empty([bf1_vecs.shape[0], knn_k])
+        batch_size = 2000
+        for i in tqdm(range(0, bf1_vecs.shape[0], batch_size)):
+            dists_i, idx2_i = gpu_index.search(bf1_vecs[i: i+batch_size], k=knn_k)
+            dists[i: i+batch_size] = dists_i
+            idx2[i: i+batch_size] = idx2_i
         print("Done")
 
         gpu_index.reset()
@@ -559,17 +597,14 @@ class SimModel(TwoPartyBaseModel):
             sims = -np.concatenate(dists[np.array(repeat_times) > 0]).reshape(-1, 1)
 
         # assert np.isclose(sims, -np.sqrt(np.sum((key1[idx1] - key2[idx2]) ** 2, axis=1)))
-        sim_scores = np.concatenate([idx1.reshape(-1, 1), idx2.reshape(-1, 1), sims], axis=1)
+        print("Scaling sim scores")
+        sim_scores = np.concatenate([idx1.reshape(-1, 1), idx2.reshape(-1, 1), sims.astype('float64')], axis=1)
         if self.sim_scaler is not None:
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
             self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
-
-        print("Adding noise of scale {} to sim_scores".format(sim_noise_scale))
-        sim_noise = np.random.normal(0, scale=sim_noise_scale, size=sim_scores[:, 2].shape)
-        sim_scores[:, 2] += sim_noise
 
         return sim_scores
 
@@ -589,8 +624,8 @@ class SimModel(TwoPartyBaseModel):
         bf_size = int(np.ceil(bf_size / 8) * 8)  # Match binary index of faiss
         print("Size of bloom filter = {}".format(bf_size))
 
-        bf1_vecs = []
-        for k in tqdm(key1, desc='BF of key1'):
+        bf1_vecs = np.empty([key1.shape[0], np.sum(bf_size)])
+        for i, k in enumerate(tqdm(key1, desc='BF of key1')):
             # Generate q-grams
             qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
 
@@ -598,10 +633,10 @@ class SimModel(TwoPartyBaseModel):
             bf = BloomFilter(m=bf_size, k=n_hash_func)
             for gram in qgrams:
                 bf.add(gram)
-            bf1_vecs.append(bf.vector)
+            bf1_vecs[i, :] = bf.vector.reshape(1, -1)
 
-        bf2_vecs = []
-        for k in tqdm(key2, desc='BF of key2'):
+        bf2_vecs = np.empty([key2.shape[0], np.sum(bf_size)])  # Allocate memory in advance to accelerate
+        for i, k in enumerate(tqdm(key2, desc='BF of key2')):
             # Generate q-grams
             qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
 
@@ -609,8 +644,9 @@ class SimModel(TwoPartyBaseModel):
             bf = BloomFilter(m=bf_size, k=n_hash_func)
             for gram in qgrams:
                 bf.add(gram)
-            bf2_vecs.append(bf.vector)
-        return np.vstack(bf1_vecs), np.vstack(bf2_vecs)
+            bf2_vecs[i, :] = bf.vector.reshape(1, -1)
+
+        return bf1_vecs, bf2_vecs
 
     def float_to_bloom_filter(self, key1, key2, dist_threshold_t=0.1, epsilon=0.1, delta=0.1):
         key1_min, key1_max = np.min(key1, axis=0), np.max(key1, axis=0)
@@ -629,23 +665,25 @@ class SimModel(TwoPartyBaseModel):
         for k_min, k_max, m in zip(key1_min, key1_max, bv_size):
             pivots.append(np.random.uniform(k_min, k_max, m))
 
-        bv1_vecs = []
-        for k in tqdm(key1, desc='BV of key1'):
-            bv1_vec = np.zeros(0)
+        bv1_vecs = np.empty([key1.shape[0], np.sum(bv_size) // 8], dtype=np.uint8)  # Allocate memory in advance to accelerate
+        for i, k in enumerate(tqdm(key1, desc='BV of key1')):
+            bv1_vec = np.empty(0)
             for num, pivot in zip(k, pivots):
                 vec = (num >= pivot - dist_threshold_t) & (num <= pivot + dist_threshold_t)
-                bv1_vec = np.concatenate([bv1_vec, vec.astype('int')], axis=0)
-            bv1_vecs.append(bv1_vec)
+                bv1_vec = np.concatenate([bv1_vec, np.packbits(vec, axis=-1)], axis=0)
+                # bv1_vec = np.concatenate([bv1_vec, vec.astype('float32')], axis=0)
+            bv1_vecs[i, :] = bv1_vec.reshape(1, -1)
 
-        bv2_vecs = []
-        for k in tqdm(key1, desc='BV of key1'):
-            bv2_vec = np.zeros(0)
+        bv2_vecs = np.empty([key2.shape[0], np.sum(bv_size) // 8], dtype=np.uint8)  # Allocate memory in advance to accelerate
+        for i, k in enumerate(tqdm(key2, desc='BV of key2')):
+            bv2_vec = np.empty(0)
             for num, pivot in zip(k, pivots):
                 vec = (num >= pivot - dist_threshold_t) & (num <= pivot + dist_threshold_t)
-                bv2_vec = np.concatenate([bv2_vec, vec.astype('int')], axis=0)
-            bv2_vecs.append(bv2_vec)
+                bv2_vec = np.concatenate([bv2_vec, np.packbits(vec, axis=-1)], axis=0)
+                # bv2_vec = np.concatenate([bv2_vec, vec.astype('float32')], axis=0)
+            bv2_vecs[i, :] = bv2_vec.reshape(1, -1)
 
-        return np.vstack(bv1_vecs), np.vstack(bv2_vecs)
+        return bv1_vecs, bv2_vecs
 
     def match(self, data1, data2, labels, idx=None, preserve_key=False, sim_threshold=0.0, grid_min=-3., grid_max=3.01,
               grid_width=0.2, knn_k=3, tree_leaf_size=40, radius=0.1):
@@ -683,9 +721,9 @@ class SimModel(TwoPartyBaseModel):
         elif self.blocking_method == 'radius':
             sim_scores = self.cal_sim_score_radius(key1, key2, radius=radius, tree_leaf_size=tree_leaf_size)
         elif self.blocking_method == 'knn_priv_str':
-            sim_scores = self.cal_sim_score_knn_priv(key1, key2, self.sim_noise_scale, key_type='str', knn_k=knn_k)
+            sim_scores = self.cal_sim_score_knn_priv(key1, key2, key_type='str', knn_k=knn_k)
         elif self.blocking_method == 'knn_priv_float':
-            sim_scores = self.cal_sim_score_knn_priv(key1, key2, self.sim_noise_scale, key_type='float', knn_k=knn_k)
+            sim_scores = self.cal_sim_score_knn_priv(key1, key2, key_type='float', knn_k=knn_k)
         else:
             assert False, "Unsupported blocking method"
 
@@ -777,7 +815,7 @@ class SimModel(TwoPartyBaseModel):
         if data_cache_path and os.path.isfile(data_cache_path):
             print("Loading data from cache")
             with open(data_cache_path, 'rb') as f:
-                train_dataset, val_dataset, test_dataset, y_scaler = pickle.load(f)
+                train_dataset, val_dataset, test_dataset, y_scaler, self.sim_scaler = pickle.load(f)
             print("Done")
         else:
             print("Splitting data")
@@ -850,18 +888,28 @@ class SimModel(TwoPartyBaseModel):
                 print("Scale done")
 
             sim_dim = self.num_common_features if self.feature_wise_sim else 1
-            train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim,
-                                       batch_sizes=self.train_batch_size)
-            val_dataset = SimDataset(val_Xs[0], val_Xs[1], val_y, val_idx, sim_dim=sim_dim,
-                                     batch_sizes=self.test_batch_size)
-            test_dataset = SimDataset(test_Xs[0], test_Xs[1], test_y, test_idx, sim_dim=sim_dim,
-                                      batch_sizes=self.test_batch_size)
+            train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)
+            val_dataset = SimDataset(val_Xs[0], val_Xs[1], val_y, val_idx, sim_dim=sim_dim)
+            test_dataset = SimDataset(test_Xs[0], test_Xs[1], test_y, test_idx, sim_dim=sim_dim)
 
             if data_cache_path:
                 print("Saving data to cache")
                 with open(data_cache_path, 'wb') as f:
-                    pickle.dump([train_dataset, val_dataset, test_dataset, y_scaler], f)
+                    pickle.dump([train_dataset, val_dataset, test_dataset, y_scaler, self.sim_scaler], f)
                 print("Saved")
+
+        print("Calculating noise scale")
+        if np.isclose(self.sim_leak_p, 1.0):
+            noise_scale = 0.0
+        else:
+            sim_std = self.sim_scaler.scale_.item()
+            print("Standard variance of sim_score: {:.2f}".format(sim_std))
+            self.scale_analysis = SimNoiseScale(sim_std, sim_leak_p=self.sim_leak_p)
+            noise_scale = self.scale_analysis.noise_scale
+
+        train_dataset.add_noise_to_sim_(noise_scale)
+        val_dataset.add_noise_to_sim_(noise_scale)
+        test_dataset.add_noise_to_sim_(noise_scale)
 
         return train_dataset, val_dataset, test_dataset, y_scaler
 
