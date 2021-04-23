@@ -70,7 +70,7 @@ class ExactModel(TwoPartyBaseModel):
 
         linked_cols = ["key{}".format(i) for i in range(self.num_common_features)]
         exact_linked_data_df = data1_df.merge(data2_df, how='left', left_on=linked_cols, right_on=linked_cols)
-        print("Got {} pairs, {} of which is not null, linkage rate {:.2f}%"
+        print("Got {} pairs, {} of which is null, linkage rate {:.2f}%"
               .format(len(exact_linked_data_df.index), exact_linked_data_df.B1.isnull().sum(),
                       100 - exact_linked_data_df.B0.isnull().sum() / len(exact_linked_data_df.index) * 100))
 

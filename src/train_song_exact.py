@@ -4,11 +4,11 @@ from datetime import datetime
 import argparse
 
 from model.vertical_fl.ExactModel import ExactModel
-from preprocess.game import load_both
+from preprocess.song import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 os.chdir(sys.path[0] + "/../")  # change working directory
-root = "data/game/"
+root = "data/song/"
 rawg_dataset = root + "rawg_clean.csv"
 steam_dataset = root + "steam_clean.csv"
 
@@ -18,14 +18,15 @@ parser.add_argument('-g', '--gpu', type=int, default=0)
 args = parser.parse_args()
 
 num_common_features = 1
-[X1, X2], y = load_both(rawg_path=rawg_dataset, steam_path=steam_dataset,
-                        active_party='steam')
-name = "game_exact"
+msd_dataset = root + "msd_clean.csv"
+fma_dataset = root + "fma_clean.csv"
+[X1, X2], y = load_both(msd_dataset, fma_dataset, host_party='msd')
+name = "song_exact"
 
 model = ExactModel(num_common_features=num_common_features,
-                   task='binary_cls',
+                   task='regression',
                    dataset_type='real',
-                   metrics=['accuracy'],
+                   metrics=['r2_score', 'rmse', 'mae'],
                    n_classes=2,
                    model_name=name + "_" + now_string,
                    val_rate=0.1,
@@ -44,9 +45,9 @@ model = ExactModel(num_common_features=num_common_features,
                    model_save_path="ckp/{}_{}.pth".format(name, now_string),
 
                    # SplitNN parameters
-                   local_hidden_sizes=[[100], [100]],
+                   local_hidden_sizes=[[200], [200]],
                    agg_hidden_sizes=[400],
-                   cut_dims=[50, 50],
+                   cut_dims=[100, 100],
                    )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/game_exact.pkl".format(name))
-model.train_splitnn(X1, X2, y, scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/song_exact.pkl".format(name), scale=True)
+# model.train_splitnn(X1, X2, y, scale=True)

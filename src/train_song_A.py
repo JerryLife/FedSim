@@ -15,6 +15,11 @@ now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
 os.chdir(sys.path[0] + "/../")  # change working directory
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--perturb-sim', type=float, default=0.0)
+parser.add_argument('-g', '--gpu', type=int, default=0)
+args = parser.parse_args()
+
 root = "data/song/"
 dataset = "msd_clean.csv"
 
@@ -31,12 +36,12 @@ model = OnePartyModel(model_name=name + "_" + now_string,
                       n_classes=2,
                       val_rate=0.1,
                       test_rate=0.2,
-                      device='cuda:0',
-                      hidden_sizes=[200, 100],
+                      device='cuda:{}'.format(args.gpu),
+                      hidden_sizes=[400, 200],
                       train_batch_size=4096,
                       test_batch_size=4096,
                       num_epochs=200,
-                      learning_rate=1e-2,
+                      learning_rate=1e-3,
                       weight_decay=1e-5,
                       num_workers=4 if sys.gettrace() is None else 0,
                       use_scheduler=True,
