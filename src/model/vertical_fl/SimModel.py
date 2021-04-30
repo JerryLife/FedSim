@@ -202,6 +202,27 @@ class SimDataset(Dataset):
         sim_noise = np.random.normal(0, scale=noise_scale, size=(self.data.shape[0], self.sim_dim))
         self.data[:, :self.sim_dim] += sim_noise.astype('float64')
 
+    @property
+    @torch.no_grad()
+    def top1_dataset(self):
+        print("Generating top1 dataset")
+        X = torch.empty([self.data1_idx.shape[0], self.data.shape[1] - self.sim_dim], dtype=self.data.dtype)
+        y = torch.empty(self.labels.shape[0], dtype=self.labels.dtype)
+        idx = np.empty(self.data1_idx.shape[0], dtype=self.data1_idx.dtype)
+        for i in tqdm(range(self.data1_idx.shape[0])):
+            start = self.data_idx_split_points[i]
+            end = self.data_idx_split_points[i + 1]
+
+            max_i = torch.argmax(self.data[start:end][:, 0])
+            X_i = self.data[start:end][max_i, self.sim_dim:]
+            y_i = self.labels[i]
+            idx_i = self.data1_idx[i]
+            X[i] = X_i
+            y[i] = y_i
+            idx[i] = idx_i
+
+        return X, y, idx
+
 
 class SimModel(TwoPartyBaseModel):
     def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
@@ -246,7 +267,7 @@ class SimModel(TwoPartyBaseModel):
             self.agg_hidden_sizes = agg_hidden_sizes
 
         if "priv" not in blocking_method:
-            assert self.sim_leak_p is None, "Noise will be added while no privacy is required"
+            assert np.isclose(self.sim_leak_p, 1.0), "Noise will be added while no privacy is required"
 
         self.scale_analysis = None
 

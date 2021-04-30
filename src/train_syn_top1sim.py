@@ -6,7 +6,6 @@ from datetime import datetime
 from model.vertical_fl.Top1SimModel import Top1SimModel
 from preprocess.sklearn.syn_data_generator import TwoPartyClsMany2ManyGenerator
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
@@ -57,7 +56,13 @@ model = Top1SimModel(num_common_features=num_common_features,
                      # SplitNN parameters
                      local_hidden_sizes=[[100], [100]],
                      agg_hidden_sizes=[100],
-                     cut_dims=[50, 50]
+                     cut_dims=[50, 50],
+
+                     # private link parameters
+                     link_epsilon=0.1,
+                     link_delta=0.1,
+                     link_threshold_t=0.1,
+                     sim_leak_p=args.leak_p
                      )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name))
-model.train_splitnn(X1, X2, y)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}.pkl".format(noise_scale))
+# model.train_splitnn(X1, X2, y)

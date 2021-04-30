@@ -21,6 +21,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch_optimizer as adv_optim
 from torchsummaryX import summary
 from tqdm import tqdm
+import deprecation
 
 from .SimModel import SimModel
 from model.base import MLP, SplitNN
@@ -62,6 +63,15 @@ class Top1SimModel(SimModel):
         self.data2_shape = None
 
     def prepare_train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
+        train_dataset, val_dataset, test_dataset, y_scaler = \
+            super().prepare_train_combine(data1, data2, labels, data_cache_path, scale)
+        train_X, train_y, train_idx = train_dataset.top1_dataset
+        val_X, val_y, val_idx = val_dataset.top1_dataset
+        test_X, test_y, test_idx = test_dataset.top1_dataset
+        return train_X, val_X, test_X, train_y, val_y, test_y, train_idx, val_idx, test_idx, y_scaler
+
+    @deprecation.deprecated()
+    def __prepare_train_combine(self, data1, data2, labels, data_cache_path=None, scale=False):
         if data_cache_path and os.path.isfile(data_cache_path):
             print("Loading data from cache")
             with open(data_cache_path, 'rb') as f:
@@ -149,6 +159,7 @@ class Top1SimModel(SimModel):
         return train_X, val_X, test_X, train_y, val_y, test_y, train_idx, val_idx, test_idx, y_scaler
 
     @staticmethod
+    @deprecation.deprecated()
     def _group(data, labels, data_idx):
         assert data.shape[0] == labels.shape[0] == data_idx.shape[0]
         print("Start grouping, got {} samples".format(data_idx.shape[0]))
@@ -188,10 +199,9 @@ class Top1SimModel(SimModel):
         start_time = datetime.now()
         print("Loading data")
         if train_idx is None:
-            train_dataset = TensorDataset(torch.tensor(train_X).float(), torch.tensor(train_y).float())
+            train_dataset = TensorDataset(train_X.float(), train_y.float())
         else:  # need to calculate final accuracy
-            train_dataset = TensorDataset(torch.tensor(train_X).float(), torch.tensor(train_y).float(),
-                                          torch.tensor(train_idx).int())
+            train_dataset = TensorDataset(train_X.float(), train_y.float(), torch.tensor(train_idx).int())
         # IMPORTANT: Set num_workers to 0 to prevent deadlock on RTX3090 for unknown reason.
         train_loader = DataLoader(train_dataset, batch_size=self.train_batch_size, shuffle=True,
                                   num_workers=0)

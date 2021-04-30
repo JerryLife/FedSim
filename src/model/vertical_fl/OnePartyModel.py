@@ -367,10 +367,9 @@ class BaseModel:
     def eval_score(self, val_X, val_y, loss_criterion=None, val_idx=None, name='Val', y_scaler=None):
         assert self.model is not None, "Model has not been initialized"
         if val_idx is None:
-            val_dataset = TensorDataset(torch.tensor(val_X).float(), torch.tensor(val_y).float())
+            val_dataset = TensorDataset(val_X.float(), val_y.float())
         else:
-            val_dataset = TensorDataset(torch.tensor(val_X).float(), torch.tensor(val_y).float(),
-                                        torch.tensor(val_idx).int())
+            val_dataset = TensorDataset(val_X.float(), val_y.float(), torch.tensor(val_idx).int())
 
         # IMPORTANT: Set num_workers of val_loader to 0 to prevent deadlock on RTX3090 for unknown reason.
         #            multiprocessing_context should also be set to default.

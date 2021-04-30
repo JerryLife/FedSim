@@ -63,15 +63,15 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.8,
+                    merge_dropout_p=0.5,
                     conv_n_channels=8,
                     conv_kernel_v_size=7,
 
                     # private link parameters
-                    link_epsilon=5e-2,
+                    link_epsilon=2e-2,
                     link_delta=1e-2,
-                    link_threshold_t=1e-2,
+                    link_threshold_t=3e-2,
                     sim_leak_p=args.leak_p
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base.pkl".format(args.leak_p), scale=True)
-# model.train_splitnn(X1, X2, y, scale=True)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base.pkl".format(args.leak_p), scale=True)
+model.train_splitnn(X1, X2, y, scale=True)
