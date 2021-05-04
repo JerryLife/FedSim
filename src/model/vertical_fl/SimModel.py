@@ -163,10 +163,11 @@ class SimDataset(Dataset):
         data_list = []
         weight_list = []
         data_idx_list = []
+        data2_idx_list = []
         self.data_idx_split_points = [0]
         for i in tqdm(range(self.data1_idx.shape[0])):
             d2 = torch.from_numpy(data2[i].astype(np.float)[:, 1:])  # remove index
-            # d2_idx = data2[i].astype(np.float)[:, 0].reshape(-1, 1)
+            d2_idx = data2[i].astype(np.float)[:, 0].reshape(-1, 1)
             d1 = torch.from_numpy(np.repeat(data1[i].reshape(1, -1), d2.shape[0], axis=0))
             d = torch.cat([d2[:, :sim_dim], d1, d2[:, sim_dim:]], dim=1)  # move similarity to index 0
             data_list.append(d)
@@ -176,6 +177,7 @@ class SimDataset(Dataset):
 
             d1_idx = np.repeat(self.data1_idx[i].item(), d2.shape[0], axis=0)
             # idx = torch.from_numpy(np.concatenate([d1_idx.reshape(-1, 1), d2_idx], axis=1))
+            data2_idx_list.append(torch.from_numpy(d2_idx))
             data_idx_list.append(torch.from_numpy(d1_idx))
             self.data_idx_split_points.append(self.data_idx_split_points[-1] + d1_idx.shape[0])
         print("Done")
@@ -183,6 +185,7 @@ class SimDataset(Dataset):
         self.data = torch.cat(data_list, dim=0)  # sim_scores; data1; data2
         self.weights = torch.cat(weight_list, dim=0)
         self.data_idx = torch.cat(data_idx_list, dim=0)
+        self.data2_idx = torch.cat(data2_idx_list, dim=0)
 
     def __len__(self):
         return self.data1_idx.shape[0]
@@ -429,6 +432,8 @@ class SimModel(TwoPartyBaseModel):
             # use train scaler
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
+            print("Saving raw sim scores")
+            np.save('cache/sim_scores_no_priv_test.npy', sim_scores)
             # generate train scaler
             self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
@@ -572,23 +577,24 @@ class SimModel(TwoPartyBaseModel):
         # print("Sparsity of bloom filters is {}".format(sparsity))
 
         # link the bloom filters of party 1 and 2
-        res = faiss.StandardGpuResources()
+        # res = faiss.StandardGpuResources()
         ndim = bf2_vecs.shape[1] * 8
         nlist = 100
         index = faiss.IndexBinaryFlat(ndim)
         # index = faiss.IndexBinaryIVF(quantizier, ndim, nlist)
         # index.nprobe = 5
 
-        # n_subquantizers = 16
-        # nlist = 128
+        # m = 10000
+        # nlist = 100
         # quantizier = faiss.IndexFlatL2(bf2_vecs.shape[1])
-        # index = faiss.IndexIVFPQ(quantizier, bf2_vecs.shape[1], nlist, n_subquantizers, 8)
+        # index = faiss.IndexIVFPQ(quantizier, bf2_vecs.shape[1], nlist, m, 8)
+        # index.nprobe = 5
 
         # gpu_index = faiss.index_cpu_to_gpu(res, self.device.index, index)
         # gpu_index = faiss.index_cpu_to_all_gpus(index, ngpu=7)
         gpu_index = index
-        print("Training index")
-        gpu_index.train(bf2_vecs)
+        # print("Training index")
+        # gpu_index.train(bf2_vecs)
 
         # Pycharm false warning
         # noinspection PyArgumentList
@@ -617,12 +623,16 @@ class SimModel(TwoPartyBaseModel):
         else:
             sims = -np.concatenate(dists[np.array(repeat_times) > 0]).reshape(-1, 1)
 
-        # assert np.isclose(sims, -np.sqrt(np.sum((key1[idx1] - key2[idx2]) ** 2, axis=1)))
-        print("Scaling sim scores")
         sim_scores = np.concatenate([idx1.reshape(-1, 1), idx2.reshape(-1, 1), sims.astype('float64')], axis=1)
+
+        # assert np.isclose(sims, -np.sqrt(np.sum((key1[idx1] - key2[idx2]) ** 2, axis=1)))
+
+        print("Scaling sim scores")
         if self.sim_scaler is not None:
             sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
         else:
+            print("Saving raw sim scores")
+            np.save('cache/sim_scores_test.npy', sim_scores)
             self.sim_scaler = StandardScaler()
             sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
         print("Done scaling")
@@ -769,7 +779,7 @@ class SimModel(TwoPartyBaseModel):
         #     warnings.warn("Threshold is not used for feature-wise similarity")
 
         # # save sim scores
-        # with open("cache/sim_scores.pkl", "wb") as f:
+        # with open("cache/sim_scores_test.pkl", "wb") as f:
         #     pickle.dump(real_sim_scores, f)
 
         remain_data1_shape1 = remain_data1.shape[1]

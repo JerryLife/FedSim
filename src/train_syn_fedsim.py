@@ -30,7 +30,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='binary_cls',
                     metrics=['accuracy'],
                     dataset_type='syn',
-                    blocking_method='knn',
+                    blocking_method='knn_priv_float',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
@@ -68,7 +68,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.7,
+                    merge_dropout_p=0.8,
                     conv_n_channels=4,
                     conv_kernel_v_size=7,
 
@@ -78,6 +78,6 @@ model = FedSimModel(num_common_features=num_common_features,
                     link_threshold_t=0.1,
                     sim_leak_p=args.leak_p
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}.pkl".format(noise_scale),
+model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}_p_base.pkl".format(noise_scale),
                     sim_model_path=None)
 # model.train_splitnn(X1, X2, y)
