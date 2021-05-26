@@ -27,7 +27,7 @@ model = FeatureSimModel(num_common_features=num_common_features,
                         task='regression',
                         metrics=['r2_score', 'rmse', 'mae'],
                         dataset_type='real',
-                        blocking_method='knn_str',
+                        blocking_method='knn_priv_str',
                         n_classes=2,
                         grid_min=-10.0,
                         grid_max=10.0,
@@ -56,16 +56,15 @@ model = FeatureSimModel(num_common_features=num_common_features,
                         agg_hidden_sizes=[100],
                         cut_dims=[50, 50],
 
-
                         # linkage parameters
-                        edit_distance_threshold=1,
-                        n_hash_func=10,
-                        collision_rate=0.05,
-                        qgram_q=2,
-                        link_delta=0.1,
-                        n_hash_lsh=20,
-                        sim_noise_scale=args.leak_p,
-                        psig_p=7
+                        edit_distance_threshold=10,
+                        n_hash_func=50,
+                        collision_rate=0.01,
+                        qgram_q=4,
+                        link_delta=0.01,
+                        n_hash_lsh=50,
+                        psig_p=4,
+                        sim_leak_p=args.leak_p,
                         )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/song_sim_msd.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/song_sim_p_base.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

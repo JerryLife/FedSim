@@ -87,6 +87,9 @@ class MergeSimModel(SimModel):
         input_dims = [self.data1_shape[1] - self.num_common_features,
                       self.data2_shape[1] - self.num_common_features]
 
+        del data1, data2
+        gc.collect()
+
         if self.task == 'binary_cls':
             output_dim = 1
             local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],

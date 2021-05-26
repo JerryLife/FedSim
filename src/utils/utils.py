@@ -1,5 +1,7 @@
 from nltk.metrics.distance import edit_distance
 import faiss
+from queue import Queue
+from sortedcontainers import SortedList
 
 
 def get_split_points(array, size):
@@ -42,3 +44,29 @@ def custom_index_cpu_to_gpu_multiple(resources, index, co=None, gpu_nos=None):
     index.referenced_objects = resources
     return index
 
+
+class DroppingPriorityQueue:
+    """
+    Priority queue with maximum size. Tail will be automatically dropped when reaching max size
+    """
+    def __init__(self, maxsize=None, reverse=False):
+        self.reverse = reverse
+        self.maxsize = maxsize
+        self._queue = SortedList()
+
+    def put(self, item):
+        self._queue.add(item)
+        if self.maxsize is not None and len(self._queue) > self.maxsize:
+            if self.reverse:
+                self._queue.pop(0)
+            else:
+                self._queue.pop(-1)
+
+    def get(self):
+        if self.reverse:
+            return self._queue.pop(-1)
+        else:
+            return self._queue.pop(0)
+
+    def __len__(self):
+        return len(self._queue)

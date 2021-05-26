@@ -26,7 +26,7 @@ name = "song_top1sim"
 model = Top1SimModel(num_common_features=num_common_features,
                      task='regression',
                      dataset_type='real',
-                     blocking_method='knn_str',
+                     blocking_method='knn_priv_str',
                      metrics=['r2_score', 'rmse', 'mae'],
                      n_classes=2,
                      grid_min=-10.0,
@@ -56,13 +56,14 @@ model = Top1SimModel(num_common_features=num_common_features,
                      cut_dims=[100, 100],
 
                      # linkage parameters
-                     edit_distance_threshold=1,
-                     n_hash_func=20,
-                     collision_rate=0.05,
-                     qgram_q=2,
-                     link_delta=0.1,
-                     n_hash_lsh=20,
-                     psig_p=7
+                     edit_distance_threshold=10,
+                     n_hash_func=50,
+                     collision_rate=0.01,
+                     qgram_q=4,
+                     link_delta=0.01,
+                     n_hash_lsh=50,
+                     psig_p=4,
+                     sim_leak_p=args.leak_p,
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/song_top1sim.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/song_sim_p_base.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

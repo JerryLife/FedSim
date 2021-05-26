@@ -165,6 +165,9 @@ class FedSimModel(SimModel):
         else:
             num_features = data1.shape[1] + data2.shape[1]
 
+        del data1, data2
+        gc.collect()
+
         print("Prepare for training")
         num_parties = 2
 

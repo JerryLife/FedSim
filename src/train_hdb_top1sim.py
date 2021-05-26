@@ -24,7 +24,7 @@ name = "hdb_top1sim"
 model = Top1SimModel(num_common_features=num_common_features,
                      task='regression',
                      dataset_type='real',
-                     blocking_method='knn',
+                     blocking_method='knn_priv_float',
                      metrics=['r2_score', 'rmse'],
                      n_classes=2,
                      grid_min=-10.0,
@@ -55,10 +55,11 @@ model = Top1SimModel(num_common_features=num_common_features,
                      cut_dims=[100, 100],
 
                      # private link parameters
-                     link_epsilon=0.1,
-                     link_delta=0.1,
-                     link_threshold_t=0.1,
-                     sim_noise_scale=args.leak_p
+                     link_epsilon=5e-3,
+                     link_delta=5e-3,
+                     link_threshold_t=1e-2,
+                     sim_leak_p=args.leak_p,
+                     link_n_jobs=-1,
                      )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/{}.pkl".format(name), scale=True)
-model.train_splitnn(X1, X2, y, scale=True, data_cache_path="cache/ny_top1sim.pkl")
+model.train_splitnn(X1, X2, y, data_cache_path="cache/hdb_sim_p_base.pkl", scale=True)
+

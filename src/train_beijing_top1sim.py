@@ -54,10 +54,11 @@ model = Top1SimModel(num_common_features=num_common_features,
                      cut_dims=[100, 100],
 
                      # private link parameters
-                     link_epsilon=2e-2,
-                     link_delta=1e-2,
-                     link_threshold_t=3e-2,
-                     sim_leak_p=args.leak_p
+                     link_epsilon=3e-2,
+                     link_delta=3e-2,
+                     link_threshold_t=1e-2,
+                     sim_leak_p=args.leak_p,
+                     link_n_jobs=-1,
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base_smaller_t.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

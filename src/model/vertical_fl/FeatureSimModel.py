@@ -59,6 +59,9 @@ class FeatureSimModel(SimModel):
         self.data1_shape = data1.shape
         self.data2_shape = data2.shape
 
+        del data1, data2
+        gc.collect()
+
         print("Prepare for training")
         num_parties = 2
         if self.drop_key:

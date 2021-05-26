@@ -4,6 +4,7 @@ import abc
 import pickle
 import random
 from datetime import datetime
+import gc
 
 import numpy as np
 import pandas as pd
@@ -216,6 +217,9 @@ class Top1SimModel(SimModel):
             num_features = data1.shape[1] + data2.shape[1] - 2 * self.num_common_features
         else:
             num_features = data1.shape[1] + data2.shape[1]
+
+        del data1, data2
+        gc.collect()
 
         if self.task == 'binary_cls':
             output_dim = 1

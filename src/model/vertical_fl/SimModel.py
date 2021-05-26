@@ -5,13 +5,15 @@ import warnings
 import gc
 from datetime import datetime
 from queue import PriorityQueue
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.neighbors import KDTree, BallTree
-import joblib
+from sklearn.neighbors import KDTree, BallTree, NearestNeighbors
+from scipy.stats import binned_statistic_dd
+from joblib import Parallel, delayed
 
 import torch
 from torch.utils.data import Dataset
@@ -25,10 +27,11 @@ from captum.attr import IntegratedGradients
 from lhbf import BloomFilter
 from nltk import ngrams
 import faiss
+from phe import paillier
 
 from .TwoPartyModel import TwoPartyBaseModel
-from utils import scaled_edit_distance, custom_index_cpu_to_gpu_multiple
-from utils.privacy import SimNoiseScale
+from utils import scaled_edit_distance, DroppingPriorityQueue
+from utils.privacy import SimNoiseScale, l2_distance_with_he
 
 
 def remove_conflict(matched_indices, n_batches: int):
@@ -226,6 +229,34 @@ class SimDataset(Dataset):
 
         return X, y, idx
 
+    @torch.no_grad()
+    def filter_to_topk_dataset_(self, k):
+        assert 0 < k < self.data.shape[0] // self.data1_idx.shape[0]
+        print("Generating top {} dataset".format(k))
+        _data = torch.empty([self.data1_idx.shape[0] * k, self.data.shape[1]], dtype=self.data.dtype)
+        # _labels = torch.empty(self.labels.shape[0], dtype=self.labels.dtype)
+        _weights = torch.empty(self.data1_idx.shape[0] * k, dtype=self.weights.dtype)
+        _data_idx = torch.empty(self.data1_idx.shape[0] * k, dtype=self.data_idx.dtype)
+        # _data1_idx = np.empty(self.data1_idx.shape[0], dtype=self.data1_idx.dtype)
+        _data_idx_split_points = [0]
+        for i in tqdm(range(self.data1_idx.shape[0])):
+            start = self.data_idx_split_points[i]
+            end = self.data_idx_split_points[i + 1]
+            new_start = _data_idx_split_points[-1]
+            new_end = new_start + k
+
+            _, top_indices = torch.topk(self.data[start:end][:, 0], k, sorted=False)
+            _data[new_start:new_end] = self.data[start:end][top_indices]
+            _weights[new_start:new_end] = self.weights[start:end][top_indices]
+            _data_idx[new_start:new_end] = self.data_idx[start:end][top_indices]
+
+            _data_idx_split_points.append(new_end)
+
+        self.data = _data
+        self.weights = _weights
+        self.data_idx = _data_idx
+        self.data_idx_split_points = _data_idx_split_points
+
 
 class SimModel(TwoPartyBaseModel):
     def __init__(self, num_common_features, n_clusters=100, center_threshold=0.5,
@@ -234,11 +265,15 @@ class SimModel(TwoPartyBaseModel):
                  local_hidden_sizes=None, agg_hidden_sizes=None, cut_dims=None,
                  edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
                  qgram_q=2, link_delta=0.1, n_hash_lsh=20, link_threshold_t=0.1,
-                 link_epsilon=0.1, sim_leak_p=0.0,
+                 link_epsilon=0.1, sim_leak_p=0.0, link_n_jobs=1,
+
+                 filter_top_k=None,
 
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
 
+        self.filter_top_k = filter_top_k
+        self.link_n_jobs = link_n_jobs
         self.psig_p = psig_p
         self.sim_leak_p = sim_leak_p
         self.link_threshold_t = link_threshold_t
@@ -348,10 +383,16 @@ class SimModel(TwoPartyBaseModel):
 
         return np.array(sim_scores)
 
-    def _array2base(self, array, base):
+    @staticmethod
+    def _array2base(array, base):
         res = 0
-        for i, num in enumerate(array[::-1]):
-            res += num * base ** i
+        if hasattr(base, "__getitem__"):
+            for i, num in enumerate(array[::-1]):
+                res += num * np.prod(base[::-1][:i]).astype('int')
+        else:
+            for i, num in enumerate(array[::-1]):
+                res += num * base ** i
+
         return res
 
     def cal_sim_score_grid(self, key1, key2, grid_min=-3., grid_max=3.01, grid_width=0.2):
@@ -403,6 +444,194 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
+    def cal_sim_score_knn_he(self, key1, key2, knn_k=3, grid_min=0, grid_max=1, grid_width=0.1,
+                             block_eps=0.5, num_tolerate_comparisons=5000, fake_point=1000):
+        """
+
+        :param key1:
+        :param key2:
+        :param knn_k:
+        :param grid_min:
+        :param grid_max:
+        :param grid_width:
+        :param block_eps:
+        :param num_tolerate_comparisons:
+        :param fake_point: must be a number that is far from all existing records.
+                          This is used to generate fake records.
+        :return:
+        """
+        if not hasattr(grid_min, "__getitem__") or not hasattr(grid_width, "__getitem__") \
+                or not hasattr(grid_max, "__getitem__"):
+            grid_min = list(np.repeat(grid_min, key1.shape[1]))
+            grid_width = list(np.repeat(grid_width, key1.shape[1]))
+            grid_max = list(np.repeat(grid_max, key1.shape[1]))
+
+        print("Quantize each dimensions of key1 and key2")
+        bins = [np.arange(low, high, step) for low, high, step in zip(grid_min, grid_max, grid_width)]
+        assert key1.shape[1] == key2.shape[1] == len(bins)
+        quantized_key1 = []
+        quantized_key2 = []
+        for j in range(key2.shape[1]):
+            quantized_key1_j = np.digitize(key1[:, j], bins[j])
+            quantized_key2_j = np.digitize(key2[:, j], bins[j])
+            quantized_key1.append(quantized_key1_j)
+            quantized_key2.append(quantized_key2_j)
+        quantized_key1 = np.vstack(quantized_key1).T
+        quantized_key2 = np.vstack(quantized_key2).T
+        bin_lens = [len(b) + 1 for b in bins]
+        quantized_key1 = np.array([self._array2base(k, bin_lens) for k in quantized_key1])
+        quantized_key2 = np.array([self._array2base(k, bin_lens) for k in quantized_key2])
+
+        num_blocks = np.prod(bin_lens)
+        print("Done. Got {} blocks".format(num_blocks))
+
+        print("Collect indices of samples by grid")
+        grid_ids1, indices1 = self._collect(quantized_key1)
+        grid_ids2, indices2 = self._collect(quantized_key2)
+        print("Done. Got {} valid grids for key1 and {} valid grids for key2"
+              .format(grid_ids1.size, grid_ids2.size))
+
+        print("Calculating blocking parameters")
+        b = 2 / block_eps
+        expected_samples_per_block = int(key2.shape[0] / num_blocks)
+        mu = - b * np.log((2 * expected_samples_per_block) / (expected_samples_per_block + num_tolerate_comparisons))
+
+        print("Noise mean {}, noise scale {}".format(mu, b))
+        block_sizes_noises = np.round(np.random.laplace(mu, b, num_blocks))
+        print("Noises of {} blocks: {}".format(num_blocks, block_sizes_noises))
+
+        print("Adding noise to each block in party B")
+        indices = indices2  # set party to add noise
+        grid_ids = grid_ids2
+        for block_id in tqdm(range(num_blocks)):
+            noise = int(block_sizes_noises[block_id])
+            if noise < 0:
+                if block_id in grid_ids:
+                    i = np.argwhere(grid_ids == block_id).item()
+                    if abs(noise) <= len(indices[i]):
+                        np.random.choice(indices[i], len(indices[i]) + noise, replace=True)
+                    else:
+                        indices[i] = np.array([])
+            else:  # noise >= 0
+                if block_id in grid_ids:
+                    i = np.argwhere(grid_ids == block_id).item()
+                    indices[i] = np.concatenate([indices[i], np.repeat(-1, noise)])  # -1 means fake sample
+                else:
+                    grid_ids = np.insert(grid_ids, grid_ids.size, block_id)
+                    indices.append(np.repeat(-1, noise))
+        print("Done. Got {} valid grids for key1 and {} valid grids for key2"
+              .format(grid_ids1.size, grid_ids2.size))
+
+        common_blocks = np.intersect1d(grid_ids1, grid_ids2)
+        print("Got {} common blocks to compare".format(common_blocks.shape[0]))
+
+        print("Generating keys for paillier")
+        public_key, private_key = paillier.generate_paillier_keypair(n_length=512)
+
+        # print("Calculating encrypted b")
+        # enc_start = datetime.now()
+        # encrypted_b = Parallel(n_jobs=self.link_n_jobs)(delayed(public_key.encrypt)(key2[i, j])
+        #                                                 for i in range(key2.shape[0]) for j in range(key2.shape[1]))
+        # encrypted_b = np.array(encrypted_b).reshape(key2.shape)
+        # print("Done, cost {} seconds".format((datetime.now() - enc_start).seconds))
+        # print("Calculating encrypted b square")
+        # enc_start = datetime.now()
+        # encrypted_b_square = Parallel(n_jobs=self.link_n_jobs)(delayed(public_key.encrypt)(key2[i, j] * key2[i, j])
+        #                                                        for i in range(key2.shape[0]) for j in
+        #                                                        range(key2.shape[1]))
+        # encrypted_b_square = np.array(encrypted_b_square).reshape(key2.shape)
+        # print("Done, cost {} seconds".format((datetime.now() - enc_start).seconds))
+
+        if not hasattr(fake_point, "__getitem__"):
+            fake_point_center = np.repeat(fake_point, key2.shape[1])
+        else:
+            fake_point_center = np.array(fake_point)
+        print("Fake point {}".format(fake_point_center))
+
+        # num_fake_points = np.sum((block_sizes_noises > 0) * block_sizes_noises)
+        # fake_points = np.repeat(fake_point_center, num_fake_points) + \
+        #               np.random.normal(0, 1, [num_fake_points, fake_point_center.shape[0]])
+        # encrypted_fake_point = Parallel(n_jobs=self.link_n_jobs)(delayed(public_key.encrypt)(fake_points[i][j])
+        #                                                          for i in fake_points.shap[0]
+        #                                                          for j in fake_points.shape[1])
+        # encrypted_fake_point_square = Parallel(n_jobs=self.link_n_jobs)(
+        #     delayed(public_key.encrypt)(fake_points[i][j] * fake_points[i][j])
+        #     for i in fake_points.shap[0] for j in fake_points.shape[1])
+
+        print("Estimate number of comparisons")
+        num_comparisons = 0
+        for quantized_id in tqdm(common_blocks):
+            idx1 = indices1[np.argwhere(grid_ids1 == quantized_id).item()]
+            idx2 = indices2[np.argwhere(grid_ids2 == quantized_id).item()]
+            num_comparisons += len(idx1) * len(idx2)
+        print("Require {} comparisons".format(num_comparisons))
+
+        print("Compare within each block")
+        assert self.feature_wise_sim is False
+        sim_scores = []
+        for quantized_id in tqdm(common_blocks):
+            idx1 = indices1[np.argwhere(grid_ids1 == quantized_id).item()]
+            idx2 = indices2[np.argwhere(grid_ids2 == quantized_id).item()]
+
+            def compare(i, j):
+                if j != -1:
+                    key1_i = key1[i]  # i can't be -1, there is no noise on party A
+                    key2_j = key2[j]
+                    score = -np.linalg.norm(key1_i - key2_j).reshape(-1)
+                else:
+                    key1_i = key1[i]
+                    key2_j = fake_point_center
+                    score = -np.linalg.norm(key1_i - key2_j).reshape(-1)
+                return np.concatenate([np.array([i, j]), np.array(score)], axis=0)
+
+            # def compare(i, j):
+            #     key1_i = key1[i]  # can't be -1, there is no noise on party A
+            #     key2_j = encrypted_b[j] if i != -1 else encrypted_fake_point[0]
+            #     key2_j_square = encrypted_b_square[j] if j != -1 else encrypted_fake_point_square[0]
+            #     score = l2_distance_with_he(key1_i, key2_j, key2_j_square)
+            #     return np.concatenate([np.array([i, j]), np.array(score)], axis=0)
+
+            n_jobs = 1 if len(idx1) * len(idx2) <= 100000 else self.link_n_jobs
+            sim_scores_block = Parallel(n_jobs=n_jobs, batch_size=100000, pre_dispatch='all')(
+                delayed(compare)(i, j) for i in idx1 for j in idx2)
+            sim_scores += sim_scores_block
+
+            # for i in idx1:
+            #     for j in idx2:
+            #         key1_i = key1[i] if i != -1 else fake_point1
+            #         key2_j = key2[j] if j != -1 else fake_point2
+            #         score = -np.linalg.norm(key1_i - key2_j).reshape(-1)
+            #         sim_scores.append(np.concatenate([np.array([i, j]), np.array(score)], axis=0))
+        print("Done calculating similarity scores")
+
+        print("Filter top {} neighbors".format(knn_k))
+        sim_scores_knn = dict(zip(range(key1.shape[0]), [DroppingPriorityQueue(maxsize=knn_k, reverse=True)
+                                                         for _ in range(key1.shape[0])]))
+        for k1, k2, score in tqdm(sim_scores):
+            sim_scores_knn[k1].put((score, k2))
+
+        print("Write to matrix")
+        sim_scores_matrix = np.empty([key1.shape[0] * knn_k, 3])
+        for i, (k1, k2_queue) in enumerate(sim_scores_knn.items()):
+            sim_scores_matrix[i: i + knn_k, 0] = np.repeat(k1, knn_k)
+            k2_matrix_w_score = np.array(
+                [list(k2_queue.get()) if len(k2_queue) > 0 else [-1, -abs(fake_point_center[0])]
+                 for _ in range(knn_k)]).reshape(-1, 2)[:, ::-1]
+            sim_scores_matrix[i: i + knn_k, 1:] = k2_matrix_w_score
+
+        # scale similarity scores to [0, 1]
+        sim_scores = sim_scores_matrix
+        if self.sim_scaler is not None:
+            sim_scores[:, 2:] = self.sim_scaler.transform(sim_scores[:, 2:])
+        else:
+            print("Saving raw sim scores")
+            np.save('cache/sim_scores_he_test.npy', sim_scores)
+            self.sim_scaler = StandardScaler()
+            sim_scores[:, 2:] = self.sim_scaler.fit_transform(sim_scores[:, 2:])
+        print("Done scaling")
+
+        return sim_scores
+
     def cal_sim_score_knn(self, key1, key2, knn_k=3, tree_leaf_size=40):
         """
         :param tree_leaf_size: leaf size to build kd-tree
@@ -411,11 +640,15 @@ class SimModel(TwoPartyBaseModel):
         :param key2: Common features in party 2
         :return: sim_scores: Nx3 np.ndarray (idx_key1, idx_key2, sim_score)
         """
-        tree = KDTree(key2, leaf_size=tree_leaf_size)
+
+        nbrs = NearestNeighbors(n_neighbors=knn_k, algorithm='kd_tree', leaf_size=tree_leaf_size,
+                                n_jobs=self.link_n_jobs)
+        print("Constructing tree")
+        nbrs.fit(key2)
 
         print("Query tree")
-        # sort_results should be marked False to avoid the order leaking information
-        dists, idx2 = tree.query(key1, k=knn_k, return_distance=True, sort_results=False)
+        # sort_results is set to True by default since it will be randomly shuffled in dataset construction
+        dists, idx2 = nbrs.kneighbors(key1, return_distance=True)
 
         repeat_times = [x.shape[0] for x in idx2]
         idx2 = np.concatenate(idx2[np.array(repeat_times) > 0])
@@ -607,9 +840,9 @@ class SimModel(TwoPartyBaseModel):
         idx2 = np.empty([bf1_vecs.shape[0], knn_k])
         batch_size = 2000
         for i in tqdm(range(0, bf1_vecs.shape[0], batch_size)):
-            dists_i, idx2_i = gpu_index.search(bf1_vecs[i: i+batch_size], k=knn_k)
-            dists[i: i+batch_size] = dists_i
-            idx2[i: i+batch_size] = idx2_i
+            dists_i, idx2_i = gpu_index.search(bf1_vecs[i: i + batch_size], k=knn_k)
+            dists[i: i + batch_size] = dists_i
+            idx2[i: i + batch_size] = idx2_i
         print("Done")
 
         gpu_index.reset()
@@ -655,7 +888,7 @@ class SimModel(TwoPartyBaseModel):
         bf_size = int(np.ceil(bf_size / 8) * 8)  # Match binary index of faiss
         print("Size of bloom filter = {}".format(bf_size))
 
-        bf1_vecs = np.empty([key1.shape[0], np.sum(bf_size)])
+        bf1_vecs = np.empty([key1.shape[0], np.sum(bf_size) // 8], dtype=np.uint8)
         for i, k in enumerate(tqdm(key1, desc='BF of key1')):
             # Generate q-grams
             qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
@@ -664,9 +897,10 @@ class SimModel(TwoPartyBaseModel):
             bf = BloomFilter(m=bf_size, k=n_hash_func)
             for gram in qgrams:
                 bf.add(gram)
-            bf1_vecs[i, :] = bf.vector.reshape(1, -1)
+            bf1_vecs[i, :] = np.packbits(bf.vector, axis=-1).reshape(1, -1)
 
-        bf2_vecs = np.empty([key2.shape[0], np.sum(bf_size)])  # Allocate memory in advance to accelerate
+        bf2_vecs = np.empty([key2.shape[0], np.sum(bf_size) // 8],
+                            dtype=np.uint8)  # Allocate memory in advance to accelerate
         for i, k in enumerate(tqdm(key2, desc='BF of key2')):
             # Generate q-grams
             qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
@@ -675,7 +909,7 @@ class SimModel(TwoPartyBaseModel):
             bf = BloomFilter(m=bf_size, k=n_hash_func)
             for gram in qgrams:
                 bf.add(gram)
-            bf2_vecs[i, :] = bf.vector.reshape(1, -1)
+            bf2_vecs[i, :] = np.packbits(bf.vector, axis=-1).reshape(1, -1)
 
         return bf1_vecs, bf2_vecs
 
@@ -696,7 +930,8 @@ class SimModel(TwoPartyBaseModel):
         for k_min, k_max, m in zip(key1_min, key1_max, bv_size):
             pivots.append(np.random.uniform(k_min, k_max, m))
 
-        bv1_vecs = np.empty([key1.shape[0], np.sum(bv_size) // 8], dtype=np.uint8)  # Allocate memory in advance to accelerate
+        bv1_vecs = np.empty([key1.shape[0], np.sum(bv_size) // 8],
+                            dtype=np.uint8)  # Allocate memory in advance to accelerate
         for i, k in enumerate(tqdm(key1, desc='BV of key1')):
             bv1_vec = np.empty(0)
             for num, pivot in zip(k, pivots):
@@ -705,7 +940,8 @@ class SimModel(TwoPartyBaseModel):
                 # bv1_vec = np.concatenate([bv1_vec, vec.astype('float32')], axis=0)
             bv1_vecs[i, :] = bv1_vec.reshape(1, -1)
 
-        bv2_vecs = np.empty([key2.shape[0], np.sum(bv_size) // 8], dtype=np.uint8)  # Allocate memory in advance to accelerate
+        bv2_vecs = np.empty([key2.shape[0], np.sum(bv_size) // 8],
+                            dtype=np.uint8)  # Allocate memory in advance to accelerate
         for i, k in enumerate(tqdm(key2, desc='BV of key2')):
             bv2_vec = np.empty(0)
             for num, pivot in zip(k, pivots):
@@ -755,6 +991,9 @@ class SimModel(TwoPartyBaseModel):
             sim_scores = self.cal_sim_score_knn_priv(key1, key2, key_type='str', knn_k=knn_k)
         elif self.blocking_method == 'knn_priv_float':
             sim_scores = self.cal_sim_score_knn_priv(key1, key2, key_type='float', knn_k=knn_k)
+        elif self.blocking_method == 'knn_he_float':
+            sim_scores = self.cal_sim_score_knn_he(key1, key2, knn_k=knn_k, grid_min=grid_min, grid_max=grid_max,
+                                                   grid_width=grid_width)
         else:
             assert False, "Unsupported blocking method"
 
@@ -941,6 +1180,14 @@ class SimModel(TwoPartyBaseModel):
         train_dataset.add_noise_to_sim_(noise_scale)
         val_dataset.add_noise_to_sim_(noise_scale)
         test_dataset.add_noise_to_sim_(noise_scale)
+
+        if self.filter_top_k is not None:
+            print("Filter dataset to top {}".format(self.filter_top_k))
+            train_dataset.filter_to_topk_dataset_(self.filter_top_k)
+            val_dataset.filter_to_topk_dataset_(self.filter_top_k)
+            test_dataset.filter_to_topk_dataset_(self.filter_top_k)
+
+            self.knn_k = self.filter_top_k
 
         return train_dataset, val_dataset, test_dataset, y_scaler
 

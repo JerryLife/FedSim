@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import erf
 from scipy.optimize import bisect
+from phe import paillier
 
 
 class SimNoiseScale:
@@ -22,3 +23,33 @@ class SimNoiseScale:
 
         self.noise_scale = noise_scale
         self.sim_leak_p = sim_leak_p
+
+
+def l2_distance_with_he(a, encrypted_b, encrypted_b_square,
+                        private_key: paillier.PaillierPrivateKey):
+    """
+    Calculate l2 distance with partial homomorphic encryption
+    :param encrypted_b_square:
+    :param encrypted_b:
+    :param a: array 1
+    :param private_key: private key to decrypt result
+    :return: real distance
+    """
+    encrypted_dists = a * a - 2 * a * encrypted_b + encrypted_b_square
+    encrypted_dist = sum(encrypted_dists)
+    dist = private_key.decrypt(encrypted_dist)
+    return dist
+
+
+def jaccard_sim_with_he(a, b, public_key: paillier.PaillierPublicKey,
+                        private_key: paillier.PaillierPrivateKey):
+    """
+    Calculate jaccard similarity with partial homomorphic encryption
+    :param a: bit vector 1
+    :param b: bit vector 2 (to be encrypted)
+    :param public_key: public key to encrypt value
+    :param private_key: private key to decrypt result
+    :return: real jaccard similarity
+    """
+    encrypted_b = [public_key.encrypt(b_i) for b_i in b]
+    raise NotImplementedError

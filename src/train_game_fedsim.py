@@ -29,7 +29,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='binary_cls',
                     metrics=['accuracy'],
                     dataset_type='real',
-                    blocking_method='knn_str',
+                    blocking_method='knn_priv_str',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
@@ -65,18 +65,19 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.7,
+                    merge_dropout_p=0.8,
                     conv_n_channels=8,
                     conv_kernel_v_size=5,
 
                     # linkage parameters
-                    edit_distance_threshold=1,
-                    n_hash_func=10,
-                    collision_rate=0.05,
+                    edit_distance_threshold=10,
+                    n_hash_func=50,
+                    collision_rate=0.01,
                     qgram_q=4,
-                    link_delta=0.1,
-                    n_hash_lsh=20,
-                    psig_p=7
+                    link_delta=0.01,
+                    n_hash_lsh=50,
+                    psig_p=4,
+                    sim_leak_p=args.leak_p,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim.pkl".format(name))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim_p_base.pkl".format(name))
 # model.train_splitnn(X1, X2, y)
