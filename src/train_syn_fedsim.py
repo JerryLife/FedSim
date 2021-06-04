@@ -30,7 +30,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='binary_cls',
                     metrics=['accuracy'],
                     dataset_type='syn',
-                    blocking_method='knn_priv_float',
+                    blocking_method='knn',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
@@ -78,6 +78,6 @@ model = FedSimModel(num_common_features=num_common_features,
                     link_threshold_t=0.1,
                     sim_leak_p=args.leak_p
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}_p_base.pkl".format(noise_scale),
+model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}.pkl".format(noise_scale),
                     sim_model_path=None)
 # model.train_splitnn(X1, X2, y)

@@ -231,7 +231,7 @@ class SimDataset(Dataset):
 
     @torch.no_grad()
     def filter_to_topk_dataset_(self, k):
-        assert 0 < k < self.data.shape[0] // self.data1_idx.shape[0]
+        assert 0 < k <= self.data.shape[0] // self.data1_idx.shape[0]
         print("Generating top {} dataset".format(k))
         _data = torch.empty([self.data1_idx.shape[0] * k, self.data.shape[1]], dtype=self.data.dtype)
         # _labels = torch.empty(self.labels.shape[0], dtype=self.labels.dtype)
@@ -1206,6 +1206,7 @@ class SimModel(TwoPartyBaseModel):
         Otherwise, do nothing.
         """
         assert int(input_dim) == input_dim
+        plt.rcParams["font.size"] = 16
 
         if input_dim == 1:
             x = np.arange(-3, 3, 0.01)
@@ -1213,6 +1214,9 @@ class SimModel(TwoPartyBaseModel):
             z = model(x_tensor).detach().cpu().numpy()
             assert ((0 <= z) & (z <= 1)).all(), "{}".format(z)
             plt.plot(x, z)
+            plt.xlabel(r"Similarity $s_{ij}$")
+            plt.ylabel(r"Weight $w_{ij}$")
+            plt.tight_layout()
             plt.savefig(save_fig_path)
             plt.close()
             return
@@ -1238,6 +1242,8 @@ class SimModel(TwoPartyBaseModel):
     def visualize_model(self, model, data, target, save_fig_path, sim_model=None, sim_dim=1):
         model.eval()
         baselines = torch.zeros(data.shape).to(self.device)
+
+        plt.rcParams["font.size"] = 16
 
         # Get feature importance by integrated gradients
         if sim_model is None:
@@ -1268,6 +1274,7 @@ class SimModel(TwoPartyBaseModel):
 
             # plot 2d heat map for the attributes
             plt.imshow(avg_attrs, cmap=cm.get_cmap('cool'))
+            plt.ylabel("Indices of rows")
             plt.xticks(color='w')
             plt.tight_layout()
             plt.savefig(save_fig_path)

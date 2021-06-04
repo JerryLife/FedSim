@@ -64,7 +64,7 @@ model = FeatureSimModel(num_common_features=num_common_features,
                         qgram_q=2,
                         link_delta=0.1,
                         n_hash_lsh=20,
-                        sim_noise_scale=args.leak_p,
+                        sim_leak_p=args.leak_p,
                         psig_p=7
                         )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/song_sim_msd.pkl".format(name), scale=True)

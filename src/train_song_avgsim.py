@@ -15,6 +15,7 @@ steam_dataset = root + "steam_clean.csv"
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
+parser.add_argument('-k', '--top-k', type=int, default=None)
 args = parser.parse_args()
 
 msd_dataset = root + "msd_clean.csv"
@@ -30,12 +31,13 @@ model = MergeSimModel(num_common_features=num_common_features,
                       task='regression',
                       metrics=['r2_score', 'rmse', 'mae'],
                       dataset_type='real',
-                      blocking_method='knn_priv_str',
+                      blocking_method='knn_str',
                       n_classes=2,
                       grid_min=-10.0,
                       grid_max=10.0,
                       grid_width=1.5,
-                      knn_k=30,
+                      knn_k=50,
+                      filter_top_k=args.top_k,
                       kd_tree_radius=1e-2,
                       tree_leaf_size=1000,
                       model_name=name + "_" + now_string,
@@ -46,7 +48,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       hidden_sizes=[200, 100],
                       train_batch_size=128,
                       test_batch_size=1024 * 4,
-                      num_epochs=50,
+                      num_epochs=20,
                       learning_rate=1e-3,
                       weight_decay=1e-5,
                       sim_learning_rate=1e-3,
@@ -74,4 +76,4 @@ model = MergeSimModel(num_common_features=num_common_features,
                       psig_p=4,
                       sim_leak_p=args.leak_p,
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/song_sim_p_base.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/song_sim.pkl".format(name), scale=True)

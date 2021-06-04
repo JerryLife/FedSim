@@ -69,7 +69,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       link_epsilon=0.1,
                       link_delta=0.1,
                       link_threshold_t=0.1,
-                      sim_noise_scale=args.leak_p
+                      sim_leak_p=args.leak_p
                       )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_{:.1f}_noise_{:.1f}.pkl"
                     .format(noise_scale, args.leak_p))

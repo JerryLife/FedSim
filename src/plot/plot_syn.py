@@ -54,7 +54,7 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
     ax.set_title(dataset_map[dataset_name])
     ax.set_xticks(x)
     ax.set_xticklabels(noises)
-    ax.set_xlabel("Noise on identifiers")
+    ax.set_xlabel(r"Noise on identifiers $\sigma_{cf}$")
 
     fig.tight_layout()
     lgd = ax.legend(loc='lower right')
@@ -76,3 +76,5 @@ if __name__ == '__main__':
     plot_noise(result_dir="./out/frog/no_priv", dataset_name="frog", metric="Accuracy", n_round=5,
                algorithms=['Combine', 'FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
                noises=[0.0, 0.1, 0.2], save_path="fig/frog_noise.png", decimal=1)
+
+

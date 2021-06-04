@@ -61,16 +61,26 @@ def plot_priv(result_dir, dataset_name, metric, n_round, algorithms: list, noise
     plt.xlabel(r'Bound of success rate $\tau$')
     ax.set_ylabel(metric_map[metric])
     ax.set_title(dataset_map[dataset_name])
-    lgd = ax.legend()
+    # lgd = ax.legend()
+
     fig.tight_layout()
 
-    plt.show()
-    if save_path:
-        fig.savefig(save_path)
+    # plt.show()
+    # if save_path:
+    #     fig.savefig(save_path, bbox_inches='tight', pad_inches=.02)
+
+    fig_leg = plt.figure()
+    ax_leg = fig_leg.add_subplot(111)
+    # add the legend from the previous axes
+    ax_leg.legend(*ax.get_legend_handles_labels(), loc='center', ncol=len(algorithms))
+    # hide the axes frame and the x/y labels
+    ax_leg.axis('off')
+
+    fig_leg.savefig("fig/legend.png", bbox_inches='tight', pad_inches=.02)
 
 
 if __name__ == '__main__':
-    plt.rcParams["font.size"] = 16
+    plt.rcParams["font.size"] = 20
     os.chdir(sys.path[0] + "/../../")  # change working directory
     # plot_priv(result_dir="./out/beijing/priv", dataset_name="beijing", metric="R2_Score", n_round=5,
     #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],

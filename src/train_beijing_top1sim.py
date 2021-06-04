@@ -15,6 +15,7 @@ airbnb_dataset = root + "airbnb_clean.csv"
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
+parser.add_argument('-k', '--top-k', type=int, default=None)
 args = parser.parse_args()
 
 num_common_features = 2
@@ -24,13 +25,14 @@ name = "beijing_top1sim_p_{:.0E}".format(args.leak_p)
 model = Top1SimModel(num_common_features=num_common_features,
                      task='regression',
                      dataset_type='real',
-                     blocking_method='knn_priv_float',
+                     blocking_method='knn',
                      metrics=['r2_score', 'rmse'],
                      n_classes=2,
                      grid_min=-10.0,
                      grid_max=10.0,
                      grid_width=1.5,
                      knn_k=100,
+                     filter_top_k=args.top_k,
                      kd_tree_radius=0.01,
                      tree_leaf_size=1000,
                      model_name=name + "_" + now_string,
@@ -60,5 +62,5 @@ model = Top1SimModel(num_common_features=num_common_features,
                      sim_leak_p=args.leak_p,
                      link_n_jobs=-1,
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)
