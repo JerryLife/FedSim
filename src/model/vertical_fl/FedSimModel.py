@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, Dataset, TensorDataset
 
 import deprecation
 from tqdm import tqdm
-from torchsummaryX import summary
+from torchinfo import summary
 import torch_optimizer as adv_optim
 
 import matplotlib.pyplot as plt
@@ -95,9 +95,10 @@ class FedSimModel(SimModel):
                  sim_learning_rate=1e-3, sim_weight_decay=1e-5, sim_batch_size=128,
                  log_dir=None, merge_hidden_sizes=None, merge_model_save_path=None,
                  merge_dropout_p=0.0, conv_n_channels=1, conv_kernel_v_size=3, use_conv=False,
-                 use_sim=True,
+                 use_sim=True, mlp_merge=None,
                  **kwargs):
         super().__init__(num_common_features, **kwargs)
+        self.mlp_merge = mlp_merge
         self.use_sim = use_sim
         self.use_conv = use_conv
         self.conv_kernel_v_size = conv_kernel_v_size
@@ -203,20 +204,26 @@ class FedSimModel(SimModel):
         self.model = self.model.to(self.device)
 
         if self.use_conv:
-            self.merge_model = ConvModel(knn_k=self.knn_k,
-                                         merge_input_dim=self.raw_output_dim,
-                                         merge_hidden_sizes=self.merge_hidden_sizes,
-                                         output_dim=output_dim,
-                                         n_channels=self.conv_n_channels,
-                                         kernel_v_size=self.conv_kernel_v_size,
-                                         dropout_p=self.merge_dropout_p,
-                                         activation=None if self.task == 'multi_cls' else 'sigmoid'
-                                         ).to(self.device)
+            if self.mlp_merge is None:
+                self.merge_model = ConvModel(knn_k=self.knn_k,
+                                             merge_input_dim=self.raw_output_dim,
+                                             merge_hidden_sizes=self.merge_hidden_sizes,
+                                             output_dim=output_dim,
+                                             n_channels=self.conv_n_channels,
+                                             kernel_v_size=self.conv_kernel_v_size,
+                                             dropout_p=self.merge_dropout_p,
+                                             activation=None if self.task == 'multi_cls' else 'sigmoid')
+            else:
+                self.merge_model = MLP(input_size=self.knn_k * self.raw_output_dim,
+                                       hidden_sizes=self.mlp_merge,
+                                       output_size=output_dim,
+                                       activation=None if self.task == 'multi_cls' else 'sigmoid')
         else:
             if self.task in ['binary_cls', 'regression']:
-                self.merge_model = AvgSumModel(activation=None).to(self.device)
+                self.merge_model = AvgSumModel(activation=None)
             else:  # multi-cls
-                self.merge_model = AvgSumModel(activation=None).to(self.device)
+                self.merge_model = AvgSumModel(activation=None)
+        self.merge_model = self.merge_model.to(self.device)
 
         if self.feature_wise_sim:
             self.sim_model = MLP(input_size=self.num_common_features,
@@ -244,13 +251,16 @@ class FedSimModel(SimModel):
         best_val_metric_scores = [m.worst for m in self.metrics_f]
         best_test_metric_scores = [m.worst for m in self.metrics_f]
         print("Start training")
-        summary(self.model, torch.zeros([self.train_batch_size, num_features])
-                .to(self.device))
+        print("SplitNN summary")    # summary may change the device of model
+        summary(self.model, input_size=[self.train_batch_size, num_features], device=self.device)
         if self.use_conv:
-            summary(self.merge_model, torch.zeros([1, self.knn_k, self.raw_output_dim])
-                    .to(self.device))
-        summary(self.sim_model, torch.zeros([1, self.num_common_features if self.feature_wise_sim else 1])
-                .to(self.device))
+            print("Merge model summary")
+            if self.mlp_merge is None:
+                summary(self.merge_model, input_size=[1, self.knn_k, self.raw_output_dim], device=self.device)
+            else:
+                summary(self.merge_model, input_size=[1, self.knn_k * self.raw_output_dim], device=self.device)
+        print("Similarity model summary")
+        summary(self.sim_model, input_size=[1, self.num_common_features if self.feature_wise_sim else 1], device=self.device)
         print(str(self))
         # # debug
         # torch.autograd.set_detect_anomaly(True)
@@ -300,7 +310,10 @@ class FedSimModel(SimModel):
                     else:
                         outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
 
-                    output_i = self.merge_model(outputs_weighted.unsqueeze(0))
+                    if self.mlp_merge is None:
+                        output_i = self.merge_model(outputs_weighted.unsqueeze(0))
+                    else:
+                        output_i = self.merge_model(outputs_weighted.flatten())
 
                     if self.task in ['binary_cls', 'regression'] and self.use_conv is False:
                         # bound threshold to prevent CUDA error
@@ -345,7 +358,7 @@ class FedSimModel(SimModel):
 
             # visualize merge_model
             if self.log_dir is not None:
-                if self.use_conv:
+                if self.use_conv and self.mlp_merge is None:
                     # viz_data = torch.normal(0, 1, [1000, self.knn_k, self.raw_output_dim + sim_dim]) \
                     #     .to(self.device)
                     # self.visualize_model(self.merge_model, viz_data, target=0,
@@ -464,7 +477,11 @@ class FedSimModel(SimModel):
                         outputs_weighted = outputs_sorted * sim_weights
                     else:
                         outputs_weighted = outputs_sorted * sim_weights / torch.sum(sim_weights)
-                    output_i = self.merge_model(outputs_weighted.unsqueeze(0))
+
+                    if self.mlp_merge is None:
+                        output_i = self.merge_model(outputs_weighted.unsqueeze(0))
+                    else:
+                        output_i = self.merge_model(outputs_weighted.flatten())
 
                     if self.task in ['binary_cls', 'regression'] and self.use_conv is False:
                         # bound threshold to prevent CUDA error
