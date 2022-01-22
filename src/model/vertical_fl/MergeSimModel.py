@@ -197,22 +197,32 @@ class MergeSimModel(SimModel):
                     sim_weights = torch.ones([sim_scores.shape[0], 1]).to(self.device)
                 else:
                     assert False, "Unsupported merge mode"
-                outputs_batch = torch.zeros([0, output_dim]).to(self.device)
-                idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
-                for i in range(idx1_unique.shape[0]):
-                    start = idx1_split_points[i]
-                    end = idx1_split_points[i + 1]
-                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
-                               / torch.sum(sim_weights[start:end], dim=0)
 
-                    if self.task in ['binary_cls', 'regression']:
-                        # bound threshold to prevent CUDA error
-                        output_i[output_i > 1.] = 1.
-                        output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+                sim_weights_per_idx1 = sim_weights.reshape(idx1_unique.shape[0], self.knn_k)
+                normalized_sim_weights = sim_weights_per_idx1 / torch.sum(sim_weights_per_idx1, dim=1).reshape(-1, 1)
+                avg_outputs = torch.sum(normalized_sim_weights * outputs.reshape(idx1_unique.shape[0], self.knn_k), dim=1)
+                if self.task in ['binary_cls', 'regression']:
+                    # bound threshold to prevent CUDA error
+                    avg_outputs[avg_outputs > 1.] = 1.
+                    avg_outputs[avg_outputs < 0.] = 0.
+                outputs_batch = avg_outputs.reshape(-1, 1)
+                # implementation in for loop
+                # outputs_batch = torch.zeros([0, output_dim]).to(self.device)
+                # idx1_split_points = get_split_points(idx1, idx1.shape[0])
+                # labels_sim = torch.zeros(0).to(self.device)
+                # for i in range(idx1_unique.shape[0]):
+                #     start = idx1_split_points[i]
+                #     end = idx1_split_points[i + 1]
+                #     output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                #                / torch.sum(sim_weights[start:end], dim=0)
+                #
+                #     if self.task in ['binary_cls', 'regression']:
+                #         # bound threshold to prevent CUDA error
+                #         output_i[output_i > 1.] = 1.
+                #         output_i[output_i < 0.] = 0.
+                #
+                #     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
+                #     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
                     loss = criterion(outputs_batch, labels)
@@ -242,19 +252,30 @@ class MergeSimModel(SimModel):
                         assert False, "Unsupported merge mode"
                     sim_optimizer.zero_grad()
 
-                    outputs_batch = torch.zeros([0, output_dim]).to(self.device)
-                    for i in range(idx1_unique.shape[0]):
-                        start = idx1_split_points[i]
-                        end = idx1_split_points[i + 1]
-                        output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
-                                   / torch.sum(sim_weights[start:end], dim=0)
-
-                        if self.task in ['binary_cls', 'regression']:
-                            # bound threshold
-                            output_i[output_i > 1.] = 1.
-                            output_i[output_i < 0.] = 0.
-
-                        outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
+                    sim_weights_per_idx1 = sim_weights.reshape(idx1_unique.shape[0], self.knn_k)
+                    normalized_sim_weights = sim_weights_per_idx1 / torch.sum(sim_weights_per_idx1, dim=1).reshape(-1,
+                                                                                                                   1)
+                    avg_outputs = torch.sum(normalized_sim_weights * outputs.reshape(idx1_unique.shape[0], self.knn_k),
+                                            dim=1)
+                    if self.task in ['binary_cls', 'regression']:
+                        # bound threshold to prevent CUDA error
+                        avg_outputs[avg_outputs > 1.] = 1.
+                        avg_outputs[avg_outputs < 0.] = 0.
+                    outputs_batch = avg_outputs.reshape(-1, 1)
+                    # implementation in for loop
+                    # outputs_batch = torch.zeros([0, output_dim]).to(self.device)
+                    # for i in range(idx1_unique.shape[0]):
+                    #     start = idx1_split_points[i]
+                    #     end = idx1_split_points[i + 1]
+                    #     output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                    #                / torch.sum(sim_weights[start:end], dim=0)
+                    #
+                    #     if self.task in ['binary_cls', 'regression']:
+                    #         # bound threshold
+                    #         output_i[output_i > 1.] = 1.
+                    #         output_i[output_i < 0.] = 0.
+                    #
+                    #     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
 
                     if self.task == 'binary_cls':
                         outputs_batch = outputs_batch.flatten()
@@ -381,22 +402,32 @@ class MergeSimModel(SimModel):
                 else:
                     assert False, "Unsupported merge mode"
 
-                outputs_batch = torch.zeros([0, output_dim]).to(self.device)
-                idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
-                for i in range(idx1_unique.shape[0]):
-                    start = idx1_split_points[i]
-                    end = idx1_split_points[i + 1]
-                    output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
-                               / torch.sum(sim_weights[start:end], dim=0)
-
-                    if self.task in ['binary_cls', 'regression']:
-                        # bound threshold
-                        output_i[output_i > 1.] = 1.
-                        output_i[output_i < 0.] = 0.
-
-                    outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+                sim_weights_per_idx1 = sim_weights.reshape(idx1_unique.shape[0], self.knn_k)
+                normalized_sim_weights = sim_weights_per_idx1 / torch.sum(sim_weights_per_idx1, dim=1).reshape(-1, 1)
+                avg_outputs = torch.sum(normalized_sim_weights * outputs.reshape(idx1_unique.shape[0], self.knn_k),
+                                        dim=1)
+                if self.task in ['binary_cls', 'regression']:
+                    # bound threshold to prevent CUDA error
+                    avg_outputs[avg_outputs > 1.] = 1.
+                    avg_outputs[avg_outputs < 0.] = 0.
+                outputs_batch = avg_outputs.reshape(-1, 1)
+                # implementation in for loop
+                # outputs_batch = torch.zeros([0, output_dim]).to(self.device)
+                # idx1_split_points = get_split_points(idx1, idx1.shape[0])
+                # labels_sim = torch.zeros(0).to(self.device)
+                # for i in range(idx1_unique.shape[0]):
+                #     start = idx1_split_points[i]
+                #     end = idx1_split_points[i + 1]
+                #     output_i = torch.sum(outputs[start:end] * sim_weights[start:end], dim=0) \
+                #                / torch.sum(sim_weights[start:end], dim=0)
+                #
+                #     if self.task in ['binary_cls', 'regression']:
+                #         # bound threshold
+                #         output_i[output_i > 1.] = 1.
+                #         output_i[output_i < 0.] = 0.
+                #
+                #     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
+                #     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
                     loss = loss_criterion(outputs_batch, labels)

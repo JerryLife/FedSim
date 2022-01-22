@@ -145,12 +145,13 @@ class FeatureSimModel(SimModel):
                 outputs = self.model(data)
 
                 # expand labels
-                idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
-                for i in range(idx1_unique.shape[0]):
-                    start = idx1_split_points[i]
-                    end = idx1_split_points[i + 1]
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+                labels_sim = labels.repeat_interleave(self.knn_k)
+                # idx1_split_points = get_split_points(idx1, idx1.shape[0])
+                # labels_sim = torch.zeros(0).to(self.device)
+                # for i in range(idx1_unique.shape[0]):
+                #     start = idx1_split_points[i]
+                #     end = idx1_split_points[i + 1]
+                #     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
 
                 if self.task == 'binary_cls':
                     outputs = outputs.flatten()
@@ -262,12 +263,13 @@ class FeatureSimModel(SimModel):
                 outputs_batch = self.model(data)
 
                 # expand labels
-                idx1_split_points = get_split_points(idx1, idx1.shape[0])
-                labels_sim = torch.zeros(0).to(self.device)
-                for i in range(idx1_unique.shape[0]):
-                    start = idx1_split_points[i]
-                    end = idx1_split_points[i + 1]
-                    labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+                labels_sim = labels.repeat_interleave(self.knn_k)
+                # idx1_split_points = get_split_points(idx1, idx1.shape[0])
+                # labels_sim = torch.zeros(0).to(self.device)
+                # for i in range(idx1_unique.shape[0]):
+                #     start = idx1_split_points[i]
+                #     end = idx1_split_points[i + 1]
+                #     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
 
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()

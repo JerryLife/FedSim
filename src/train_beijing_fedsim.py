@@ -47,7 +47,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     train_batch_size=128,
                     test_batch_size=1024 * 4,
                     num_epochs=100,
-                    learning_rate=3e-3,
+                    learning_rate=1e-3,
                     weight_decay=1e-5,
                     update_sim_freq=1,
                     num_workers=4 if sys.gettrace() is None else 0,
@@ -79,4 +79,8 @@ model = FedSimModel(num_common_features=num_common_features,
                     link_n_jobs=-1,
                     )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl", scale=True)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl", scale=True, torch_seed=0,
+#                     splitnn_model_path="ckp/beijing_fedsim_p_1E+00_2022-01-22-16-05-04.pth",
+#                     sim_model_path="ckp/beijing_fedsim_p_1E+00_2022-01-22-16-05-04_sim.pth",
+#                     merge_model_path="ckp/beijing_fedsim_p_1E+00_2022-01-22-16-05-04_merge.pth", evaluate_only=True)
 # model.train_splitnn(X1, X2, y, scale=True)
