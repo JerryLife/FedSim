@@ -7,7 +7,7 @@ from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.game import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 root = "data/game/"
 rawg_dataset = root + "rawg_clean.csv"
 steam_dataset = root + "steam_clean.csv"

@@ -8,7 +8,7 @@ from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.song import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 root = "data/song/"
 msd_dataset = root + "msd_clean.csv"
 fma_dataset = root + "fma_clean.csv"

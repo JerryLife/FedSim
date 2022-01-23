@@ -7,7 +7,7 @@ from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.hdb import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 root = "data/hdb/"
 hdb_dataset = root + "hdb_clean.csv"
 school_dataset = root + "school_clean.csv"
