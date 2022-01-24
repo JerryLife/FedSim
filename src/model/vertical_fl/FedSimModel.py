@@ -171,30 +171,48 @@ class FedSimModel(SimModel):
         print("Prepare for training")
         num_parties = 2
 
+        if len(self.agg_hidden_sizes) == 0:
+            assert sum(self.cut_dims) == self.raw_output_dim, "Layer size mismatch since agg_model is disabled"
+
         if self.task == 'binary_cls':
             output_dim = 1
-            local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
-                                output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
-                            output_size=self.raw_output_dim, activation='sigmoid')
+            if len(self.agg_hidden_sizes) > 0:
+                local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
+                                    output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
+                agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+                                output_size=self.raw_output_dim, activation='sigmoid')
+            else:
+                local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
+                                    output_size=self.cut_dims[i], activation='sigmoid') for i in range(num_parties)]
+                agg_model = None
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.BCELoss()
             val_criterion = nn.BCELoss()
         elif self.task == 'multi_cls':
             output_dim = self.n_classes
-            local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
-                                output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
-                            output_size=self.raw_output_dim, activation=None)
+            if len(self.agg_hidden_sizes) > 0:
+                local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
+                                    output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
+                agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+                                output_size=self.raw_output_dim, activation=None)
+            else:
+                local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
+                                    output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
+                agg_model = None
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.CrossEntropyLoss()
             val_criterion = nn.CrossEntropyLoss()
         elif self.task == 'regression':
             output_dim = 1
-            local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
-                                output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
-            agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
-                            output_size=self.raw_output_dim, activation='sigmoid')
+            if len(self.agg_hidden_sizes) > 0:
+                local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
+                                    output_size=self.cut_dims[i], activation=None) for i in range(num_parties)]
+                agg_model = MLP(input_size=sum(self.cut_dims), hidden_sizes=self.agg_hidden_sizes,
+                                output_size=self.raw_output_dim, activation='sigmoid')
+            else:
+                local_models = [MLP(input_size=input_dims[i], hidden_sizes=self.local_hidden_sizes[i],
+                                    output_size=self.cut_dims[i], activation='sigmoid') for i in range(num_parties)]
+                agg_model = None
             self.model = SplitNN(local_models, input_dims, agg_model)
             criterion = nn.MSELoss()
             val_criterion = nn.MSELoss()

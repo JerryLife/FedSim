@@ -33,5 +33,8 @@ class SplitNN(nn.Module):
         Xs = self.split_features(X, self.local_input_dims)
         local_out = torch.cat([self.local_models[i](Xs[i])
                                for i in range(self.n_local_models)], dim=1)
-        out = self.agg_model(local_out)
+        if self.agg_model is not None:
+            out = self.agg_model(local_out)
+        else:
+            out = local_out
         return out
