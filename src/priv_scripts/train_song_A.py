@@ -13,7 +13,7 @@ from preprocess.song import load_msd, load_fma
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)

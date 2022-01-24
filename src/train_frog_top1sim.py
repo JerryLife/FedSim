@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-s', '--noise-scale', type=float, default=0.0)
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
+parser.add_argument('-k', '--top-k', type=int, default=None)
 args = parser.parse_args()
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -34,6 +35,7 @@ model = Top1SimModel(num_common_features=num_common_features,
                      grid_max=10.0,
                      grid_width=1.5,
                      knn_k=100,
+                     filter_top_k=args.top_k,
                      tree_leaf_size=1000,
                      kd_tree_radius=2,
                      model_name=name + "_" + now_string,

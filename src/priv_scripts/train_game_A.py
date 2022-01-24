@@ -13,7 +13,7 @@ from preprocess.game import load_steam
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 
 root = "data/game/"
 dataset = "steam_clean.csv"

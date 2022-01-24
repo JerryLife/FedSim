@@ -13,7 +13,7 @@ from preprocess.hdb import load_hdb
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 
 root = "data/hdb/"
 dataset = "hdb_clean.csv"

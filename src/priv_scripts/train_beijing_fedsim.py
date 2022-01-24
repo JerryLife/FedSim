@@ -7,7 +7,7 @@ from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.beijing import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 root = "data/beijing/"
 house_dataset = root + "house_clean.csv"
 airbnb_dataset = root + "airbnb_clean.csv"

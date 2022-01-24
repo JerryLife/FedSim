@@ -8,7 +8,7 @@ from preprocess.nytaxi.ny_loader import NYBikeTaxiLoader
 
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../")  # change working directory
+os.chdir(sys.path[0] + "/../../")  # change working directory
 root = "data/nytaxi/"
 bike_dataset = "bike_201606_clean_sample_2e5.pkl"
 taxi_dataset = "taxi_201606_clean.pkl"
