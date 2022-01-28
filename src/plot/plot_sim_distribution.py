@@ -7,7 +7,7 @@ from tqdm import tqdm
 import pickle
 
 
-def plot_sim_distribution(data_cache_path, sim_dim=1, knn_k=100, threshold=0.7):
+def plot_sim_distribution(data_cache_path, sim_dim=1, knn_k=100, threshold=20):
     print("Loading data from cache")
     with open(data_cache_path, 'rb') as f:
         train_dataset, val_dataset, test_dataset, y_scaler, sim_scaler = pickle.load(f)
@@ -15,10 +15,11 @@ def plot_sim_distribution(data_cache_path, sim_dim=1, knn_k=100, threshold=0.7):
     sim_data = train_dataset.data[:, :sim_dim].reshape(-1, knn_k).detach().cpu().numpy()
     scaler = MinMaxScaler([0, 1])
     scaled_sim_data = scaler.fit_transform(sim_data.T).T
-    sorted_sim_data = np.sort(scaled_sim_data, axis=1)
+    sorted_sim_data = np.sort(scaled_sim_data, axis=1)[:, ::-1]
 
     split_indices = np.argmax(sorted_sim_data > threshold, axis=1)
-    sorted_sim_data[sorted_sim_data > threshold] = 0
+    sim_threshold = sorted_sim_data[:, threshold].reshape(-1, 1)
+    sorted_sim_data[sorted_sim_data > sim_threshold] = 1 - sorted_sim_data[sorted_sim_data > sim_threshold]
     improve = np.sum(sorted_sim_data, axis=1)
     position = np.std(split_indices / knn_k)
     avg_improve = np.average(improve)
@@ -44,8 +45,10 @@ def plot_sim_distribution(data_cache_path, sim_dim=1, knn_k=100, threshold=0.7):
 
 
 if __name__ == '__main__':
-    plot_sim_distribution("cache/beijing_sim.pkl", 1, knn_k=100)
-    plot_sim_distribution("cache/game_sim.pkl", 1, knn_k=50)
-    plot_sim_distribution("cache/song_sim.pkl", 1, knn_k=50)
-    plot_sim_distribution("cache/hdb_sim.pkl", 1, knn_k=50)
-    plot_sim_distribution("cache/ny_sim.pkl", 1, knn_k=50)
+    for k in [1, 5, 10, 20, 30, 40, 50]:
+        print(f"{k=}")
+        plot_sim_distribution("cache/beijing_sim.pkl", 1, knn_k=100, threshold=2*k)
+        plot_sim_distribution("cache/game_sim.pkl", 1, knn_k=50, threshold=k)
+        plot_sim_distribution("cache/hdb_sim.pkl", 1, knn_k=50, threshold=k)
+        plot_sim_distribution("cache/song_sim.pkl", 1, knn_k=50, threshold=k)
+        plot_sim_distribution("cache/ny_sim.pkl", 1, knn_k=50, threshold=k)

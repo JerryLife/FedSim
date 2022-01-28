@@ -63,5 +63,5 @@ model = MergeSimModel(num_common_features=num_common_features,
                       agg_hidden_sizes=[100],
                       cut_dims=[50, 50]
                       )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.2f}.pkl".format(noise_scale))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.2f}_p_base.pkl".format(noise_scale))
 # model.train_splitnn(X1, X2, y)

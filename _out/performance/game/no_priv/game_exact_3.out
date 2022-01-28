@@ -1,0 +1,1539 @@
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Loading rawg from data/game/rawg_clean.csv
+Loading steam from data/game/steam_clean.csv
+Current steam columns Index(['english', 'required_age', 'achievements', 'positive_ratings',
+       'negative_ratings', 'average_playtime', 'median_playtime', 'price',
+       'cat_Captions available', 'cat_Co-op', 'cat_Commentary available',
+       'cat_Cross-Platform Multiplayer', 'cat_Full controller support',
+       'cat_In-App Purchases', 'cat_Includes Source SDK',
+       'cat_Includes level editor', 'cat_Local Co-op',
+       'cat_Local Multi-Player', 'cat_MMO', 'cat_Mods',
+       'cat_Mods (require HL2)', 'cat_Multi-player', 'cat_Online Co-op',
+       'cat_Online Multi-Player', 'cat_Partial Controller Support',
+       'cat_Shared/Split Screen', 'cat_Single-player', 'cat_Stats',
+       'cat_Steam Achievements', 'cat_Steam Cloud', 'cat_Steam Leaderboards',
+       'cat_Steam Trading Cards', 'cat_Steam Turn Notifications',
+       'cat_Steam Workshop', 'cat_SteamVR Collectibles', 'cat_VR Support',
+       'cat_Valve Anti-Cheat enabled', 'name'],
+      dtype='object')
+Current rawg columns Index(['name', 'rating', 'playtime', 'achievements_count', 'suggestions_count',
+       'game_series_count', 'reviews_count', 'added_status_yet',
+       'added_status_owned', 'added_status_beaten', 'added_status_toplay',
+       'added_status_dropped', 'added_status_playing', 'has_website',
+       'released_year_before_2020', 'updated_year_before_2020', '3DO',
+       'Android', 'Apple II', 'Atari 2600', 'Atari 5200', 'Atari 7800',
+       'Atari 8-bit', 'Atari Flashback', 'Atari Lynx', 'Atari ST',
+       'Atari XEGS', 'Classic Macintosh', 'Commodore / Amiga', 'Dreamcast',
+       'Game Boy', 'Game Boy Advance', 'Game Boy Color', 'Game Gear',
+       'GameCube', 'Genesis', 'Jaguar', 'Linux', 'NES', 'Neo Geo',
+       'Nintendo 3DS', 'Nintendo 64', 'Nintendo DS', 'Nintendo DSi',
+       'Nintendo Switch', 'PC', 'PS Vita', 'PSP', 'PlayStation',
+       'PlayStation 2', 'PlayStation 3', 'PlayStation 4', 'PlayStation 5',
+       'SEGA 32X', 'SEGA CD', 'SEGA Master System', 'SEGA Saturn', 'SNES',
+       'Web', 'Wii', 'Wii U', 'Xbox', 'Xbox 360', 'Xbox One',
+       'Xbox Series S/X', 'iOS', 'macOS', 'Action', 'Adventure', 'Arcade',
+       'Board Games', 'Card', 'Casual', 'Educational', 'Family', 'Fighting',
+       'Indie', 'Massively Multiplayer', 'Platformer', 'Puzzle', 'RPG',
+       'Racing', 'Shooter', 'Simulation', 'Sports', 'Strategy'],
+      dtype='object')
+Splitting data
+Splitting...
+Matching training dataset
+Got 18890 pairs, 2261 of which is null, linkage rate 88.03%
+Matching validation set
+Got 2699 pairs, 330 of which is null, linkage rate 87.77%
+Matching test set
+Got 5398 pairs, 641 of which is null, linkage rate 88.13%
+Replace NaN with mean value
+Train done.
+Validation done.
+Test done.
+Scaling X
+Scale done.
+Preparing time (sec): 3
+Prepare for training
+Start training
+================================================================================
+                                    Kernel Shape Output Shape  Params  \
+Layer                                                                   
+0_local_models.0.fc_layers.Linear_0    [37, 100]  [4096, 100]    3800   
+1_local_models.0.fc_layers.Linear_1    [100, 50]   [4096, 50]    5050   
+2_local_models.1.fc_layers.Linear_0    [85, 100]  [4096, 100]    8600   
+3_local_models.1.fc_layers.Linear_1    [100, 50]   [4096, 50]    5050   
+4_agg_model.fc_layers.Linear_0        [100, 400]  [4096, 400]   40400   
+5_agg_model.fc_layers.Linear_1          [400, 1]    [4096, 1]     401   
+
+                                     Mult-Adds  
+Layer                                           
+0_local_models.0.fc_layers.Linear_0       3700  
+1_local_models.0.fc_layers.Linear_1       5000  
+2_local_models.1.fc_layers.Linear_0       8500  
+3_local_models.1.fc_layers.Linear_1       5000  
+4_agg_model.fc_layers.Linear_0           40000  
+5_agg_model.fc_layers.Linear_1             400  
+--------------------------------------------------------------------------------
+                      Totals
+Total params           63301
+Trainable params       63301
+Non-trainable params       0
+Mult-Adds              62600
+================================================================================
+n_classes=2
+task=binary_cls
+model_name=game_exact_2022-01-28-12-08-23
+sche_threshold=0.0001
+sche_patience=10
+sche_factor=0.1
+use_scheduler=False
+num_workers=4
+device=cuda:2
+test_batch_size=4096
+train_batch_size=4096
+learning_rate=0.001
+weight_decay=1e-05
+num_epochs=200
+model_save_path=ckp/game_exact_2022-01-28-12-08-23.pth
+test_rate=0.2
+val_rate=0.1
+multiprocess_context=fork
+metrics=['accuracy']
+metrics_f=[<metric.accuracy.Accuracy object at 0x7ff201b61dc0>]
+hidden_sizes=[200, 100]
+model=SplitNN(
+  (agg_model): MLP(
+    (fc_layers): ModuleList(
+      (0): Linear(in_features=100, out_features=400, bias=True)
+      (1): Linear(in_features=400, out_features=1, bias=True)
+    )
+  )
+  (local_models): ModuleList(
+    (0): MLP(
+      (fc_layers): ModuleList(
+        (0): Linear(in_features=37, out_features=100, bias=True)
+        (1): Linear(in_features=100, out_features=50, bias=True)
+      )
+    )
+    (1): MLP(
+      (fc_layers): ModuleList(
+        (0): Linear(in_features=85, out_features=100, bias=True)
+        (1): Linear(in_features=100, out_features=50, bias=True)
+      )
+    )
+  )
+)
+writer=<torch.utils.tensorboard.writer.SummaryWriter object at 0x7ff307ce4400>
+dataset_type=real
+drop_key=True
+num_common_features=1
+tree_radius=0.1
+tree_leaf_size=40
+knn_k=3
+grid_min=-3.0
+grid_max=3.01
+grid_width=0.2
+sim_scaler=None
+local_hidden_sizes=[[100], [100]]
+agg_hidden_sizes=[400]
+cut_dims=[50, 50]
+data1_shape=(26987, 38)
+data2_shape=(439999, 86)
+Train:  20%|██        | 1/5 [00:00<00:02,  1.87it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.60it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.87it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.85it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 95.24it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 1: Loss:            : Train 0.6946, Val 0.6912, Test 0.6916
+          Accuracy         : Train 0.4139, Val 0.5569, Test 0.5500
+Best:
+          Accuracy         : Train 0.4139, Val 0.5569, Test 0.5500
+Train:  20%|██        | 1/5 [00:00<00:01,  2.25it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.35it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.01it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.75it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 2: Loss:            : Train 0.6895, Val 0.6862, Test 0.6865
+          Accuracy         : Train 0.6164, Val 0.7006, Test 0.7014
+Best:
+          Accuracy         : Train 0.6164, Val 0.7006, Test 0.7014
+Train:  20%|██        | 1/5 [00:00<00:01,  2.51it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.51it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 75.03it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.76it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 3: Loss:            : Train 0.6847, Val 0.6814, Test 0.6815
+          Accuracy         : Train 0.7104, Val 0.7180, Test 0.7243
+Best:
+          Accuracy         : Train 0.7104, Val 0.7180, Test 0.7243
+Train:  20%|██        | 1/5 [00:00<00:02,  1.58it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.93it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.43it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.41it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.24it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 4: Loss:            : Train 0.6800, Val 0.6766, Test 0.6766
+          Accuracy         : Train 0.7221, Val 0.7229, Test 0.7284
+Best:
+          Accuracy         : Train 0.7221, Val 0.7229, Test 0.7284
+Train:  20%|██        | 1/5 [00:00<00:01,  2.00it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.28it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 83.60it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 106.57it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 5: Loss:            : Train 0.6752, Val 0.6717, Test 0.6716
+          Accuracy         : Train 0.7231, Val 0.7266, Test 0.7301
+Best:
+          Accuracy         : Train 0.7231, Val 0.7266, Test 0.7301
+Train:  20%|██        | 1/5 [00:00<00:01,  2.04it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.77it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.66it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.43it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 6: Loss:            : Train 0.6705, Val 0.6668, Test 0.6666
+          Accuracy         : Train 0.7232, Val 0.7273, Test 0.7301
+Best:
+          Accuracy         : Train 0.7232, Val 0.7273, Test 0.7301
+Train:  20%|██        | 1/5 [00:00<00:02,  1.77it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.53it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 10.78it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.92it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 7: Loss:            : Train 0.6655, Val 0.6618, Test 0.6615
+          Accuracy         : Train 0.7243, Val 0.7266, Test 0.7299
+Best:
+          Accuracy         : Train 0.7232, Val 0.7273, Test 0.7301
+Train:  20%|██        | 1/5 [00:00<00:02,  1.61it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.22it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.35it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.18it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 8: Loss:            : Train 0.6606, Val 0.6566, Test 0.6562
+          Accuracy         : Train 0.7247, Val 0.7273, Test 0.7312
+Best:
+          Accuracy         : Train 0.7232, Val 0.7273, Test 0.7301
+Train:  20%|██        | 1/5 [00:00<00:02,  1.89it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.70it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 74.44it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.04it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 9: Loss:            : Train 0.6554, Val 0.6513, Test 0.6509
+          Accuracy         : Train 0.7263, Val 0.7292, Test 0.7334
+Best:
+          Accuracy         : Train 0.7263, Val 0.7292, Test 0.7334
+Train:  20%|██        | 1/5 [00:00<00:02,  1.50it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.46it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 10.07it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 67.27it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 10: Loss:            : Train 0.6502, Val 0.6458, Test 0.6453
+          Accuracy         : Train 0.7284, Val 0.7310, Test 0.7360
+Best:
+          Accuracy         : Train 0.7284, Val 0.7310, Test 0.7360
+Train:  20%|██        | 1/5 [00:00<00:02,  1.92it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.77it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.07it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.87it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 11: Loss:            : Train 0.6446, Val 0.6401, Test 0.6397
+          Accuracy         : Train 0.7309, Val 0.7351, Test 0.7393
+Best:
+          Accuracy         : Train 0.7309, Val 0.7351, Test 0.7393
+Train:  20%|██        | 1/5 [00:00<00:01,  2.33it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.71it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.70it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 94.74it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 12: Loss:            : Train 0.6393, Val 0.6343, Test 0.6338
+          Accuracy         : Train 0.7338, Val 0.7392, Test 0.7419
+Best:
+          Accuracy         : Train 0.7338, Val 0.7392, Test 0.7419
+Train:  20%|██        | 1/5 [00:00<00:02,  1.73it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.28it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.46it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.23it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 13: Loss:            : Train 0.6333, Val 0.6283, Test 0.6278
+          Accuracy         : Train 0.7369, Val 0.7429, Test 0.7447
+Best:
+          Accuracy         : Train 0.7369, Val 0.7429, Test 0.7447
+Train:  20%|██        | 1/5 [00:00<00:01,  2.22it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.19it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.58it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.84it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 14: Loss:            : Train 0.6269, Val 0.6221, Test 0.6216
+          Accuracy         : Train 0.7399, Val 0.7455, Test 0.7482
+Best:
+          Accuracy         : Train 0.7399, Val 0.7455, Test 0.7482
+Train:  20%|██        | 1/5 [00:00<00:01,  2.33it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.82it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.94it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.52it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 15: Loss:            : Train 0.6213, Val 0.6157, Test 0.6153
+          Accuracy         : Train 0.7427, Val 0.7477, Test 0.7503
+Best:
+          Accuracy         : Train 0.7427, Val 0.7477, Test 0.7503
+Train:  20%|██        | 1/5 [00:00<00:02,  1.71it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.15it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.35it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.85it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 16: Loss:            : Train 0.6146, Val 0.6091, Test 0.6088
+          Accuracy         : Train 0.7456, Val 0.7518, Test 0.7534
+Best:
+          Accuracy         : Train 0.7456, Val 0.7518, Test 0.7534
+Train:  20%|██        | 1/5 [00:00<00:01,  2.07it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.58it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.08it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.72it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 17: Loss:            : Train 0.6084, Val 0.6024, Test 0.6021
+          Accuracy         : Train 0.7489, Val 0.7540, Test 0.7560
+Best:
+          Accuracy         : Train 0.7489, Val 0.7540, Test 0.7560
+Train:  20%|██        | 1/5 [00:00<00:02,  1.87it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.44it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.99it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.39it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 18: Loss:            : Train 0.6019, Val 0.5956, Test 0.5953
+          Accuracy         : Train 0.7517, Val 0.7595, Test 0.7588
+Best:
+          Accuracy         : Train 0.7517, Val 0.7595, Test 0.7588
+Train:  20%|██        | 1/5 [00:00<00:01,  2.23it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.94it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.34it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.62it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 19: Loss:            : Train 0.5955, Val 0.5886, Test 0.5884
+          Accuracy         : Train 0.7547, Val 0.7636, Test 0.7614
+Best:
+          Accuracy         : Train 0.7547, Val 0.7636, Test 0.7614
+Train:  20%|██        | 1/5 [00:00<00:01,  2.30it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.99it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 93.99it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.96it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 20: Loss:            : Train 0.5882, Val 0.5815, Test 0.5814
+          Accuracy         : Train 0.7573, Val 0.7658, Test 0.7658
+Best:
+          Accuracy         : Train 0.7573, Val 0.7658, Test 0.7658
+Train:  20%|██        | 1/5 [00:00<00:02,  1.80it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.73it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.61it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.21it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 21: Loss:            : Train 0.5808, Val 0.5743, Test 0.5744
+          Accuracy         : Train 0.7602, Val 0.7699, Test 0.7690
+Best:
+          Accuracy         : Train 0.7602, Val 0.7699, Test 0.7690
+Train:  20%|██        | 1/5 [00:00<00:01,  2.03it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.59it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.22it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.60it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 22: Loss:            : Train 0.5745, Val 0.5671, Test 0.5672
+          Accuracy         : Train 0.7633, Val 0.7718, Test 0.7705
+Best:
+          Accuracy         : Train 0.7633, Val 0.7718, Test 0.7705
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.07it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 53.06it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 92.19it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 23: Loss:            : Train 0.5671, Val 0.5598, Test 0.5601
+          Accuracy         : Train 0.7658, Val 0.7729, Test 0.7731
+Best:
+          Accuracy         : Train 0.7658, Val 0.7729, Test 0.7731
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.62it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.12it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.99it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.95it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 24: Loss:            : Train 0.5600, Val 0.5525, Test 0.5530
+          Accuracy         : Train 0.7691, Val 0.7770, Test 0.7742
+Best:
+          Accuracy         : Train 0.7691, Val 0.7770, Test 0.7742
+Train:  20%|██        | 1/5 [00:00<00:02,  1.91it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.93it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.13it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.51it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 25: Loss:            : Train 0.5532, Val 0.5452, Test 0.5458
+          Accuracy         : Train 0.7718, Val 0.7773, Test 0.7775
+Best:
+          Accuracy         : Train 0.7718, Val 0.7773, Test 0.7775
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.14it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 83.68it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.13it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 26: Loss:            : Train 0.5452, Val 0.5380, Test 0.5387
+          Accuracy         : Train 0.7743, Val 0.7810, Test 0.7808
+Best:
+          Accuracy         : Train 0.7743, Val 0.7810, Test 0.7808
+Train:  20%|██        | 1/5 [00:00<00:02,  1.95it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.91it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.12it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.12it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 17.40it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 27: Loss:            : Train 0.5389, Val 0.5308, Test 0.5317
+          Accuracy         : Train 0.7769, Val 0.7810, Test 0.7827
+Best:
+          Accuracy         : Train 0.7743, Val 0.7810, Test 0.7808
+Train:  20%|██        | 1/5 [00:00<00:01,  2.14it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.16it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.41it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.77it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 28: Loss:            : Train 0.5311, Val 0.5237, Test 0.5247
+          Accuracy         : Train 0.7790, Val 0.7833, Test 0.7842
+Best:
+          Accuracy         : Train 0.7790, Val 0.7833, Test 0.7842
+Train:  20%|██        | 1/5 [00:00<00:01,  2.11it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.07it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.26it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.30it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 29: Loss:            : Train 0.5242, Val 0.5167, Test 0.5179
+          Accuracy         : Train 0.7801, Val 0.7858, Test 0.7851
+Best:
+          Accuracy         : Train 0.7801, Val 0.7858, Test 0.7851
+Train:  20%|██        | 1/5 [00:00<00:02,  1.68it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.92it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.69it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.09it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 30: Loss:            : Train 0.5176, Val 0.5099, Test 0.5112
+          Accuracy         : Train 0.7824, Val 0.7881, Test 0.7866
+Best:
+          Accuracy         : Train 0.7824, Val 0.7881, Test 0.7866
+Train:  20%|██        | 1/5 [00:00<00:02,  1.82it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.70it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.15it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.37it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 31: Loss:            : Train 0.5110, Val 0.5032, Test 0.5046
+          Accuracy         : Train 0.7839, Val 0.7896, Test 0.7890
+Best:
+          Accuracy         : Train 0.7839, Val 0.7896, Test 0.7890
+Train:  20%|██        | 1/5 [00:00<00:01,  2.31it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.40it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.75it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.12it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 32: Loss:            : Train 0.5037, Val 0.4967, Test 0.4983
+          Accuracy         : Train 0.7859, Val 0.7914, Test 0.7908
+Best:
+          Accuracy         : Train 0.7859, Val 0.7914, Test 0.7908
+Train:  20%|██        | 1/5 [00:00<00:01,  2.36it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.71it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 62.82it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.58it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 33: Loss:            : Train 0.4965, Val 0.4903, Test 0.4921
+          Accuracy         : Train 0.7884, Val 0.7947, Test 0.7921
+Best:
+          Accuracy         : Train 0.7884, Val 0.7947, Test 0.7921
+Train:  20%|██        | 1/5 [00:00<00:01,  2.23it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.75it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 91.99it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.36it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 34: Loss:            : Train 0.4916, Val 0.4841, Test 0.4860
+          Accuracy         : Train 0.7902, Val 0.7944, Test 0.7931
+Best:
+          Accuracy         : Train 0.7884, Val 0.7947, Test 0.7921
+Train:  20%|██        | 1/5 [00:00<00:01,  2.35it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.47it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 91.09it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 35: Loss:            : Train 0.4857, Val 0.4782, Test 0.4801
+          Accuracy         : Train 0.7914, Val 0.7970, Test 0.7942
+Best:
+          Accuracy         : Train 0.7914, Val 0.7970, Test 0.7942
+Train:  20%|██        | 1/5 [00:00<00:01,  2.26it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.48it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 90.76it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.04it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 36: Loss:            : Train 0.4804, Val 0.4724, Test 0.4744
+          Accuracy         : Train 0.7924, Val 0.7973, Test 0.7957
+Best:
+          Accuracy         : Train 0.7924, Val 0.7973, Test 0.7957
+Train:  20%|██        | 1/5 [00:00<00:01,  2.25it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.92it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 69.34it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 90.87it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 37: Loss:            : Train 0.4736, Val 0.4669, Test 0.4689
+          Accuracy         : Train 0.7940, Val 0.7999, Test 0.7964
+Best:
+          Accuracy         : Train 0.7940, Val 0.7999, Test 0.7964
+Train:  20%|██        | 1/5 [00:00<00:02,  1.95it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.57it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 76.07it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 94.89it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 38: Loss:            : Train 0.4692, Val 0.4615, Test 0.4635
+          Accuracy         : Train 0.7954, Val 0.7999, Test 0.7992
+Best:
+          Accuracy         : Train 0.7940, Val 0.7999, Test 0.7964
+Train:  20%|██        | 1/5 [00:00<00:01,  2.28it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.76it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.20it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.99it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 39: Loss:            : Train 0.4625, Val 0.4564, Test 0.4584
+          Accuracy         : Train 0.7967, Val 0.7992, Test 0.8027
+Best:
+          Accuracy         : Train 0.7940, Val 0.7999, Test 0.7964
+Train:  20%|██        | 1/5 [00:00<00:02,  1.88it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.67it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.55it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.66it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 40: Loss:            : Train 0.4584, Val 0.4514, Test 0.4534
+          Accuracy         : Train 0.7987, Val 0.8007, Test 0.8027
+Best:
+          Accuracy         : Train 0.7987, Val 0.8007, Test 0.8027
+Train:  20%|██        | 1/5 [00:00<00:01,  2.32it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.89it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.62it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 91.72it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 41: Loss:            : Train 0.4526, Val 0.4467, Test 0.4486
+          Accuracy         : Train 0.8007, Val 0.8044, Test 0.8060
+Best:
+          Accuracy         : Train 0.8007, Val 0.8044, Test 0.8060
+Train:  20%|██        | 1/5 [00:00<00:02,  1.66it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.07it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 77.42it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.67it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.34it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 42: Loss:            : Train 0.4481, Val 0.4421, Test 0.4439
+          Accuracy         : Train 0.8029, Val 0.8047, Test 0.8077
+Best:
+          Accuracy         : Train 0.8029, Val 0.8047, Test 0.8077
+Train:  20%|██        | 1/5 [00:00<00:01,  2.00it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.78it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.85it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.48it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 43: Loss:            : Train 0.4446, Val 0.4376, Test 0.4393
+          Accuracy         : Train 0.8043, Val 0.8059, Test 0.8092
+Best:
+          Accuracy         : Train 0.8043, Val 0.8059, Test 0.8092
+Train:  20%|██        | 1/5 [00:00<00:01,  2.13it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.65it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.33it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.33it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 44: Loss:            : Train 0.4395, Val 0.4333, Test 0.4349
+          Accuracy         : Train 0.8070, Val 0.8070, Test 0.8116
+Best:
+          Accuracy         : Train 0.8070, Val 0.8070, Test 0.8116
+Train:  20%|██        | 1/5 [00:00<00:02,  1.79it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.79it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.56it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 95.63it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 45: Loss:            : Train 0.4344, Val 0.4291, Test 0.4305
+          Accuracy         : Train 0.8102, Val 0.8099, Test 0.8134
+Best:
+          Accuracy         : Train 0.8102, Val 0.8099, Test 0.8134
+Train:  20%|██        | 1/5 [00:00<00:01,  2.11it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.56it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  9.81it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  9.79it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 77.82it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 46: Loss:            : Train 0.4301, Val 0.4250, Test 0.4262
+          Accuracy         : Train 0.8119, Val 0.8133, Test 0.8162
+Best:
+          Accuracy         : Train 0.8119, Val 0.8133, Test 0.8162
+Train:  20%|██        | 1/5 [00:00<00:01,  2.15it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.84it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 94.34it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.33it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 47: Loss:            : Train 0.4261, Val 0.4210, Test 0.4221
+          Accuracy         : Train 0.8140, Val 0.8159, Test 0.8181
+Best:
+          Accuracy         : Train 0.8140, Val 0.8159, Test 0.8181
+Train:  20%|██        | 1/5 [00:00<00:01,  2.83it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  9.24it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 91.19it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 48: Loss:            : Train 0.4208, Val 0.4172, Test 0.4181
+          Accuracy         : Train 0.8164, Val 0.8162, Test 0.8194
+Best:
+          Accuracy         : Train 0.8164, Val 0.8162, Test 0.8194
+Train:  20%|██        | 1/5 [00:00<00:01,  2.51it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.76it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.09it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.20it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 49: Loss:            : Train 0.4177, Val 0.4133, Test 0.4141
+          Accuracy         : Train 0.8196, Val 0.8170, Test 0.8231
+Best:
+          Accuracy         : Train 0.8196, Val 0.8170, Test 0.8231
+Train:  20%|██        | 1/5 [00:00<00:01,  2.38it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.78it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.73it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.13it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 50: Loss:            : Train 0.4138, Val 0.4096, Test 0.4103
+          Accuracy         : Train 0.8211, Val 0.8185, Test 0.8240
+Best:
+          Accuracy         : Train 0.8211, Val 0.8185, Test 0.8240
+Train:  20%|██        | 1/5 [00:00<00:01,  2.37it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.12it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.33it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 17.56it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 17.52it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 51: Loss:            : Train 0.4109, Val 0.4060, Test 0.4065
+          Accuracy         : Train 0.8227, Val 0.8199, Test 0.8260
+Best:
+          Accuracy         : Train 0.8227, Val 0.8199, Test 0.8260
+Train:  20%|██        | 1/5 [00:00<00:01,  2.15it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.37it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.44it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.54it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 52: Loss:            : Train 0.4067, Val 0.4025, Test 0.4028
+          Accuracy         : Train 0.8240, Val 0.8210, Test 0.8298
+Best:
+          Accuracy         : Train 0.8240, Val 0.8210, Test 0.8298
+Train:  20%|██        | 1/5 [00:00<00:01,  2.50it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.71it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.91it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.97it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 53: Loss:            : Train 0.4015, Val 0.3991, Test 0.3992
+          Accuracy         : Train 0.8261, Val 0.8233, Test 0.8316
+Best:
+          Accuracy         : Train 0.8261, Val 0.8233, Test 0.8316
+Train:  20%|██        | 1/5 [00:00<00:01,  2.59it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.49it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 73.21it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.01it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 54: Loss:            : Train 0.3986, Val 0.3957, Test 0.3957
+          Accuracy         : Train 0.8275, Val 0.8255, Test 0.8346
+Best:
+          Accuracy         : Train 0.8275, Val 0.8255, Test 0.8346
+Train:  20%|██        | 1/5 [00:00<00:01,  2.30it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.24it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.72it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.63it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 55: Loss:            : Train 0.3962, Val 0.3924, Test 0.3922
+          Accuracy         : Train 0.8295, Val 0.8277, Test 0.8370
+Best:
+          Accuracy         : Train 0.8295, Val 0.8277, Test 0.8370
+Train:  20%|██        | 1/5 [00:00<00:01,  2.47it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.31it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.59it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.03it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 56: Loss:            : Train 0.3906, Val 0.3893, Test 0.3889
+          Accuracy         : Train 0.8314, Val 0.8281, Test 0.8386
+Best:
+          Accuracy         : Train 0.8314, Val 0.8281, Test 0.8386
+Train:  20%|██        | 1/5 [00:00<00:02,  1.66it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.62it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 49.75it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.27it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 17.71it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 57: Loss:            : Train 0.3883, Val 0.3862, Test 0.3857
+          Accuracy         : Train 0.8324, Val 0.8329, Test 0.8401
+Best:
+          Accuracy         : Train 0.8324, Val 0.8329, Test 0.8401
+Train:  20%|██        | 1/5 [00:00<00:01,  2.06it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.66it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 77.95it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.20it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 58: Loss:            : Train 0.3857, Val 0.3832, Test 0.3826
+          Accuracy         : Train 0.8339, Val 0.8355, Test 0.8423
+Best:
+          Accuracy         : Train 0.8339, Val 0.8355, Test 0.8423
+Train:  20%|██        | 1/5 [00:00<00:01,  2.08it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.39it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 78.01it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.89it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 59: Loss:            : Train 0.3825, Val 0.3804, Test 0.3797
+          Accuracy         : Train 0.8359, Val 0.8359, Test 0.8438
+Best:
+          Accuracy         : Train 0.8359, Val 0.8359, Test 0.8438
+Train:  20%|██        | 1/5 [00:00<00:02,  1.73it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.47it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.38it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.65it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 60: Loss:            : Train 0.3799, Val 0.3777, Test 0.3767
+          Accuracy         : Train 0.8373, Val 0.8373, Test 0.8451
+Best:
+          Accuracy         : Train 0.8373, Val 0.8373, Test 0.8451
+Train:  20%|██        | 1/5 [00:00<00:02,  1.87it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.94it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.16it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.36it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 61: Loss:            : Train 0.3767, Val 0.3751, Test 0.3740
+          Accuracy         : Train 0.8386, Val 0.8388, Test 0.8461
+Best:
+          Accuracy         : Train 0.8386, Val 0.8388, Test 0.8461
+Train:  20%|██        | 1/5 [00:00<00:01,  2.16it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.36it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.23it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.56it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 62: Loss:            : Train 0.3735, Val 0.3726, Test 0.3713
+          Accuracy         : Train 0.8397, Val 0.8407, Test 0.8475
+Best:
+          Accuracy         : Train 0.8397, Val 0.8407, Test 0.8475
+Train:  20%|██        | 1/5 [00:00<00:01,  2.03it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.93it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 61.45it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 17.14it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 17.11it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 63: Loss:            : Train 0.3706, Val 0.3702, Test 0.3688
+          Accuracy         : Train 0.8423, Val 0.8422, Test 0.8488
+Best:
+          Accuracy         : Train 0.8423, Val 0.8422, Test 0.8488
+Train:  20%|██        | 1/5 [00:00<00:01,  2.18it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.27it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.10it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.23it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 64: Loss:            : Train 0.3689, Val 0.3680, Test 0.3664
+          Accuracy         : Train 0.8442, Val 0.8425, Test 0.8507
+Best:
+          Accuracy         : Train 0.8442, Val 0.8425, Test 0.8507
+Train:  20%|██        | 1/5 [00:00<00:02,  1.85it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.72it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 76.98it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.02it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 65: Loss:            : Train 0.3649, Val 0.3658, Test 0.3641
+          Accuracy         : Train 0.8456, Val 0.8440, Test 0.8501
+Best:
+          Accuracy         : Train 0.8456, Val 0.8440, Test 0.8501
+Train:  20%|██        | 1/5 [00:00<00:01,  2.01it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.06it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.40it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.14it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 66: Loss:            : Train 0.3628, Val 0.3638, Test 0.3620
+          Accuracy         : Train 0.8469, Val 0.8455, Test 0.8503
+Best:
+          Accuracy         : Train 0.8469, Val 0.8455, Test 0.8503
+Train:  20%|██        | 1/5 [00:00<00:02,  1.86it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.62it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 83.88it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.35it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 67: Loss:            : Train 0.3604, Val 0.3619, Test 0.3600
+          Accuracy         : Train 0.8482, Val 0.8477, Test 0.8518
+Best:
+          Accuracy         : Train 0.8482, Val 0.8477, Test 0.8518
+Train:  20%|██        | 1/5 [00:00<00:02,  1.97it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.52it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.31it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 85.21it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 68: Loss:            : Train 0.3576, Val 0.3602, Test 0.3582
+          Accuracy         : Train 0.8501, Val 0.8499, Test 0.8522
+Best:
+          Accuracy         : Train 0.8501, Val 0.8499, Test 0.8522
+Train:  20%|██        | 1/5 [00:00<00:02,  1.54it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.87it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 65.39it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.55it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 69: Loss:            : Train 0.3563, Val 0.3586, Test 0.3563
+          Accuracy         : Train 0.8505, Val 0.8514, Test 0.8524
+Best:
+          Accuracy         : Train 0.8505, Val 0.8514, Test 0.8524
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.50it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.82it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.52it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 70: Loss:            : Train 0.3546, Val 0.3570, Test 0.3547
+          Accuracy         : Train 0.8518, Val 0.8529, Test 0.8557
+Best:
+          Accuracy         : Train 0.8518, Val 0.8529, Test 0.8557
+Train:  20%|██        | 1/5 [00:00<00:01,  2.11it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.80it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.64it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.41it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 71: Loss:            : Train 0.3517, Val 0.3555, Test 0.3531
+          Accuracy         : Train 0.8531, Val 0.8525, Test 0.8557
+Best:
+          Accuracy         : Train 0.8518, Val 0.8529, Test 0.8557
+Train:  20%|██        | 1/5 [00:00<00:02,  1.74it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.54it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.00it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.27it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 72: Loss:            : Train 0.3496, Val 0.3541, Test 0.3516
+          Accuracy         : Train 0.8546, Val 0.8544, Test 0.8568
+Best:
+          Accuracy         : Train 0.8546, Val 0.8544, Test 0.8568
+Train:  20%|██        | 1/5 [00:00<00:01,  2.10it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.04it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.18it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 94.75it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 73: Loss:            : Train 0.3483, Val 0.3530, Test 0.3504
+          Accuracy         : Train 0.8558, Val 0.8555, Test 0.8572
+Best:
+          Accuracy         : Train 0.8558, Val 0.8555, Test 0.8572
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.55it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 54.55it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.67it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 74: Loss:            : Train 0.3464, Val 0.3518, Test 0.3490
+          Accuracy         : Train 0.8578, Val 0.8566, Test 0.8572
+Best:
+          Accuracy         : Train 0.8578, Val 0.8566, Test 0.8572
+Train:  20%|██        | 1/5 [00:00<00:02,  1.83it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.64it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 75.43it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.62it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.58it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 75: Loss:            : Train 0.3454, Val 0.3506, Test 0.3476
+          Accuracy         : Train 0.8583, Val 0.8562, Test 0.8579
+Best:
+          Accuracy         : Train 0.8578, Val 0.8566, Test 0.8572
+Train:  20%|██        | 1/5 [00:00<00:02,  1.72it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.99it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 48.95it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 63.19it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 76: Loss:            : Train 0.3442, Val 0.3495, Test 0.3466
+          Accuracy         : Train 0.8591, Val 0.8603, Test 0.8594
+Best:
+          Accuracy         : Train 0.8591, Val 0.8603, Test 0.8594
+Train:  20%|██        | 1/5 [00:00<00:02,  1.71it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.13it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 76.72it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.31it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 77: Loss:            : Train 0.3422, Val 0.3483, Test 0.3456
+          Accuracy         : Train 0.8601, Val 0.8611, Test 0.8592
+Best:
+          Accuracy         : Train 0.8601, Val 0.8611, Test 0.8592
+Train:  20%|██        | 1/5 [00:00<00:02,  1.73it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.52it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.50it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.83it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.65it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 78: Loss:            : Train 0.3416, Val 0.3474, Test 0.3444
+          Accuracy         : Train 0.8605, Val 0.8603, Test 0.8599
+Best:
+          Accuracy         : Train 0.8601, Val 0.8611, Test 0.8592
+Train:  20%|██        | 1/5 [00:00<00:01,  2.20it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.92it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 83.00it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.73it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 79: Loss:            : Train 0.3385, Val 0.3465, Test 0.3435
+          Accuracy         : Train 0.8607, Val 0.8618, Test 0.8618
+Best:
+          Accuracy         : Train 0.8607, Val 0.8618, Test 0.8618
+Train:  20%|██        | 1/5 [00:00<00:01,  2.13it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.42it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.26it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.37it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 80: Loss:            : Train 0.3367, Val 0.3457, Test 0.3426
+          Accuracy         : Train 0.8619, Val 0.8629, Test 0.8611
+Best:
+          Accuracy         : Train 0.8619, Val 0.8629, Test 0.8611
+Train:  20%|██        | 1/5 [00:00<00:02,  1.75it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.63it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.42it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.18it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 81: Loss:            : Train 0.3357, Val 0.3445, Test 0.3414
+          Accuracy         : Train 0.8623, Val 0.8618, Test 0.8624
+Best:
+          Accuracy         : Train 0.8619, Val 0.8629, Test 0.8611
+Train:  20%|██        | 1/5 [00:00<00:01,  2.19it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.56it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.63it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.68it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 82: Loss:            : Train 0.3348, Val 0.3435, Test 0.3406
+          Accuracy         : Train 0.8632, Val 0.8648, Test 0.8633
+Best:
+          Accuracy         : Train 0.8632, Val 0.8648, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.34it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.91it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.24it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 83: Loss:            : Train 0.3336, Val 0.3427, Test 0.3396
+          Accuracy         : Train 0.8646, Val 0.8644, Test 0.8635
+Best:
+          Accuracy         : Train 0.8632, Val 0.8648, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.59it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.16it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.24it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.87it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.69it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 84: Loss:            : Train 0.3331, Val 0.3416, Test 0.3387
+          Accuracy         : Train 0.8650, Val 0.8637, Test 0.8629
+Best:
+          Accuracy         : Train 0.8632, Val 0.8648, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.14it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.56it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.57it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.61it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 85: Loss:            : Train 0.3294, Val 0.3408, Test 0.3378
+          Accuracy         : Train 0.8656, Val 0.8640, Test 0.8631
+Best:
+          Accuracy         : Train 0.8632, Val 0.8648, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.84it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.79it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.45it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.54it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 86: Loss:            : Train 0.3293, Val 0.3398, Test 0.3367
+          Accuracy         : Train 0.8660, Val 0.8644, Test 0.8631
+Best:
+          Accuracy         : Train 0.8632, Val 0.8648, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.60it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.92it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 72.98it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.20it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.16it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 87: Loss:            : Train 0.3274, Val 0.3391, Test 0.3360
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.98it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.08it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.35it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.66it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 88: Loss:            : Train 0.3247, Val 0.3384, Test 0.3352
+          Accuracy         : Train 0.8681, Val 0.8651, Test 0.8644
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.01it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.18it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 93.09it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 89: Loss:            : Train 0.3257, Val 0.3376, Test 0.3344
+          Accuracy         : Train 0.8682, Val 0.8644, Test 0.8635
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.59it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.76it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.73it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.68it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.11it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 90: Loss:            : Train 0.3236, Val 0.3370, Test 0.3341
+          Accuracy         : Train 0.8692, Val 0.8651, Test 0.8646
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.05it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 79.52it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.08it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 91: Loss:            : Train 0.3209, Val 0.3356, Test 0.3328
+          Accuracy         : Train 0.8699, Val 0.8648, Test 0.8653
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.02it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.60it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 60.36it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 77.45it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 92: Loss:            : Train 0.3208, Val 0.3346, Test 0.3318
+          Accuracy         : Train 0.8703, Val 0.8651, Test 0.8651
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.56it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.85it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 60.32it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  8.59it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 16.31it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 93: Loss:            : Train 0.3192, Val 0.3342, Test 0.3312
+          Accuracy         : Train 0.8711, Val 0.8651, Test 0.8666
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.50it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.87it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 90.52it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.82it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 94: Loss:            : Train 0.3174, Val 0.3330, Test 0.3298
+          Accuracy         : Train 0.8719, Val 0.8651, Test 0.8661
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:01,  2.40it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.94it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.28it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.28it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 95: Loss:            : Train 0.3166, Val 0.3323, Test 0.3290
+          Accuracy         : Train 0.8716, Val 0.8648, Test 0.8674
+Best:
+          Accuracy         : Train 0.8669, Val 0.8659, Test 0.8633
+Train:  20%|██        | 1/5 [00:00<00:02,  1.97it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.90it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.63it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.90it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 96: Loss:            : Train 0.3145, Val 0.3317, Test 0.3284
+          Accuracy         : Train 0.8728, Val 0.8662, Test 0.8666
+Best:
+          Accuracy         : Train 0.8728, Val 0.8662, Test 0.8666
+Train:  20%|██        | 1/5 [00:00<00:01,  2.51it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.24it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 72.32it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.83it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 97: Loss:            : Train 0.3123, Val 0.3306, Test 0.3271
+          Accuracy         : Train 0.8727, Val 0.8648, Test 0.8685
+Best:
+          Accuracy         : Train 0.8728, Val 0.8662, Test 0.8666
+Train:  20%|██        | 1/5 [00:00<00:01,  2.26it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.11it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 77.52it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.88it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 98: Loss:            : Train 0.3128, Val 0.3299, Test 0.3265
+          Accuracy         : Train 0.8737, Val 0.8644, Test 0.8687
+Best:
+          Accuracy         : Train 0.8728, Val 0.8662, Test 0.8666
+Train:  20%|██        | 1/5 [00:00<00:02,  1.68it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.08it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 79.79it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.26it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.22it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 99: Loss:            : Train 0.3104, Val 0.3290, Test 0.3256
+          Accuracy         : Train 0.8744, Val 0.8655, Test 0.8690
+Best:
+          Accuracy         : Train 0.8728, Val 0.8662, Test 0.8666
+Train:  20%|██        | 1/5 [00:00<00:02,  1.76it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.39it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 66.51it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 55.86it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 100: Loss:            : Train 0.3068, Val 0.3279, Test 0.3247
+          Accuracy         : Train 0.8753, Val 0.8666, Test 0.8698
+Best:
+          Accuracy         : Train 0.8753, Val 0.8666, Test 0.8698
+Train:  20%|██        | 1/5 [00:00<00:01,  2.07it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.51it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.61it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.55it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 101: Loss:            : Train 0.3061, Val 0.3270, Test 0.3239
+          Accuracy         : Train 0.8752, Val 0.8662, Test 0.8688
+Best:
+          Accuracy         : Train 0.8753, Val 0.8666, Test 0.8698
+Train:  20%|██        | 1/5 [00:00<00:02,  1.75it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.55it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 61.00it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  8.72it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 16.27it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 102: Loss:            : Train 0.3050, Val 0.3263, Test 0.3229
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:01,  2.54it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.32it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.73it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.21it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 103: Loss:            : Train 0.3028, Val 0.3255, Test 0.3539
+          Accuracy         : Train 0.8769, Val 0.8655, Test 0.8696
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:01,  2.17it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.74it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.77it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 95.74it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 104: Loss:            : Train 0.3009, Val 0.3245, Test 0.3527
+          Accuracy         : Train 0.8785, Val 0.8662, Test 0.8703
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:02,  1.53it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.20it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.97it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.71it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 105: Loss:            : Train 0.2995, Val 0.3238, Test 0.3517
+          Accuracy         : Train 0.8786, Val 0.8670, Test 0.8698
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:02,  1.99it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.44it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 75.46it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.00it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 106: Loss:            : Train 0.2979, Val 0.3233, Test 0.3508
+          Accuracy         : Train 0.8793, Val 0.8666, Test 0.8707
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:01,  2.01it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.98it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.87it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.28it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 107: Loss:            : Train 0.2964, Val 0.3230, Test 0.3503
+          Accuracy         : Train 0.8801, Val 0.8674, Test 0.8700
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:01,  2.26it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.69it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.88it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 89.38it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 108: Loss:            : Train 0.2954, Val 0.3220, Test 0.3490
+          Accuracy         : Train 0.8803, Val 0.8659, Test 0.8711
+Best:
+          Accuracy         : Train 0.8762, Val 0.8674, Test 0.8692
+Train:  20%|██        | 1/5 [00:00<00:02,  1.97it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.53it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.07it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.27it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 109: Loss:            : Train 0.2934, Val 0.3214, Test 0.3482
+          Accuracy         : Train 0.8817, Val 0.8677, Test 0.8705
+Best:
+          Accuracy         : Train 0.8817, Val 0.8677, Test 0.8705
+Train:  20%|██        | 1/5 [00:00<00:01,  2.08it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.93it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.16it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.56it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 110: Loss:            : Train 0.2917, Val 0.3203, Test 0.3465
+          Accuracy         : Train 0.8818, Val 0.8681, Test 0.8711
+Best:
+          Accuracy         : Train 0.8818, Val 0.8681, Test 0.8711
+Train:  20%|██        | 1/5 [00:00<00:01,  2.04it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.13it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.80it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 90.67it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 111: Loss:            : Train 0.2904, Val 0.3195, Test 0.3454
+          Accuracy         : Train 0.8820, Val 0.8674, Test 0.8727
+Best:
+          Accuracy         : Train 0.8818, Val 0.8681, Test 0.8711
+Train:  20%|██        | 1/5 [00:00<00:02,  1.65it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.35it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.58it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.46it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 112: Loss:            : Train 0.2879, Val 0.3193, Test 0.3447
+          Accuracy         : Train 0.8827, Val 0.8700, Test 0.8727
+Best:
+          Accuracy         : Train 0.8827, Val 0.8700, Test 0.8727
+Train:  20%|██        | 1/5 [00:00<00:01,  2.09it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.60it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 64.04it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 106.32it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 113: Loss:            : Train 0.2880, Val 0.3181, Test 0.3433
+          Accuracy         : Train 0.8830, Val 0.8674, Test 0.8764
+Best:
+          Accuracy         : Train 0.8827, Val 0.8700, Test 0.8727
+Train:  20%|██        | 1/5 [00:00<00:01,  2.11it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.81it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.41it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 93.86it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 114: Loss:            : Train 0.2835, Val 0.3176, Test 0.3429
+          Accuracy         : Train 0.8848, Val 0.8711, Test 0.8753
+Best:
+          Accuracy         : Train 0.8848, Val 0.8711, Test 0.8753
+Train:  20%|██        | 1/5 [00:00<00:02,  1.57it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.21it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 10.50it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 94.71it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 115: Loss:            : Train 0.2845, Val 0.3169, Test 0.3417
+          Accuracy         : Train 0.8854, Val 0.8703, Test 0.8764
+Best:
+          Accuracy         : Train 0.8848, Val 0.8711, Test 0.8753
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.36it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.02it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.69it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 116: Loss:            : Train 0.2815, Val 0.3167, Test 0.3409
+          Accuracy         : Train 0.8862, Val 0.8714, Test 0.8777
+Best:
+          Accuracy         : Train 0.8862, Val 0.8714, Test 0.8777
+Train:  20%|██        | 1/5 [00:00<00:02,  1.89it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.13it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 46.75it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 58.26it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 117: Loss:            : Train 0.2787, Val 0.3163, Test 0.3397
+          Accuracy         : Train 0.8871, Val 0.8703, Test 0.8777
+Best:
+          Accuracy         : Train 0.8862, Val 0.8714, Test 0.8777
+Train:  20%|██        | 1/5 [00:00<00:02,  1.86it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.72it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.32it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.97it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.93it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 118: Loss:            : Train 0.2787, Val 0.3157, Test 0.3390
+          Accuracy         : Train 0.8872, Val 0.8725, Test 0.8766
+Best:
+          Accuracy         : Train 0.8872, Val 0.8725, Test 0.8766
+Train:  20%|██        | 1/5 [00:00<00:01,  2.36it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.86it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 76.64it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.32it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 119: Loss:            : Train 0.2764, Val 0.3151, Test 0.3380
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.53it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.41it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.00it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.09it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 120: Loss:            : Train 0.2750, Val 0.3147, Test 0.3373
+          Accuracy         : Train 0.8891, Val 0.8729, Test 0.8783
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.29it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.18it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.81it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 121: Loss:            : Train 0.2733, Val 0.3147, Test 0.3368
+          Accuracy         : Train 0.8905, Val 0.8714, Test 0.8794
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.38it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.44it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.73it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.88it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 122: Loss:            : Train 0.2722, Val 0.3137, Test 0.3355
+          Accuracy         : Train 0.8905, Val 0.8718, Test 0.8798
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.00it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.98it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.48it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.01it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 123: Loss:            : Train 0.2706, Val 0.3135, Test 0.3350
+          Accuracy         : Train 0.8917, Val 0.8722, Test 0.8809
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:02,  1.73it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.41it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.28it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.70it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 124: Loss:            : Train 0.2688, Val 0.3131, Test 0.3339
+          Accuracy         : Train 0.8920, Val 0.8722, Test 0.8820
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.22it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.57it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.88it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.54it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 125: Loss:            : Train 0.2685, Val 0.3138, Test 0.3336
+          Accuracy         : Train 0.8931, Val 0.8711, Test 0.8809
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.01it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.51it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.65it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.36it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 126: Loss:            : Train 0.2653, Val 0.3135, Test 0.3323
+          Accuracy         : Train 0.8944, Val 0.8722, Test 0.8818
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:02,  1.75it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.46it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.68it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.82it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 127: Loss:            : Train 0.2646, Val 0.3131, Test 0.3314
+          Accuracy         : Train 0.8949, Val 0.8714, Test 0.8824
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:02,  1.94it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.84it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 90.42it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.84it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 128: Loss:            : Train 0.2625, Val 0.3129, Test 0.3310
+          Accuracy         : Train 0.8961, Val 0.8722, Test 0.8822
+Best:
+          Accuracy         : Train 0.8889, Val 0.8729, Test 0.8772
+Train:  20%|██        | 1/5 [00:00<00:01,  2.15it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.95it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.61it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.31it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 129: Loss:            : Train 0.2609, Val 0.3121, Test 0.3305
+          Accuracy         : Train 0.8958, Val 0.8737, Test 0.8835
+Best:
+          Accuracy         : Train 0.8958, Val 0.8737, Test 0.8835
+Train:  20%|██        | 1/5 [00:00<00:02,  1.87it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.47it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  9.61it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  9.59it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 95.99it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 130: Loss:            : Train 0.2593, Val 0.3123, Test 0.3303
+          Accuracy         : Train 0.8971, Val 0.8740, Test 0.8825
+Best:
+          Accuracy         : Train 0.8971, Val 0.8740, Test 0.8825
+Train:  20%|██        | 1/5 [00:00<00:02,  1.78it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.48it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.52it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.90it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 131: Loss:            : Train 0.2589, Val 0.3124, Test 0.3294
+          Accuracy         : Train 0.8980, Val 0.8744, Test 0.8846
+Best:
+          Accuracy         : Train 0.8980, Val 0.8744, Test 0.8846
+Train:  20%|██        | 1/5 [00:00<00:01,  2.07it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.31it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.73it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 92.65it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 132: Loss:            : Train 0.2565, Val 0.3123, Test 0.3289
+          Accuracy         : Train 0.8984, Val 0.8748, Test 0.8835
+Best:
+          Accuracy         : Train 0.8984, Val 0.8748, Test 0.8835
+Train:  20%|██        | 1/5 [00:00<00:02,  1.84it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.77it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.00it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.44it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 133: Loss:            : Train 0.2560, Val 0.3108, Test 0.3274
+          Accuracy         : Train 0.8991, Val 0.8759, Test 0.8866
+Best:
+          Accuracy         : Train 0.8991, Val 0.8759, Test 0.8866
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.12it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.03it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.79it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 134: Loss:            : Train 0.2544, Val 0.3117, Test 0.3272
+          Accuracy         : Train 0.8999, Val 0.8777, Test 0.8855
+Best:
+          Accuracy         : Train 0.8999, Val 0.8777, Test 0.8855
+Train:  20%|██        | 1/5 [00:00<00:01,  2.10it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.19it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.25it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 103.06it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 135: Loss:            : Train 0.2531, Val 0.3113, Test 0.3266
+          Accuracy         : Train 0.9008, Val 0.8759, Test 0.8861
+Best:
+          Accuracy         : Train 0.8999, Val 0.8777, Test 0.8855
+Train:  20%|██        | 1/5 [00:00<00:02,  1.81it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.66it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 79.43it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  8.42it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 16.06it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 136: Loss:            : Train 0.2493, Val 0.3120, Test 0.3267
+          Accuracy         : Train 0.9013, Val 0.8777, Test 0.8879
+Best:
+          Accuracy         : Train 0.8999, Val 0.8777, Test 0.8855
+Train:  20%|██        | 1/5 [00:00<00:01,  2.02it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.84it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.75it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.64it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 137: Loss:            : Train 0.2532, Val 0.3109, Test 0.3255
+          Accuracy         : Train 0.9028, Val 0.8759, Test 0.8881
+Best:
+          Accuracy         : Train 0.8999, Val 0.8777, Test 0.8855
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.00it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.21it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.69it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 138: Loss:            : Train 0.2490, Val 0.3114, Test 0.3251
+          Accuracy         : Train 0.9021, Val 0.8763, Test 0.8872
+Best:
+          Accuracy         : Train 0.8999, Val 0.8777, Test 0.8855
+Train:  20%|██        | 1/5 [00:00<00:02,  1.73it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.24it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.64it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.65it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.39it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 139: Loss:            : Train 0.2473, Val 0.3093, Test 0.3235
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Best:
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Train:  20%|██        | 1/5 [00:00<00:01,  2.38it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.74it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.06it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.76it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 140: Loss:            : Train 0.2458, Val 0.3107, Test 0.3241
+          Accuracy         : Train 0.9043, Val 0.8774, Test 0.8887
+Best:
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Train:  20%|██        | 1/5 [00:00<00:01,  2.12it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.74it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.06it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.90it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 141: Loss:            : Train 0.2459, Val 0.3095, Test 0.3232
+          Accuracy         : Train 0.9066, Val 0.8774, Test 0.8907
+Best:
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Train:  20%|██        | 1/5 [00:00<00:02,  1.91it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.57it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.64it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.62it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.66it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 142: Loss:            : Train 0.2439, Val 0.3093, Test 0.3229
+          Accuracy         : Train 0.9044, Val 0.8770, Test 0.8914
+Best:
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Train:  20%|██        | 1/5 [00:00<00:02,  1.89it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.79it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.81it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.09it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 143: Loss:            : Train 0.2432, Val 0.3094, Test 0.3221
+          Accuracy         : Train 0.9051, Val 0.8763, Test 0.8905
+Best:
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.22it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 77.89it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 91.41it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 144: Loss:            : Train 0.2413, Val 0.3094, Test 0.3220
+          Accuracy         : Train 0.9069, Val 0.8763, Test 0.8913
+Best:
+          Accuracy         : Train 0.9046, Val 0.8781, Test 0.8883
+Train:  20%|██        | 1/5 [00:00<00:02,  1.55it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.60it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  6.86it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  6.85it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 90.95it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 145: Loss:            : Train 0.2435, Val 0.3082, Test 0.3212
+          Accuracy         : Train 0.9080, Val 0.8785, Test 0.8927
+Best:
+          Accuracy         : Train 0.9080, Val 0.8785, Test 0.8927
+Train:  20%|██        | 1/5 [00:00<00:02,  1.96it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.72it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 76.03it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.67it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 146: Loss:            : Train 0.2386, Val 0.3079, Test 0.3211
+          Accuracy         : Train 0.9083, Val 0.8777, Test 0.8913
+Best:
+          Accuracy         : Train 0.9080, Val 0.8785, Test 0.8927
+Train:  20%|██        | 1/5 [00:00<00:01,  2.07it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.10it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 83.41it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.61it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 147: Loss:            : Train 0.2380, Val 0.3081, Test 0.3207
+          Accuracy         : Train 0.9085, Val 0.8788, Test 0.8927
+Best:
+          Accuracy         : Train 0.9085, Val 0.8788, Test 0.8927
+Train:  20%|██        | 1/5 [00:00<00:02,  1.89it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.74it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 79.53it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.80it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.76it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 148: Loss:            : Train 0.2352, Val 0.3080, Test 0.3199
+          Accuracy         : Train 0.9091, Val 0.8792, Test 0.8935
+Best:
+          Accuracy         : Train 0.9091, Val 0.8792, Test 0.8935
+Train:  20%|██        | 1/5 [00:00<00:01,  2.45it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.77it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 58.31it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 94.21it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 149: Loss:            : Train 0.2356, Val 0.3078, Test 0.3295
+          Accuracy         : Train 0.9093, Val 0.8792, Test 0.8942
+Best:
+          Accuracy         : Train 0.9091, Val 0.8792, Test 0.8935
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.63it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.48it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.81it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 150: Loss:            : Train 0.2333, Val 0.3081, Test 0.3286
+          Accuracy         : Train 0.9099, Val 0.8800, Test 0.8942
+Best:
+          Accuracy         : Train 0.9099, Val 0.8800, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.94it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.98it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 90.78it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.35it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 151: Loss:            : Train 0.2317, Val 0.3078, Test 0.3293
+          Accuracy         : Train 0.9110, Val 0.8796, Test 0.8938
+Best:
+          Accuracy         : Train 0.9099, Val 0.8800, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:01,  2.41it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.02it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 79.76it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.46it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 152: Loss:            : Train 0.2313, Val 0.3065, Test 0.3281
+          Accuracy         : Train 0.9115, Val 0.8800, Test 0.8948
+Best:
+          Accuracy         : Train 0.9099, Val 0.8800, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.99it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.91it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.04it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 153: Loss:            : Train 0.2300, Val 0.3063, Test 0.3283
+          Accuracy         : Train 0.9114, Val 0.8800, Test 0.8940
+Best:
+          Accuracy         : Train 0.9099, Val 0.8800, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.90it/s]Train:  80%|████████  | 4/5 [00:00<00:00,  7.78it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.29it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.51it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.39it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 19.35it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 154: Loss:            : Train 0.2294, Val 0.3065, Test 0.3278
+          Accuracy         : Train 0.9125, Val 0.8803, Test 0.8940
+Best:
+          Accuracy         : Train 0.9125, Val 0.8803, Test 0.8940
+Train:  20%|██        | 1/5 [00:00<00:02,  1.85it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.25it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.32it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.85it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 155: Loss:            : Train 0.2271, Val 0.3054, Test 0.3267
+          Accuracy         : Train 0.9132, Val 0.8803, Test 0.8959
+Best:
+          Accuracy         : Train 0.9125, Val 0.8803, Test 0.8940
+Train:  20%|██        | 1/5 [00:00<00:01,  2.09it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.72it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 83.91it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 156: Loss:            : Train 0.2257, Val 0.3057, Test 0.3272
+          Accuracy         : Train 0.9140, Val 0.8811, Test 0.8927
+Best:
+          Accuracy         : Train 0.9140, Val 0.8811, Test 0.8927
+Train:  20%|██        | 1/5 [00:00<00:02,  1.61it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.85it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.22it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 157: Loss:            : Train 0.2243, Val 0.3052, Test 0.3266
+          Accuracy         : Train 0.9144, Val 0.8825, Test 0.8946
+Best:
+          Accuracy         : Train 0.9144, Val 0.8825, Test 0.8946
+Train:  20%|██        | 1/5 [00:00<00:01,  2.06it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.50it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 79.29it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.52it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 158: Loss:            : Train 0.2248, Val 0.3058, Test 0.3266
+          Accuracy         : Train 0.9152, Val 0.8825, Test 0.8938
+Best:
+          Accuracy         : Train 0.9144, Val 0.8825, Test 0.8946
+Train:  20%|██        | 1/5 [00:00<00:01,  2.06it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.76it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.35it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.02it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 159: Loss:            : Train 0.2223, Val 0.3364, Test 0.3263
+          Accuracy         : Train 0.9152, Val 0.8844, Test 0.8937
+Best:
+          Accuracy         : Train 0.9152, Val 0.8844, Test 0.8937
+Train:  20%|██        | 1/5 [00:00<00:02,  1.74it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  9.30it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.93it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  9.93it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  9.91it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.98it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 160: Loss:            : Train 0.2206, Val 0.3351, Test 0.3253
+          Accuracy         : Train 0.9162, Val 0.8837, Test 0.8955
+Best:
+          Accuracy         : Train 0.9152, Val 0.8844, Test 0.8937
+Train:  20%|██        | 1/5 [00:00<00:01,  2.13it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.66it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.24it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 95.42it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 161: Loss:            : Train 0.2196, Val 0.3359, Test 0.3255
+          Accuracy         : Train 0.9166, Val 0.8837, Test 0.8935
+Best:
+          Accuracy         : Train 0.9152, Val 0.8844, Test 0.8937
+Train:  20%|██        | 1/5 [00:00<00:01,  2.02it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.57it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 63.89it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 74.44it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 162: Loss:            : Train 0.2182, Val 0.3349, Test 0.3251
+          Accuracy         : Train 0.9170, Val 0.8837, Test 0.8953
+Best:
+          Accuracy         : Train 0.9152, Val 0.8844, Test 0.8937
+Train:  20%|██        | 1/5 [00:00<00:02,  1.72it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.40it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.50it/s]Val: 100%|██████████| 1/1 [00:00<00:00,  8.48it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.95it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 163: Loss:            : Train 0.2188, Val 0.3359, Test 0.3252
+          Accuracy         : Train 0.9176, Val 0.8825, Test 0.8951
+Best:
+          Accuracy         : Train 0.9152, Val 0.8844, Test 0.8937
+Train:  20%|██        | 1/5 [00:00<00:01,  2.15it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.10it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.75it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 106.36it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 164: Loss:            : Train 0.2158, Val 0.3337, Test 0.3246
+          Accuracy         : Train 0.9174, Val 0.8848, Test 0.8951
+Best:
+          Accuracy         : Train 0.9174, Val 0.8848, Test 0.8951
+Train:  20%|██        | 1/5 [00:00<00:01,  2.42it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.28it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.63it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.19it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 165: Loss:            : Train 0.2142, Val 0.3339, Test 0.3245
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.71it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.95it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 64.46it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.63it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.29it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 166: Loss:            : Train 0.2130, Val 0.3345, Test 0.3250
+          Accuracy         : Train 0.9187, Val 0.8855, Test 0.8957
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.84it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.47it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.83it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.93it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 167: Loss:            : Train 0.2129, Val 0.3345, Test 0.3252
+          Accuracy         : Train 0.9191, Val 0.8848, Test 0.8951
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.81it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.21it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 93.13it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.98it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 168: Loss:            : Train 0.2105, Val 0.3321, Test 0.3240
+          Accuracy         : Train 0.9202, Val 0.8859, Test 0.8944
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.53it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.09it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.22it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.96it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 169: Loss:            : Train 0.2100, Val 0.3337, Test 0.3250
+          Accuracy         : Train 0.9207, Val 0.8855, Test 0.8940
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:01,  2.39it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.43it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.34it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.33it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 170: Loss:            : Train 0.2075, Val 0.3333, Test 0.3246
+          Accuracy         : Train 0.9204, Val 0.8848, Test 0.8966
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.91it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.85it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.74it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 102.94it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 171: Loss:            : Train 0.2081, Val 0.3348, Test 0.3252
+          Accuracy         : Train 0.9213, Val 0.8859, Test 0.8933
+Best:
+          Accuracy         : Train 0.9181, Val 0.8866, Test 0.8942
+Train:  20%|██        | 1/5 [00:00<00:02,  1.81it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.35it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.71it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  7.48it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 14.39it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 172: Loss:            : Train 0.2071, Val 0.3317, Test 0.3231
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Best:
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Train:  20%|██        | 1/5 [00:00<00:02,  2.00it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.28it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.03it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.72it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 173: Loss:            : Train 0.2053, Val 0.3323, Test 0.3242
+          Accuracy         : Train 0.9229, Val 0.8866, Test 0.8951
+Best:
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Train:  20%|██        | 1/5 [00:00<00:01,  2.24it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.59it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.84it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 91.97it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 174: Loss:            : Train 0.2046, Val 0.3316, Test 0.3240
+          Accuracy         : Train 0.9231, Val 0.8859, Test 0.8955
+Best:
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Train:  20%|██        | 1/5 [00:00<00:02,  1.95it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.15it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 78.57it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.91it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.89it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 175: Loss:            : Train 0.2029, Val 0.3326, Test 0.3252
+          Accuracy         : Train 0.9229, Val 0.8851, Test 0.8940
+Best:
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Train:  20%|██        | 1/5 [00:00<00:02,  1.86it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.29it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.94it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 101.05it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 176: Loss:            : Train 0.2016, Val 0.3323, Test 0.3243
+          Accuracy         : Train 0.9242, Val 0.8844, Test 0.8964
+Best:
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Train:  20%|██        | 1/5 [00:00<00:02,  1.84it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.21it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 91.38it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.21it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 177: Loss:            : Train 0.2020, Val 0.3321, Test 0.3246
+          Accuracy         : Train 0.9246, Val 0.8859, Test 0.8961
+Best:
+          Accuracy         : Train 0.9219, Val 0.8870, Test 0.8964
+Train:  20%|██        | 1/5 [00:00<00:02,  1.72it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.12it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 10.88it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.10it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 178: Loss:            : Train 0.1999, Val 0.3299, Test 0.3236
+          Accuracy         : Train 0.9259, Val 0.8874, Test 0.8968
+Best:
+          Accuracy         : Train 0.9259, Val 0.8874, Test 0.8968
+Train:  20%|██        | 1/5 [00:00<00:01,  2.06it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.63it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 75.25it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 93.18it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 179: Loss:            : Train 0.1976, Val 0.3307, Test 0.3246
+          Accuracy         : Train 0.9251, Val 0.8844, Test 0.8946
+Best:
+          Accuracy         : Train 0.9259, Val 0.8874, Test 0.8968
+Train:  20%|██        | 1/5 [00:00<00:02,  1.81it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.40it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 78.11it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 93.78it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 180: Loss:            : Train 0.1969, Val 0.3316, Test 0.3248
+          Accuracy         : Train 0.9258, Val 0.8874, Test 0.8950
+Best:
+          Accuracy         : Train 0.9259, Val 0.8874, Test 0.8968
+Train:  20%|██        | 1/5 [00:00<00:02,  1.76it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.31it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 10.93it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.23it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 181: Loss:            : Train 0.1967, Val 0.3296, Test 0.3240
+          Accuracy         : Train 0.9274, Val 0.8885, Test 0.8963
+Best:
+          Accuracy         : Train 0.9274, Val 0.8885, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:01,  2.07it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.15it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 90.45it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.65it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 182: Loss:            : Train 0.1955, Val 0.3293, Test 0.3242
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:01,  2.04it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.30it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.32it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.47it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 183: Loss:            : Train 0.1939, Val 0.3302, Test 0.3256
+          Accuracy         : Train 0.9273, Val 0.8866, Test 0.8968
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.41it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.46it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 84.84it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.45it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 184: Loss:            : Train 0.1930, Val 0.3302, Test 0.3245
+          Accuracy         : Train 0.9273, Val 0.8877, Test 0.8972
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:01,  2.32it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.38it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 74.68it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 95.34it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 185: Loss:            : Train 0.1922, Val 0.3300, Test 0.3248
+          Accuracy         : Train 0.9287, Val 0.8866, Test 0.8976
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:01,  2.05it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.56it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.69it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 100.03it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 186: Loss:            : Train 0.1910, Val 0.3304, Test 0.2925
+          Accuracy         : Train 0.9292, Val 0.8863, Test 0.8959
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.71it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.01it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 89.55it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 20.39it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 187: Loss:            : Train 0.1891, Val 0.3295, Test 0.2927
+          Accuracy         : Train 0.9302, Val 0.8870, Test 0.8968
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.91it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.87it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.81it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.04it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 188: Loss:            : Train 0.1897, Val 0.3324, Test 0.2949
+          Accuracy         : Train 0.9291, Val 0.8855, Test 0.8964
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.72it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.69it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 82.49it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 104.54it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 189: Loss:            : Train 0.1878, Val 0.3293, Test 0.2937
+          Accuracy         : Train 0.9301, Val 0.8877, Test 0.8968
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.70it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.50it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.54it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 21.25it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 190: Loss:            : Train 0.1869, Val 0.3284, Test 0.2933
+          Accuracy         : Train 0.9312, Val 0.8874, Test 0.8979
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.65it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  5.66it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 92.93it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.96it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 191: Loss:            : Train 0.1845, Val 0.3303, Test 0.2938
+          Accuracy         : Train 0.9303, Val 0.8866, Test 0.8963
+Best:
+          Accuracy         : Train 0.9272, Val 0.8888, Test 0.8963
+Train:  20%|██        | 1/5 [00:00<00:02,  1.92it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.13it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.36it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.54it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 192: Loss:            : Train 0.1839, Val 0.3284, Test 0.2945
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:02,  1.67it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.30it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 85.09it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test:  50%|█████     | 1/2 [00:00<00:00,  9.69it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 18.47it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 193: Loss:            : Train 0.1842, Val 0.3300, Test 0.2943
+          Accuracy         : Train 0.9320, Val 0.8881, Test 0.8964
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:01,  2.55it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.81it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 87.06it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 96.76it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 194: Loss:            : Train 0.1819, Val 0.3305, Test 0.2932
+          Accuracy         : Train 0.9325, Val 0.8870, Test 0.8972
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:01,  2.15it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.34it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 81.05it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 98.00it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 195: Loss:            : Train 0.1823, Val 0.3302, Test 0.2931
+          Accuracy         : Train 0.9332, Val 0.8885, Test 0.8990
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:02,  1.76it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.80it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.43it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 97.71it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 196: Loss:            : Train 0.1809, Val 0.3305, Test 0.2946
+          Accuracy         : Train 0.9331, Val 0.8877, Test 0.8976
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:01,  2.34it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.19it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 86.89it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.68it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 197: Loss:            : Train 0.1787, Val 0.3299, Test 0.2951
+          Accuracy         : Train 0.9328, Val 0.8888, Test 0.8964
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:01,  2.27it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  8.03it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 80.68it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 94.27it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 198: Loss:            : Train 0.1797, Val 0.3296, Test 0.2947
+          Accuracy         : Train 0.9340, Val 0.8885, Test 0.8981
+Best:
+          Accuracy         : Train 0.9325, Val 0.8907, Test 0.8976
+Train:  20%|██        | 1/5 [00:00<00:02,  1.99it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  6.84it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 11.14it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 99.17it/s]
+Train:   0%|          | 0/5 [00:00<?, ?it/s]Epoch 199: Loss:            : Train 0.1770, Val 0.3289, Test 0.2941
+          Accuracy         : Train 0.9350, Val 0.8918, Test 0.8970
+Best:
+          Accuracy         : Train 0.9350, Val 0.8918, Test 0.8970
+Train:  20%|██        | 1/5 [00:00<00:01,  2.13it/s]Train: 100%|██████████| 5/5 [00:00<00:00,  7.44it/s]
+Val:   0%|          | 0/1 [00:00<?, ?it/s]Val: 100%|██████████| 1/1 [00:00<00:00, 88.23it/s]
+Test:   0%|          | 0/2 [00:00<?, ?it/s]Test: 100%|██████████| 2/2 [00:00<00:00, 105.68it/s]
+Epoch 200: Loss:            : Train 0.1775, Val 0.3335, Test 0.2957
+          Accuracy         : Train 0.9325, Val 0.8863, Test 0.8970
+Best:
+          Accuracy         : Train 0.9350, Val 0.8918, Test 0.8970
+Training time (sec): 159

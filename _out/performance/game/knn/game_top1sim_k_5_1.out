@@ -1,0 +1,956 @@
+Loading rawg from data/game/rawg_clean.csv
+Loading steam from data/game/steam_clean.csv
+Current steam columns Index(['english', 'required_age', 'achievements', 'positive_ratings',
+       'negative_ratings', 'average_playtime', 'median_playtime', 'price',
+       'cat_Captions available', 'cat_Co-op', 'cat_Commentary available',
+       'cat_Cross-Platform Multiplayer', 'cat_Full controller support',
+       'cat_In-App Purchases', 'cat_Includes Source SDK',
+       'cat_Includes level editor', 'cat_Local Co-op',
+       'cat_Local Multi-Player', 'cat_MMO', 'cat_Mods',
+       'cat_Mods (require HL2)', 'cat_Multi-player', 'cat_Online Co-op',
+       'cat_Online Multi-Player', 'cat_Partial Controller Support',
+       'cat_Shared/Split Screen', 'cat_Single-player', 'cat_Stats',
+       'cat_Steam Achievements', 'cat_Steam Cloud', 'cat_Steam Leaderboards',
+       'cat_Steam Trading Cards', 'cat_Steam Turn Notifications',
+       'cat_Steam Workshop', 'cat_SteamVR Collectibles', 'cat_VR Support',
+       'cat_Valve Anti-Cheat enabled', 'name'],
+      dtype='object')
+Current rawg columns Index(['name', 'rating', 'playtime', 'achievements_count', 'suggestions_count',
+       'game_series_count', 'reviews_count', 'added_status_yet',
+       'added_status_owned', 'added_status_beaten', 'added_status_toplay',
+       'added_status_dropped', 'added_status_playing', 'has_website',
+       'released_year_before_2020', 'updated_year_before_2020', '3DO',
+       'Android', 'Apple II', 'Atari 2600', 'Atari 5200', 'Atari 7800',
+       'Atari 8-bit', 'Atari Flashback', 'Atari Lynx', 'Atari ST',
+       'Atari XEGS', 'Classic Macintosh', 'Commodore / Amiga', 'Dreamcast',
+       'Game Boy', 'Game Boy Advance', 'Game Boy Color', 'Game Gear',
+       'GameCube', 'Genesis', 'Jaguar', 'Linux', 'NES', 'Neo Geo',
+       'Nintendo 3DS', 'Nintendo 64', 'Nintendo DS', 'Nintendo DSi',
+       'Nintendo Switch', 'PC', 'PS Vita', 'PSP', 'PlayStation',
+       'PlayStation 2', 'PlayStation 3', 'PlayStation 4', 'PlayStation 5',
+       'SEGA 32X', 'SEGA CD', 'SEGA Master System', 'SEGA Saturn', 'SNES',
+       'Web', 'Wii', 'Wii U', 'Xbox', 'Xbox 360', 'Xbox One',
+       'Xbox Series S/X', 'iOS', 'macOS', 'Action', 'Adventure', 'Arcade',
+       'Board Games', 'Card', 'Casual', 'Educational', 'Family', 'Fighting',
+       'Indie', 'Massively Multiplayer', 'Platformer', 'Puzzle', 'RPG',
+       'Racing', 'Shooter', 'Simulation', 'Sports', 'Strategy'],
+      dtype='object')
+Loading data from cache
+Done
+Calculating noise scale
+Adding noise of scale 0.0 to sim_scores
+Adding noise of scale 0.0 to sim_scores
+Adding noise of scale 0.0 to sim_scores
+Filter dataset to top 5
+Generating top 5 dataset
+Generating top 5 dataset
+Generating top 5 dataset
+Generating top1 dataset
+Generating top1 dataset
+Generating top1 dataset
+Preparing time (sec): 2
+Loading data
+Prepare for training
+Start training
+================================================================================
+                                    Kernel Shape Output Shape  Params  \
+Layer                                                                   
+0_local_models.0.fc_layers.Linear_0    [37, 100]  [4096, 100]    3800   
+1_local_models.0.fc_layers.Linear_1    [100, 50]   [4096, 50]    5050   
+2_local_models.1.fc_layers.Linear_0    [85, 100]  [4096, 100]    8600   
+3_local_models.1.fc_layers.Linear_1    [100, 50]   [4096, 50]    5050   
+4_agg_model.fc_layers.Linear_0        [100, 400]  [4096, 400]   40400   
+5_agg_model.fc_layers.Linear_1          [400, 1]    [4096, 1]     401   
+
+                                     Mult-Adds  
+Layer                                           
+0_local_models.0.fc_layers.Linear_0       3700  
+1_local_models.0.fc_layers.Linear_1       5000  
+2_local_models.1.fc_layers.Linear_0       8500  
+3_local_models.1.fc_layers.Linear_1       5000  
+4_agg_model.fc_layers.Linear_0           40000  
+5_agg_model.fc_layers.Linear_1             400  
+--------------------------------------------------------------------------------
+                      Totals
+Total params           63301
+Trainable params       63301
+Non-trainable params       0
+Mult-Adds              62600
+================================================================================
+n_classes=2
+task=binary_cls
+model_name=game_top1sim_2022-01-27-05-07-12
+sche_threshold=0.0001
+sche_patience=10
+sche_factor=0.1
+use_scheduler=False
+num_workers=4
+device=cuda:3
+test_batch_size=4096
+train_batch_size=4096
+learning_rate=0.001
+weight_decay=1e-05
+num_epochs=200
+model_save_path=ckp/game_top1sim_2022-01-27-05-07-12.pth
+test_rate=0.2
+val_rate=0.1
+multiprocess_context=fork
+metrics=['accuracy']
+metrics_f=[<metric.accuracy.Accuracy object at 0x7fdf0a2697f0>]
+hidden_sizes=[200, 100]
+model=SplitNN(
+  (agg_model): MLP(
+    (fc_layers): ModuleList(
+      (0): Linear(in_features=100, out_features=400, bias=True)
+      (1): Linear(in_features=400, out_features=1, bias=True)
+    )
+  )
+  (local_models): ModuleList(
+    (0): MLP(
+      (fc_layers): ModuleList(
+        (0): Linear(in_features=37, out_features=100, bias=True)
+        (1): Linear(in_features=100, out_features=50, bias=True)
+      )
+    )
+    (1): MLP(
+      (fc_layers): ModuleList(
+        (0): Linear(in_features=85, out_features=100, bias=True)
+        (1): Linear(in_features=100, out_features=50, bias=True)
+      )
+    )
+  )
+)
+writer=<torch.utils.tensorboard.writer.SummaryWriter object at 0x7fdf0a269cd0>
+dataset_type=real
+drop_key=True
+num_common_features=1
+tree_radius=0.01
+tree_leaf_size=1000
+knn_k=5
+grid_min=-10.0
+grid_max=10.0
+grid_width=1.5
+sim_scaler=StandardScaler()
+filter_top_k=5
+link_n_jobs=1
+psig_p=4
+sim_leak_p=1.0
+link_threshold_t=0.1
+link_epsilon=0.1
+n_hash_lsh=50
+edit_distance_threshold=10
+n_hash_func=50
+collision_rate=0.01
+qgram_q=4
+link_delta=0.01
+feature_wise_sim=False
+blocking_method=knn_str
+center_threshold=0.5
+n_clusters=100
+local_hidden_sizes=[[100], [100]]
+cut_dims=[50, 50]
+agg_hidden_sizes=[400]
+scale_analysis=None
+data1_shape=(26987, 38)
+data2_shape=(439999, 86)
+Epoch 1: Loss:            : Train 0.0000, Val 4.5596, Test 3.4968
+          Accuracy         : Train 0.2395, Val 0.3920, Test 0.4050
+Best:
+          Accuracy         : Train 0.2395, Val 0.3920, Test 0.4050
+Epoch 2: Loss:            : Train 0.0000, Val 2.3140, Test 1.9500
+          Accuracy         : Train 0.5948, Val 0.7551, Test 0.7581
+Best:
+          Accuracy         : Train 0.5948, Val 0.7551, Test 0.7581
+Epoch 3: Loss:            : Train 0.0000, Val 0.5533, Test 0.5740
+          Accuracy         : Train 0.8078, Val 0.8637, Test 0.8662
+Best:
+          Accuracy         : Train 0.8078, Val 0.8637, Test 0.8662
+Epoch 4: Loss:            : Train 0.0000, Val 0.4923, Test 0.4578
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Best:
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Epoch 5: Loss:            : Train 0.0000, Val 0.4623, Test 0.4022
+          Accuracy         : Train 0.8718, Val 0.8655, Test 0.8700
+Best:
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Epoch 6: Loss:            : Train 0.0000, Val 0.4570, Test 0.3753
+          Accuracy         : Train 0.8718, Val 0.8622, Test 0.8703
+Best:
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Epoch 7: Loss:            : Train 0.0000, Val 0.4474, Test 0.3602
+          Accuracy         : Train 0.8704, Val 0.8666, Test 0.8668
+Best:
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Epoch 8: Loss:            : Train 0.0000, Val 0.4142, Test 0.3527
+          Accuracy         : Train 0.8700, Val 0.8655, Test 0.8679
+Best:
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Epoch 9: Loss:            : Train 0.0000, Val 0.4301, Test 0.3658
+          Accuracy         : Train 0.8703, Val 0.8637, Test 0.8666
+Best:
+          Accuracy         : Train 0.8692, Val 0.8666, Test 0.8698
+Epoch 10: Loss:            : Train 0.0000, Val 0.4115, Test 0.3501
+          Accuracy         : Train 0.8716, Val 0.8707, Test 0.8740
+Best:
+          Accuracy         : Train 0.8716, Val 0.8707, Test 0.8740
+Epoch 11: Loss:            : Train 0.0000, Val 0.4167, Test 0.3398
+          Accuracy         : Train 0.8780, Val 0.8766, Test 0.8788
+Best:
+          Accuracy         : Train 0.8780, Val 0.8766, Test 0.8788
+Epoch 12: Loss:            : Train 0.0000, Val 0.4077, Test 0.3290
+          Accuracy         : Train 0.8826, Val 0.8811, Test 0.8814
+Best:
+          Accuracy         : Train 0.8826, Val 0.8811, Test 0.8814
+Epoch 13: Loss:            : Train 0.0000, Val 0.3895, Test 0.3208
+          Accuracy         : Train 0.8844, Val 0.8848, Test 0.8840
+Best:
+          Accuracy         : Train 0.8844, Val 0.8848, Test 0.8840
+Epoch 14: Loss:            : Train 0.0000, Val 0.3502, Test 0.3141
+          Accuracy         : Train 0.8843, Val 0.8870, Test 0.8842
+Best:
+          Accuracy         : Train 0.8843, Val 0.8870, Test 0.8842
+Epoch 15: Loss:            : Train 0.0000, Val 0.3363, Test 0.3099
+          Accuracy         : Train 0.8842, Val 0.8866, Test 0.8863
+Best:
+          Accuracy         : Train 0.8843, Val 0.8870, Test 0.8842
+Epoch 16: Loss:            : Train 0.0000, Val 0.3396, Test 0.3036
+          Accuracy         : Train 0.8887, Val 0.8877, Test 0.8898
+Best:
+          Accuracy         : Train 0.8887, Val 0.8877, Test 0.8898
+Epoch 17: Loss:            : Train 0.0000, Val 0.3285, Test 0.2959
+          Accuracy         : Train 0.8912, Val 0.8848, Test 0.8916
+Best:
+          Accuracy         : Train 0.8887, Val 0.8877, Test 0.8898
+Epoch 18: Loss:            : Train 0.0000, Val 0.3391, Test 0.2965
+          Accuracy         : Train 0.8929, Val 0.8881, Test 0.8937
+Best:
+          Accuracy         : Train 0.8929, Val 0.8881, Test 0.8937
+Epoch 19: Loss:            : Train 0.0000, Val 0.3481, Test 0.2934
+          Accuracy         : Train 0.8955, Val 0.8900, Test 0.8959
+Best:
+          Accuracy         : Train 0.8955, Val 0.8900, Test 0.8959
+Epoch 20: Loss:            : Train 0.0000, Val 0.3265, Test 0.2864
+          Accuracy         : Train 0.8970, Val 0.8933, Test 0.8970
+Best:
+          Accuracy         : Train 0.8970, Val 0.8933, Test 0.8970
+Epoch 21: Loss:            : Train 0.0000, Val 0.3132, Test 0.2841
+          Accuracy         : Train 0.8967, Val 0.8926, Test 0.8987
+Best:
+          Accuracy         : Train 0.8970, Val 0.8933, Test 0.8970
+Epoch 22: Loss:            : Train 0.0000, Val 0.3095, Test 0.2827
+          Accuracy         : Train 0.8984, Val 0.8940, Test 0.8987
+Best:
+          Accuracy         : Train 0.8984, Val 0.8940, Test 0.8987
+Epoch 23: Loss:            : Train 0.0000, Val 0.3097, Test 0.2799
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Best:
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Epoch 24: Loss:            : Train 0.0000, Val 0.3093, Test 0.2734
+          Accuracy         : Train 0.8994, Val 0.8970, Test 0.9007
+Best:
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Epoch 25: Loss:            : Train 0.0000, Val 0.3042, Test 0.2734
+          Accuracy         : Train 0.9010, Val 0.8970, Test 0.9016
+Best:
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Epoch 26: Loss:            : Train 0.0000, Val 0.3328, Test 0.2734
+          Accuracy         : Train 0.8994, Val 0.8966, Test 0.9011
+Best:
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Epoch 27: Loss:            : Train 0.0000, Val 0.3176, Test 0.2661
+          Accuracy         : Train 0.9010, Val 0.8989, Test 0.9035
+Best:
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Epoch 28: Loss:            : Train 0.0000, Val 0.2958, Test 0.2661
+          Accuracy         : Train 0.9030, Val 0.8937, Test 0.9029
+Best:
+          Accuracy         : Train 0.8988, Val 0.9003, Test 0.9007
+Epoch 29: Loss:            : Train 0.0000, Val 0.2971, Test 0.2639
+          Accuracy         : Train 0.9010, Val 0.9026, Test 0.9024
+Best:
+          Accuracy         : Train 0.9010, Val 0.9026, Test 0.9024
+Epoch 30: Loss:            : Train 0.0000, Val 0.2897, Test 0.2598
+          Accuracy         : Train 0.9023, Val 0.9037, Test 0.9053
+Best:
+          Accuracy         : Train 0.9023, Val 0.9037, Test 0.9053
+Epoch 31: Loss:            : Train 0.0000, Val 0.3222, Test 0.2619
+          Accuracy         : Train 0.9033, Val 0.8981, Test 0.9044
+Best:
+          Accuracy         : Train 0.9023, Val 0.9037, Test 0.9053
+Epoch 32: Loss:            : Train 0.0000, Val 0.3110, Test 0.2734
+          Accuracy         : Train 0.9030, Val 0.9059, Test 0.9059
+Best:
+          Accuracy         : Train 0.9030, Val 0.9059, Test 0.9059
+Epoch 33: Loss:            : Train 0.0000, Val 0.2893, Test 0.2534
+          Accuracy         : Train 0.9043, Val 0.9018, Test 0.9044
+Best:
+          Accuracy         : Train 0.9030, Val 0.9059, Test 0.9059
+Epoch 34: Loss:            : Train 0.0000, Val 0.2900, Test 0.2524
+          Accuracy         : Train 0.9041, Val 0.9063, Test 0.9068
+Best:
+          Accuracy         : Train 0.9041, Val 0.9063, Test 0.9068
+Epoch 35: Loss:            : Train 0.0000, Val 0.3089, Test 0.2511
+          Accuracy         : Train 0.9047, Val 0.9059, Test 0.9076
+Best:
+          Accuracy         : Train 0.9041, Val 0.9063, Test 0.9068
+Epoch 36: Loss:            : Train 0.0000, Val 0.2966, Test 0.2475
+          Accuracy         : Train 0.9066, Val 0.9052, Test 0.9064
+Best:
+          Accuracy         : Train 0.9041, Val 0.9063, Test 0.9068
+Epoch 37: Loss:            : Train 0.0000, Val 0.2723, Test 0.2476
+          Accuracy         : Train 0.9058, Val 0.9022, Test 0.9052
+Best:
+          Accuracy         : Train 0.9041, Val 0.9063, Test 0.9068
+Epoch 38: Loss:            : Train 0.0000, Val 0.2861, Test 0.2414
+          Accuracy         : Train 0.9047, Val 0.9074, Test 0.9074
+Best:
+          Accuracy         : Train 0.9047, Val 0.9074, Test 0.9074
+Epoch 39: Loss:            : Train 0.0000, Val 0.2856, Test 0.2385
+          Accuracy         : Train 0.9077, Val 0.9055, Test 0.9096
+Best:
+          Accuracy         : Train 0.9047, Val 0.9074, Test 0.9074
+Epoch 40: Loss:            : Train 0.0000, Val 0.2708, Test 0.2381
+          Accuracy         : Train 0.9082, Val 0.9092, Test 0.9063
+Best:
+          Accuracy         : Train 0.9082, Val 0.9092, Test 0.9063
+Epoch 41: Loss:            : Train 0.0000, Val 0.2688, Test 0.2344
+          Accuracy         : Train 0.9091, Val 0.9089, Test 0.9114
+Best:
+          Accuracy         : Train 0.9082, Val 0.9092, Test 0.9063
+Epoch 42: Loss:            : Train 0.0000, Val 0.3054, Test 0.2439
+          Accuracy         : Train 0.9096, Val 0.9074, Test 0.9085
+Best:
+          Accuracy         : Train 0.9082, Val 0.9092, Test 0.9063
+Epoch 43: Loss:            : Train 0.0000, Val 0.3047, Test 0.2435
+          Accuracy         : Train 0.9088, Val 0.9059, Test 0.9120
+Best:
+          Accuracy         : Train 0.9082, Val 0.9092, Test 0.9063
+Epoch 44: Loss:            : Train 0.0000, Val 0.2931, Test 0.2342
+          Accuracy         : Train 0.9108, Val 0.9118, Test 0.9129
+Best:
+          Accuracy         : Train 0.9108, Val 0.9118, Test 0.9129
+Epoch 45: Loss:            : Train 0.0000, Val 0.2809, Test 0.2308
+          Accuracy         : Train 0.9102, Val 0.9092, Test 0.9120
+Best:
+          Accuracy         : Train 0.9108, Val 0.9118, Test 0.9129
+Epoch 46: Loss:            : Train 0.0000, Val 0.2682, Test 0.2294
+          Accuracy         : Train 0.9078, Val 0.9081, Test 0.9105
+Best:
+          Accuracy         : Train 0.9108, Val 0.9118, Test 0.9129
+Epoch 47: Loss:            : Train 0.0000, Val 0.2633, Test 0.2250
+          Accuracy         : Train 0.9084, Val 0.9103, Test 0.9105
+Best:
+          Accuracy         : Train 0.9108, Val 0.9118, Test 0.9129
+Epoch 48: Loss:            : Train 0.0000, Val 0.2645, Test 0.2212
+          Accuracy         : Train 0.9116, Val 0.9129, Test 0.9129
+Best:
+          Accuracy         : Train 0.9116, Val 0.9129, Test 0.9129
+Epoch 49: Loss:            : Train 0.0000, Val 0.2562, Test 0.2194
+          Accuracy         : Train 0.9129, Val 0.9144, Test 0.9113
+Best:
+          Accuracy         : Train 0.9129, Val 0.9144, Test 0.9113
+Epoch 50: Loss:            : Train 0.0000, Val 0.2657, Test 0.2170
+          Accuracy         : Train 0.9123, Val 0.9122, Test 0.9137
+Best:
+          Accuracy         : Train 0.9129, Val 0.9144, Test 0.9113
+Epoch 51: Loss:            : Train 0.0000, Val 0.2593, Test 0.2146
+          Accuracy         : Train 0.9144, Val 0.9144, Test 0.9153
+Best:
+          Accuracy         : Train 0.9129, Val 0.9144, Test 0.9113
+Epoch 52: Loss:            : Train 0.0000, Val 0.2474, Test 0.2141
+          Accuracy         : Train 0.9142, Val 0.9155, Test 0.9146
+Best:
+          Accuracy         : Train 0.9142, Val 0.9155, Test 0.9146
+Epoch 53: Loss:            : Train 0.0000, Val 0.2543, Test 0.2116
+          Accuracy         : Train 0.9134, Val 0.9159, Test 0.9157
+Best:
+          Accuracy         : Train 0.9134, Val 0.9159, Test 0.9157
+Epoch 54: Loss:            : Train 0.0000, Val 0.2438, Test 0.2126
+          Accuracy         : Train 0.9152, Val 0.9163, Test 0.9161
+Best:
+          Accuracy         : Train 0.9152, Val 0.9163, Test 0.9161
+Epoch 55: Loss:            : Train 0.0000, Val 0.2478, Test 0.2065
+          Accuracy         : Train 0.9147, Val 0.9181, Test 0.9168
+Best:
+          Accuracy         : Train 0.9147, Val 0.9181, Test 0.9168
+Epoch 56: Loss:            : Train 0.0000, Val 0.2472, Test 0.2077
+          Accuracy         : Train 0.9154, Val 0.9174, Test 0.9181
+Best:
+          Accuracy         : Train 0.9147, Val 0.9181, Test 0.9168
+Epoch 57: Loss:            : Train 0.0000, Val 0.2411, Test 0.2031
+          Accuracy         : Train 0.9163, Val 0.9174, Test 0.9185
+Best:
+          Accuracy         : Train 0.9147, Val 0.9181, Test 0.9168
+Epoch 58: Loss:            : Train 0.0000, Val 0.2380, Test 0.2020
+          Accuracy         : Train 0.9175, Val 0.9185, Test 0.9174
+Best:
+          Accuracy         : Train 0.9175, Val 0.9185, Test 0.9174
+Epoch 59: Loss:            : Train 0.0000, Val 0.2720, Test 0.2078
+          Accuracy         : Train 0.9173, Val 0.9129, Test 0.9140
+Best:
+          Accuracy         : Train 0.9175, Val 0.9185, Test 0.9174
+Epoch 60: Loss:            : Train 0.0000, Val 0.2721, Test 0.2079
+          Accuracy         : Train 0.9163, Val 0.9185, Test 0.9174
+Best:
+          Accuracy         : Train 0.9175, Val 0.9185, Test 0.9174
+Epoch 61: Loss:            : Train 0.0000, Val 0.2583, Test 0.2308
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 62: Loss:            : Train 0.0000, Val 0.2393, Test 0.2136
+          Accuracy         : Train 0.9155, Val 0.9185, Test 0.9172
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 63: Loss:            : Train 0.0000, Val 0.2406, Test 0.1946
+          Accuracy         : Train 0.9148, Val 0.9192, Test 0.9157
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 64: Loss:            : Train 0.0000, Val 0.2352, Test 0.1913
+          Accuracy         : Train 0.9190, Val 0.9196, Test 0.9194
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 65: Loss:            : Train 0.0000, Val 0.2458, Test 0.2068
+          Accuracy         : Train 0.9180, Val 0.9174, Test 0.9203
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 66: Loss:            : Train 0.0000, Val 0.2656, Test 0.2106
+          Accuracy         : Train 0.9183, Val 0.9181, Test 0.9168
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 67: Loss:            : Train 0.0000, Val 0.2620, Test 0.2069
+          Accuracy         : Train 0.9164, Val 0.9174, Test 0.9176
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 68: Loss:            : Train 0.0000, Val 0.2544, Test 0.2700
+          Accuracy         : Train 0.9174, Val 0.9211, Test 0.9216
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 69: Loss:            : Train 0.0000, Val 0.2282, Test 0.3514
+          Accuracy         : Train 0.9183, Val 0.9170, Test 0.9196
+Best:
+          Accuracy         : Train 0.9173, Val 0.9222, Test 0.9209
+Epoch 70: Loss:            : Train 0.0000, Val 0.2363, Test 0.3350
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 71: Loss:            : Train 0.0000, Val 0.2341, Test 0.2621
+          Accuracy         : Train 0.9203, Val 0.9215, Test 0.9202
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 72: Loss:            : Train 0.0000, Val 0.2544, Test 0.1842
+          Accuracy         : Train 0.9190, Val 0.9174, Test 0.9200
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 73: Loss:            : Train 0.0000, Val 0.2602, Test 0.1930
+          Accuracy         : Train 0.9204, Val 0.9185, Test 0.9166
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 74: Loss:            : Train 0.0000, Val 0.2511, Test 0.1952
+          Accuracy         : Train 0.9200, Val 0.9215, Test 0.9209
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 75: Loss:            : Train 0.0000, Val 0.2219, Test 0.2159
+          Accuracy         : Train 0.9192, Val 0.9189, Test 0.9176
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 76: Loss:            : Train 0.0000, Val 0.2516, Test 0.2919
+          Accuracy         : Train 0.9186, Val 0.9200, Test 0.9174
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 77: Loss:            : Train 0.0000, Val 0.2521, Test 0.2642
+          Accuracy         : Train 0.9198, Val 0.9229, Test 0.9222
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 78: Loss:            : Train 0.0000, Val 0.2343, Test 0.1763
+          Accuracy         : Train 0.9202, Val 0.9192, Test 0.9244
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 79: Loss:            : Train 0.0000, Val 0.2521, Test 0.1862
+          Accuracy         : Train 0.9201, Val 0.9185, Test 0.9157
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 80: Loss:            : Train 0.0000, Val 0.2581, Test 0.2000
+          Accuracy         : Train 0.9200, Val 0.9159, Test 0.9190
+Best:
+          Accuracy         : Train 0.9175, Val 0.9229, Test 0.9172
+Epoch 81: Loss:            : Train 0.0000, Val 0.2418, Test 0.1900
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 82: Loss:            : Train 0.0000, Val 0.2209, Test 0.1902
+          Accuracy         : Train 0.9193, Val 0.9174, Test 0.9185
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 83: Loss:            : Train 0.0000, Val 0.2308, Test 0.2508
+          Accuracy         : Train 0.9196, Val 0.9244, Test 0.9213
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 84: Loss:            : Train 0.0000, Val 0.2550, Test 0.1835
+          Accuracy         : Train 0.9228, Val 0.9174, Test 0.9190
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 85: Loss:            : Train 0.0000, Val 0.2234, Test 0.2495
+          Accuracy         : Train 0.9214, Val 0.9240, Test 0.9222
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 86: Loss:            : Train 0.0000, Val 0.2255, Test 0.1711
+          Accuracy         : Train 0.9221, Val 0.9215, Test 0.9239
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 87: Loss:            : Train 0.0000, Val 0.2284, Test 0.2472
+          Accuracy         : Train 0.9228, Val 0.9233, Test 0.9200
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 88: Loss:            : Train 0.0000, Val 0.2361, Test 0.2495
+          Accuracy         : Train 0.9226, Val 0.9196, Test 0.9218
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 89: Loss:            : Train 0.0000, Val 0.2223, Test 0.1726
+          Accuracy         : Train 0.9231, Val 0.9218, Test 0.9239
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 90: Loss:            : Train 0.0000, Val 0.2395, Test 0.1733
+          Accuracy         : Train 0.9248, Val 0.9226, Test 0.9229
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 91: Loss:            : Train 0.0000, Val 0.2253, Test 0.1687
+          Accuracy         : Train 0.9241, Val 0.9244, Test 0.9248
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 92: Loss:            : Train 0.0000, Val 0.2169, Test 0.1829
+          Accuracy         : Train 0.9245, Val 0.9233, Test 0.9239
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 93: Loss:            : Train 0.0000, Val 0.2165, Test 0.1855
+          Accuracy         : Train 0.9242, Val 0.9240, Test 0.9239
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 94: Loss:            : Train 0.0000, Val 0.2289, Test 0.1674
+          Accuracy         : Train 0.9244, Val 0.9222, Test 0.9263
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 95: Loss:            : Train 0.0000, Val 0.2518, Test 0.1735
+          Accuracy         : Train 0.9236, Val 0.9244, Test 0.9187
+Best:
+          Accuracy         : Train 0.9209, Val 0.9244, Test 0.9239
+Epoch 96: Loss:            : Train 0.0000, Val 0.2361, Test 0.1685
+          Accuracy         : Train 0.9230, Val 0.9252, Test 0.9259
+Best:
+          Accuracy         : Train 0.9230, Val 0.9252, Test 0.9259
+Epoch 97: Loss:            : Train 0.0000, Val 0.2374, Test 0.1820
+          Accuracy         : Train 0.9261, Val 0.9237, Test 0.9246
+Best:
+          Accuracy         : Train 0.9230, Val 0.9252, Test 0.9259
+Epoch 98: Loss:            : Train 0.0000, Val 0.2129, Test 0.1683
+          Accuracy         : Train 0.9251, Val 0.9226, Test 0.9263
+Best:
+          Accuracy         : Train 0.9230, Val 0.9252, Test 0.9259
+Epoch 99: Loss:            : Train 0.0000, Val 0.2199, Test 0.1777
+          Accuracy         : Train 0.9240, Val 0.9229, Test 0.9253
+Best:
+          Accuracy         : Train 0.9230, Val 0.9252, Test 0.9259
+Epoch 100: Loss:            : Train 0.0000, Val 0.2222, Test 0.1795
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 101: Loss:            : Train 0.0000, Val 0.2544, Test 0.1726
+          Accuracy         : Train 0.9254, Val 0.9207, Test 0.9218
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 102: Loss:            : Train 0.0000, Val 0.2265, Test 0.1757
+          Accuracy         : Train 0.9240, Val 0.9240, Test 0.9276
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 103: Loss:            : Train 0.0000, Val 0.2090, Test 0.1795
+          Accuracy         : Train 0.9260, Val 0.9218, Test 0.9239
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 104: Loss:            : Train 0.0000, Val 0.2355, Test 0.1643
+          Accuracy         : Train 0.9262, Val 0.9207, Test 0.9259
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 105: Loss:            : Train 0.0000, Val 0.2276, Test 0.1666
+          Accuracy         : Train 0.9262, Val 0.9240, Test 0.9198
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 106: Loss:            : Train 0.0000, Val 0.2184, Test 0.1714
+          Accuracy         : Train 0.9242, Val 0.9222, Test 0.9192
+Best:
+          Accuracy         : Train 0.9250, Val 0.9263, Test 0.9242
+Epoch 107: Loss:            : Train 0.0000, Val 0.2166, Test 0.1629
+          Accuracy         : Train 0.9254, Val 0.9274, Test 0.9252
+Best:
+          Accuracy         : Train 0.9254, Val 0.9274, Test 0.9252
+Epoch 108: Loss:            : Train 0.0000, Val 0.2340, Test 0.1629
+          Accuracy         : Train 0.9255, Val 0.9237, Test 0.9253
+Best:
+          Accuracy         : Train 0.9254, Val 0.9274, Test 0.9252
+Epoch 109: Loss:            : Train 0.0000, Val 0.2451, Test 0.1888
+          Accuracy         : Train 0.9258, Val 0.9189, Test 0.9233
+Best:
+          Accuracy         : Train 0.9254, Val 0.9274, Test 0.9252
+Epoch 110: Loss:            : Train 0.0000, Val 0.2275, Test 0.1763
+          Accuracy         : Train 0.9246, Val 0.9229, Test 0.9266
+Best:
+          Accuracy         : Train 0.9254, Val 0.9274, Test 0.9252
+Epoch 111: Loss:            : Train 0.0000, Val 0.2058, Test 0.1663
+          Accuracy         : Train 0.9238, Val 0.9196, Test 0.9235
+Best:
+          Accuracy         : Train 0.9254, Val 0.9274, Test 0.9252
+Epoch 112: Loss:            : Train 0.0000, Val 0.2287, Test 0.1599
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 113: Loss:            : Train 0.0000, Val 0.2231, Test 0.1623
+          Accuracy         : Train 0.9269, Val 0.9218, Test 0.9252
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 114: Loss:            : Train 0.0000, Val 0.2069, Test 0.1891
+          Accuracy         : Train 0.9264, Val 0.9263, Test 0.9268
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 115: Loss:            : Train 0.0000, Val 0.2165, Test 0.1576
+          Accuracy         : Train 0.9272, Val 0.9266, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 116: Loss:            : Train 0.0000, Val 0.2376, Test 0.1688
+          Accuracy         : Train 0.9280, Val 0.9229, Test 0.9242
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 117: Loss:            : Train 0.0000, Val 0.2279, Test 0.1746
+          Accuracy         : Train 0.9276, Val 0.9259, Test 0.9265
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 118: Loss:            : Train 0.0000, Val 0.2144, Test 0.1640
+          Accuracy         : Train 0.9263, Val 0.9181, Test 0.9240
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 119: Loss:            : Train 0.0000, Val 0.2028, Test 0.1733
+          Accuracy         : Train 0.9235, Val 0.9240, Test 0.9248
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 120: Loss:            : Train 0.0000, Val 0.2055, Test 0.1592
+          Accuracy         : Train 0.9261, Val 0.9278, Test 0.9252
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 121: Loss:            : Train 0.0000, Val 0.2346, Test 0.1606
+          Accuracy         : Train 0.9273, Val 0.9233, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 122: Loss:            : Train 0.0000, Val 0.2487, Test 0.1598
+          Accuracy         : Train 0.9276, Val 0.9200, Test 0.9229
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 123: Loss:            : Train 0.0000, Val 0.2293, Test 0.1619
+          Accuracy         : Train 0.9259, Val 0.9222, Test 0.9266
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 124: Loss:            : Train 0.0000, Val 0.2296, Test 0.1786
+          Accuracy         : Train 0.9247, Val 0.9255, Test 0.9270
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 125: Loss:            : Train 0.0000, Val 0.2128, Test 0.1606
+          Accuracy         : Train 0.9257, Val 0.9196, Test 0.9268
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 126: Loss:            : Train 0.0000, Val 0.2008, Test 0.1927
+          Accuracy         : Train 0.9231, Val 0.9233, Test 0.9205
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 127: Loss:            : Train 0.0000, Val 0.2143, Test 0.1594
+          Accuracy         : Train 0.9270, Val 0.9222, Test 0.9242
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 128: Loss:            : Train 0.0000, Val 0.2100, Test 0.1700
+          Accuracy         : Train 0.9272, Val 0.9226, Test 0.9259
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 129: Loss:            : Train 0.0000, Val 0.2426, Test 0.1678
+          Accuracy         : Train 0.9262, Val 0.9166, Test 0.9242
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 130: Loss:            : Train 0.0000, Val 0.2273, Test 0.1712
+          Accuracy         : Train 0.9276, Val 0.9263, Test 0.9283
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 131: Loss:            : Train 0.0000, Val 0.1985, Test 0.1756
+          Accuracy         : Train 0.9279, Val 0.9200, Test 0.9237
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 132: Loss:            : Train 0.0000, Val 0.2288, Test 0.1597
+          Accuracy         : Train 0.9236, Val 0.9263, Test 0.9278
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 133: Loss:            : Train 0.0000, Val 0.2536, Test 0.1822
+          Accuracy         : Train 0.9280, Val 0.9252, Test 0.9248
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 134: Loss:            : Train 0.0000, Val 0.2493, Test 0.1789
+          Accuracy         : Train 0.9270, Val 0.9237, Test 0.9265
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 135: Loss:            : Train 0.0000, Val 0.2317, Test 0.1680
+          Accuracy         : Train 0.9277, Val 0.9244, Test 0.9268
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 136: Loss:            : Train 0.0000, Val 0.2288, Test 0.1640
+          Accuracy         : Train 0.9271, Val 0.9226, Test 0.9252
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 137: Loss:            : Train 0.0000, Val 0.2267, Test 0.1609
+          Accuracy         : Train 0.9222, Val 0.9215, Test 0.9244
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 138: Loss:            : Train 0.0000, Val 0.2270, Test 0.1594
+          Accuracy         : Train 0.9256, Val 0.9248, Test 0.9276
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 139: Loss:            : Train 0.0000, Val 0.2199, Test 0.1740
+          Accuracy         : Train 0.9282, Val 0.9274, Test 0.9279
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 140: Loss:            : Train 0.0000, Val 0.2028, Test 0.1553
+          Accuracy         : Train 0.9277, Val 0.9255, Test 0.9285
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 141: Loss:            : Train 0.0000, Val 0.2024, Test 0.1556
+          Accuracy         : Train 0.9274, Val 0.9215, Test 0.9246
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 142: Loss:            : Train 0.0000, Val 0.2146, Test 0.1567
+          Accuracy         : Train 0.9266, Val 0.9237, Test 0.9246
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 143: Loss:            : Train 0.0000, Val 0.2020, Test 0.1552
+          Accuracy         : Train 0.9274, Val 0.9248, Test 0.9257
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 144: Loss:            : Train 0.0000, Val 0.2124, Test 0.1560
+          Accuracy         : Train 0.9284, Val 0.9255, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 145: Loss:            : Train 0.0000, Val 0.2353, Test 0.1810
+          Accuracy         : Train 0.9272, Val 0.9240, Test 0.9253
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 146: Loss:            : Train 0.0000, Val 0.2389, Test 0.1705
+          Accuracy         : Train 0.9285, Val 0.9196, Test 0.9226
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 147: Loss:            : Train 0.0000, Val 0.2251, Test 0.1735
+          Accuracy         : Train 0.9263, Val 0.9237, Test 0.9226
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 148: Loss:            : Train 0.0000, Val 0.2133, Test 0.1587
+          Accuracy         : Train 0.9253, Val 0.9237, Test 0.9266
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 149: Loss:            : Train 0.0000, Val 0.2115, Test 0.2312
+          Accuracy         : Train 0.9266, Val 0.9285, Test 0.9252
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 150: Loss:            : Train 0.0000, Val 0.2182, Test 0.1548
+          Accuracy         : Train 0.9278, Val 0.9252, Test 0.9265
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 151: Loss:            : Train 0.0000, Val 0.2001, Test 0.2695
+          Accuracy         : Train 0.9282, Val 0.9266, Test 0.9248
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 152: Loss:            : Train 0.0000, Val 0.2189, Test 0.2560
+          Accuracy         : Train 0.9263, Val 0.9233, Test 0.9240
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 153: Loss:            : Train 0.0000, Val 0.2332, Test 0.1850
+          Accuracy         : Train 0.9275, Val 0.9237, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 154: Loss:            : Train 0.0000, Val 0.2266, Test 0.1551
+          Accuracy         : Train 0.9294, Val 0.9226, Test 0.9265
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 155: Loss:            : Train 0.0000, Val 0.2036, Test 0.1835
+          Accuracy         : Train 0.9291, Val 0.9185, Test 0.9233
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 156: Loss:            : Train 0.0000, Val 0.2187, Test 0.1525
+          Accuracy         : Train 0.9265, Val 0.9270, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 157: Loss:            : Train 0.0000, Val 0.2260, Test 0.1680
+          Accuracy         : Train 0.9290, Val 0.9259, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 158: Loss:            : Train 0.0000, Val 0.2055, Test 0.1549
+          Accuracy         : Train 0.9294, Val 0.9266, Test 0.9281
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 159: Loss:            : Train 0.0000, Val 0.2041, Test 0.1563
+          Accuracy         : Train 0.9273, Val 0.9226, Test 0.9268
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 160: Loss:            : Train 0.0000, Val 0.2254, Test 0.1544
+          Accuracy         : Train 0.9299, Val 0.9266, Test 0.9274
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 161: Loss:            : Train 0.0000, Val 0.2117, Test 0.1550
+          Accuracy         : Train 0.9303, Val 0.9252, Test 0.9242
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 162: Loss:            : Train 0.0000, Val 0.1975, Test 0.1570
+          Accuracy         : Train 0.9293, Val 0.9237, Test 0.9237
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 163: Loss:            : Train 0.0000, Val 0.2303, Test 0.1579
+          Accuracy         : Train 0.9291, Val 0.9233, Test 0.9259
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 164: Loss:            : Train 0.0000, Val 0.2317, Test 0.1635
+          Accuracy         : Train 0.9289, Val 0.9255, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 165: Loss:            : Train 0.0000, Val 0.2231, Test 0.1576
+          Accuracy         : Train 0.9301, Val 0.9237, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 166: Loss:            : Train 0.0000, Val 0.2208, Test 0.1567
+          Accuracy         : Train 0.9301, Val 0.9207, Test 0.9235
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 167: Loss:            : Train 0.0000, Val 0.2136, Test 0.1538
+          Accuracy         : Train 0.9268, Val 0.9240, Test 0.9231
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 168: Loss:            : Train 0.0000, Val 0.2153, Test 0.1518
+          Accuracy         : Train 0.9292, Val 0.9281, Test 0.9283
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 169: Loss:            : Train 0.0000, Val 0.2029, Test 0.1519
+          Accuracy         : Train 0.9307, Val 0.9240, Test 0.9276
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 170: Loss:            : Train 0.0000, Val 0.2066, Test 0.1531
+          Accuracy         : Train 0.9293, Val 0.9263, Test 0.9265
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 171: Loss:            : Train 0.0000, Val 0.2109, Test 0.1655
+          Accuracy         : Train 0.9293, Val 0.9278, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 172: Loss:            : Train 0.0000, Val 0.1960, Test 0.2450
+          Accuracy         : Train 0.9293, Val 0.9259, Test 0.9244
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 173: Loss:            : Train 0.0000, Val 0.2077, Test 0.1556
+          Accuracy         : Train 0.9291, Val 0.9240, Test 0.9240
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 174: Loss:            : Train 0.0000, Val 0.2021, Test 0.1521
+          Accuracy         : Train 0.9280, Val 0.9255, Test 0.9270
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 175: Loss:            : Train 0.0000, Val 0.2074, Test 0.1568
+          Accuracy         : Train 0.9291, Val 0.9218, Test 0.9268
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 176: Loss:            : Train 0.0000, Val 0.2273, Test 0.1730
+          Accuracy         : Train 0.9306, Val 0.9248, Test 0.9274
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 177: Loss:            : Train 0.0000, Val 0.2256, Test 0.1550
+          Accuracy         : Train 0.9301, Val 0.9237, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 178: Loss:            : Train 0.0000, Val 0.2042, Test 0.1692
+          Accuracy         : Train 0.9296, Val 0.9248, Test 0.9242
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 179: Loss:            : Train 0.0000, Val 0.1961, Test 0.1694
+          Accuracy         : Train 0.9291, Val 0.9233, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 180: Loss:            : Train 0.0000, Val 0.2100, Test 0.1658
+          Accuracy         : Train 0.9298, Val 0.9259, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 181: Loss:            : Train 0.0000, Val 0.2145, Test 0.1517
+          Accuracy         : Train 0.9295, Val 0.9285, Test 0.9252
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 182: Loss:            : Train 0.0000, Val 0.2393, Test 0.1675
+          Accuracy         : Train 0.9300, Val 0.9237, Test 0.9257
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 183: Loss:            : Train 0.0000, Val 0.2379, Test 0.1792
+          Accuracy         : Train 0.9292, Val 0.9229, Test 0.9279
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 184: Loss:            : Train 0.0000, Val 0.2234, Test 0.1601
+          Accuracy         : Train 0.9310, Val 0.9244, Test 0.9261
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 185: Loss:            : Train 0.0000, Val 0.2226, Test 0.1606
+          Accuracy         : Train 0.9299, Val 0.9222, Test 0.9231
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 186: Loss:            : Train 0.0000, Val 0.2231, Test 0.1547
+          Accuracy         : Train 0.9273, Val 0.9240, Test 0.9274
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 187: Loss:            : Train 0.0000, Val 0.2194, Test 0.1528
+          Accuracy         : Train 0.9294, Val 0.9278, Test 0.9270
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 188: Loss:            : Train 0.0000, Val 0.2139, Test 0.1529
+          Accuracy         : Train 0.9311, Val 0.9255, Test 0.9274
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 189: Loss:            : Train 0.0000, Val 0.1987, Test 0.1668
+          Accuracy         : Train 0.9290, Val 0.9255, Test 0.9274
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 190: Loss:            : Train 0.0000, Val 0.2137, Test 0.1551
+          Accuracy         : Train 0.9282, Val 0.9226, Test 0.9292
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 191: Loss:            : Train 0.0000, Val 0.2269, Test 0.1684
+          Accuracy         : Train 0.9293, Val 0.9248, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 192: Loss:            : Train 0.0000, Val 0.2105, Test 0.1660
+          Accuracy         : Train 0.9296, Val 0.9263, Test 0.9272
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 193: Loss:            : Train 0.0000, Val 0.2105, Test 0.1749
+          Accuracy         : Train 0.9308, Val 0.9152, Test 0.9205
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 194: Loss:            : Train 0.0000, Val 0.2015, Test 0.2457
+          Accuracy         : Train 0.9278, Val 0.9207, Test 0.9207
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 195: Loss:            : Train 0.0000, Val 0.2014, Test 0.1805
+          Accuracy         : Train 0.9287, Val 0.9266, Test 0.9259
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 196: Loss:            : Train 0.0000, Val 0.2003, Test 0.1669
+          Accuracy         : Train 0.9305, Val 0.9229, Test 0.9250
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 197: Loss:            : Train 0.0000, Val 0.2056, Test 0.1515
+          Accuracy         : Train 0.9301, Val 0.9252, Test 0.9266
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 198: Loss:            : Train 0.0000, Val 0.2213, Test 0.1545
+          Accuracy         : Train 0.9304, Val 0.9237, Test 0.9289
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 199: Loss:            : Train 0.0000, Val 0.2133, Test 0.1529
+          Accuracy         : Train 0.9311, Val 0.9274, Test 0.9268
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Epoch 200: Loss:            : Train 0.0000, Val 0.1935, Test 0.1841
+          Accuracy         : Train 0.9302, Val 0.9240, Test 0.9279
+Best:
+          Accuracy         : Train 0.9260, Val 0.9289, Test 0.9263
+Training time (sec): 82

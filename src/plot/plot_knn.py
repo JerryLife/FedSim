@@ -27,9 +27,9 @@ def plot_knn(result_dir, dataset_name, metric, n_round, algorithms: list, ks: li
             scores_per_noise = []
             for i in range(n_round):
                 if algo.lower() in ['solo']:
-                    file_name = "{}_A_{}.out".format(dataset_name, i)
+                    file_name = "../no_priv/{}_A_{}.out".format(dataset_name, i)
                 elif algo.lower() in ['exact']:
-                    file_name = "{}_exact_{}.out".format(dataset_name, i)
+                    file_name = "../no_priv/{}_exact_{}.out".format(dataset_name, i)
                 else:
                     file_name = "{}_{}_k_{}_{}.out".format(dataset_name, algo_id, k, i)
 
@@ -83,6 +83,23 @@ def plot_knn(result_dir, dataset_name, metric, n_round, algorithms: list, ks: li
 if __name__ == '__main__':
     plt.rcParams["font.size"] = 20
     os.chdir(sys.path[0] + "/../../")  # change working directory
+    plot_knn(result_dir="./out/performance/beijing/knn", dataset_name="beijing", metric="R2_Score", n_round=5,
+             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+             ks=[10, 20, 40, 60, 80], save_path="fig/beijing_knn.png")
+    plot_knn(result_dir="./out/performance/hdb/knn", dataset_name="hdb", metric="R2_Score", n_round=5,
+             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+             ks=[5, 10, 20, 30, 40], save_path="fig/hdb_knn.png")
+    plot_knn(result_dir="./out/performance/game/knn", dataset_name="game", metric="Accuracy", n_round=5,
+             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Exact', 'Solo'],
+             ks=[3, 5, 10, 20], save_path="fig/game_knn.png")
+    plot_knn(result_dir="./out/performance/song/knn", dataset_name="song", metric="R2_Score", n_round=4,
+             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+             ks=[5, 10, 20, 30, 40], save_path="fig/song_knn.png")
+    plot_knn(result_dir="./out/performance/ny/knn", dataset_name="ny", metric="R2_Score", n_round=2,
+             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+             ks=[10, 20, 30, 40], save_path="fig/ny_knn.png")
+
+
     # plot_knn(result_dir="./out/beijing/knn", dataset_name="beijing", metric="R2_Score", n_round=5,
     #          algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
     #          ks=[10, 20, 40, 60, 80, 100], save_path="fig/beijing_knn.png")
@@ -92,9 +109,9 @@ if __name__ == '__main__':
     # plot_knn(result_dir="./out/game/knn", dataset_name="game", metric="Accuracy", n_round=5,
     #          algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Exact', 'Solo'],
     #          ks=[3, 5, 10, 20, 30, 40, 50], save_path="fig/game_knn.png")
-    plot_knn(result_dir="./out/song/knn", dataset_name="song", metric="R2_Score", n_round=5,
-             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Exact', 'Solo'],
-             ks=[5, 20, 30, 40, 50], save_path="fig/song_knn.png")
+    # plot_knn(result_dir="./out/song/knn", dataset_name="song", metric="R2_Score", n_round=5,
+    #          algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Exact', 'Solo'],
+    #          ks=[5, 20, 30, 40, 50], save_path="fig/song_knn.png")
     # plot_knn(result_dir="./out/ny/knn", dataset_name="ny", metric="R2_Score", n_round=5,
     #          algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
     #          ks=[5, 10, 20, 30, 40, 50], save_path="fig/ny_knn.png")

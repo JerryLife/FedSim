@@ -45,13 +45,13 @@ def create_table(result_dir, priv_dir, dataset_names, metrics, n_rounds, algorit
 
 if __name__ == '__main__':
     os.chdir(sys.path[0] + "/../../")  # change working directory
-    table_str = create_table(result_dir="./out/", priv_dir="no_priv",
+    table_str = create_table(result_dir="./out/performance", priv_dir="no_priv",
                              dataset_names=['beijing', 'ny', 'hdb'],
                              metrics=[['R2_Score', 'RMSE'] for _ in range(3)], n_rounds=5,
                              algorithms=reversed(['fedsim', 'top1sim', 'avgsim', 'featuresim', 'A']))
     print(table_str)
 
-    table_str2 = create_table(result_dir="./out/", priv_dir="no_priv",
+    table_str2 = create_table(result_dir="./out/performance", priv_dir="no_priv",
                               dataset_names=['game', 'song'],
                               metrics=[['Accuracy'], ['R2_Score', 'RMSE']], n_rounds=5,
                               algorithms=reversed(['fedsim', 'top1sim', 'avgsim', 'featuresim', 'exact', 'A']))
