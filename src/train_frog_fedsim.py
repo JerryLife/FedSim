@@ -81,6 +81,5 @@ model = FedSimModel(num_common_features=num_common_features,
                     sim_leak_p=args.leak_p,
                     link_n_jobs=-1,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_noise_{:.1f}.pkl"
-                    .format(noise_scale))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_noise_{:.1f}.pkl".format(noise_scale))
 # model.train_splitnn(X1, X2, y)

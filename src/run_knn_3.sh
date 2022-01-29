@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-gpu=7
+gpu=6
 
 #for dataset in ny hdb song game; do
 #  for i in  $(seq 0 $(($1 - 1))); do
@@ -59,7 +59,7 @@ gpu=7
 #done
 
 
-for dataset in frog; do
+for dataset in boone; do
   mkdir -p out/"$dataset"/knn/
   for i in  $(seq 0 $(($1 - 1))); do
     for algo in fedsim avgsim featuresim top1sim; do

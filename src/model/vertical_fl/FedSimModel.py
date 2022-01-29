@@ -150,7 +150,8 @@ class FedSimModel(SimModel):
             # For CUDA >= 10.2 only
             os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
 
-            torch.use_deterministic_algorithms(True)
+            # torch.use_deterministic_algorithms(True)
+            torch.is_deterministic()
 
         start_time = datetime.now()
         train_dataset, val_dataset, test_dataset, y_scaler = \
@@ -263,7 +264,7 @@ class FedSimModel(SimModel):
 
         # optimizer = adv_optim.Lamb([
         #     {'params': self.model.parameters(), 'lr': self.learning_rate},
-        #     {'params': self.sim_model.parameters(), 'lr': self.learning_rate},
+        #     {'params': self.sim_model.parameters(), 'lr': self.learning_rate / np.sqrt(self.knn_k)},
         #     {'params': self.merge_model.parameters(), 'lr': self.learning_rate / np.sqrt(self.knn_k)}
         # ], weight_decay=self.weight_decay)
         optimizer = adv_optim.Lamb(list(self.model.parameters()) + list(self.merge_model.parameters()) +
@@ -340,7 +341,8 @@ class FedSimModel(SimModel):
                 optimizer.zero_grad()
                 outputs = self.model(data)
 
-                sim_scores_combine = torch.sqrt(torch.sum(sim_scores ** 2, dim=1))
+                # sim_scores_combine = torch.sqrt(torch.sum(sim_scores ** 2, dim=1))
+                sim_scores_combine = sim_scores
                 sim_scores_sorted, sort_indices = torch.sort(sim_scores_combine.reshape(idx1_unique.shape[0], self.knn_k), dim=1)
                 outputs_sorted = outputs.reshape(idx1_unique.shape[0], self.knn_k, -1)[
                     torch.arange(idx1_unique.shape[0]).unsqueeze(-1), sort_indices].reshape(idx1_unique.shape[0] * self.knn_k, -1)
@@ -354,6 +356,7 @@ class FedSimModel(SimModel):
                     outputs_weighted = outputs_sorted * sim_weights_flat
                 else:
                     outputs_weighted = outputs_sorted * normalized_sim_weights.reshape(-1, 1)
+                    # outputs_weighted = outputs_sorted * sim_weights_flat
 
                 if self.mlp_merge is None:
                     outputs_merge = self.merge_model(outputs_weighted.reshape(idx1_unique.shape[0], self.knn_k, -1))
@@ -400,7 +403,6 @@ class FedSimModel(SimModel):
                 #
                 #     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                 #     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
-                #
 
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
@@ -540,7 +542,8 @@ class FedSimModel(SimModel):
 
                 outputs = self.model(data)
 
-                sim_scores_combine = torch.sqrt(torch.sum(sim_scores ** 2, dim=1))
+                # sim_scores_combine = torch.sqrt(torch.sum(sim_scores ** 2, dim=1))
+                sim_scores_combine = sim_scores
                 sim_scores_sorted, sort_indices = torch.sort(
                     sim_scores_combine.reshape(idx1_unique.shape[0], self.knn_k), dim=1)
                 outputs_sorted = outputs.reshape(idx1_unique.shape[0], self.knn_k, -1)[
@@ -555,6 +558,7 @@ class FedSimModel(SimModel):
                     outputs_weighted = outputs_sorted * sim_weights_flat
                 else:
                     outputs_weighted = outputs_sorted * normalized_sim_weights.reshape(-1, 1)
+                    # outputs_weighted = outputs_sorted * sim_weights_flat
 
                 if self.mlp_merge is None:
                     outputs_merge = self.merge_model(outputs_weighted.reshape(idx1_unique.shape[0], self.knn_k, -1))
@@ -601,6 +605,7 @@ class FedSimModel(SimModel):
                 #
                 #     outputs_batch = torch.cat([outputs_batch, output_i.reshape(-1, output_dim)], dim=0)
                 #     labels_sim = torch.cat([labels_sim, labels[i].repeat(end - start)], dim=0)
+
                 if self.task == 'binary_cls':
                     outputs_batch = outputs_batch.flatten()
                     loss = loss_criterion(outputs_batch, labels)

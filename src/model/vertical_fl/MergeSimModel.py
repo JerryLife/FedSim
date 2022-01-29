@@ -200,12 +200,12 @@ class MergeSimModel(SimModel):
 
                 sim_weights_per_idx1 = sim_weights.reshape(idx1_unique.shape[0], self.knn_k)
                 normalized_sim_weights = sim_weights_per_idx1 / torch.sum(sim_weights_per_idx1, dim=1).reshape(-1, 1)
-                avg_outputs = torch.sum(normalized_sim_weights * outputs.reshape(idx1_unique.shape[0], self.knn_k), dim=1)
+                avg_outputs = torch.sum(outputs.reshape(idx1_unique.shape[0], self.knn_k, output_dim) * normalized_sim_weights.unsqueeze(-1), dim=1)
                 if self.task in ['binary_cls', 'regression']:
                     # bound threshold to prevent CUDA error
                     avg_outputs[avg_outputs > 1.] = 1.
                     avg_outputs[avg_outputs < 0.] = 0.
-                outputs_batch = avg_outputs.reshape(-1, 1)
+                outputs_batch = avg_outputs.reshape(-1, output_dim)
                 # implementation in for loop
                 # outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 # idx1_split_points = get_split_points(idx1, idx1.shape[0])
@@ -261,7 +261,7 @@ class MergeSimModel(SimModel):
                         # bound threshold to prevent CUDA error
                         avg_outputs[avg_outputs > 1.] = 1.
                         avg_outputs[avg_outputs < 0.] = 0.
-                    outputs_batch = avg_outputs.reshape(-1, 1)
+                    outputs_batch = avg_outputs.reshape(-1, output_dim)
                     # implementation in for loop
                     # outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                     # for i in range(idx1_unique.shape[0]):
@@ -404,13 +404,12 @@ class MergeSimModel(SimModel):
 
                 sim_weights_per_idx1 = sim_weights.reshape(idx1_unique.shape[0], self.knn_k)
                 normalized_sim_weights = sim_weights_per_idx1 / torch.sum(sim_weights_per_idx1, dim=1).reshape(-1, 1)
-                avg_outputs = torch.sum(normalized_sim_weights * outputs.reshape(idx1_unique.shape[0], self.knn_k),
-                                        dim=1)
+                avg_outputs = torch.sum(outputs.reshape(idx1_unique.shape[0], self.knn_k, output_dim) * normalized_sim_weights.unsqueeze(-1), dim=1)
                 if self.task in ['binary_cls', 'regression']:
                     # bound threshold to prevent CUDA error
                     avg_outputs[avg_outputs > 1.] = 1.
                     avg_outputs[avg_outputs < 0.] = 0.
-                outputs_batch = avg_outputs.reshape(-1, 1)
+                outputs_batch = avg_outputs.reshape(-1, output_dim)
                 # implementation in for loop
                 # outputs_batch = torch.zeros([0, output_dim]).to(self.device)
                 # idx1_split_points = get_split_points(idx1, idx1.shape[0])
