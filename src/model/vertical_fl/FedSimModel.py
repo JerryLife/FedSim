@@ -150,8 +150,10 @@ class FedSimModel(SimModel):
             # For CUDA >= 10.2 only
             os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
 
-            # torch.use_deterministic_algorithms(True)
-            torch.is_deterministic()
+            if hasattr(torch, 'use_deterministic_algorithms'):
+                torch.use_deterministic_algorithms(True)
+            else:
+                torch.is_deterministic()
 
         start_time = datetime.now()
         train_dataset, val_dataset, test_dataset, y_scaler = \
