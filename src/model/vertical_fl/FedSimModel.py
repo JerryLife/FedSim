@@ -110,6 +110,7 @@ class FedSimModel(SimModel):
         self.log_dir = log_dir
         if log_dir:
             os.makedirs(log_dir, exist_ok=True)
+        os.makedirs('ckp', exist_ok=True)
         self.update_sim_freq = update_sim_freq
         self.sim_model_save_path = sim_model_save_path
         self.merge_model_save_path = merge_model_save_path

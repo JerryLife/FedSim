@@ -28,7 +28,10 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
         for noise in noises:
             scores_per_noise = []
             for i in range(n_round):
-                file_name = "{}_{}_0.0_noise_{:.{prev}f}_{}.out".format(dataset_name, algo_id, noise, i, prev=decimal)
+                if algo.lower() in ['all']:
+                    file_name = "../no_priv{}_{}_noise_{:.{prev}f}_{}.out".format(dataset_name, algo_id, noise, i, prev=decimal)
+                else:
+                    file_name = "{}_{}_noise_{:.{prev}f}_{}.out".format(dataset_name, algo_id, noise, i, prev=decimal)
                 file_path = os.path.join(result_dir, file_name)
                 score, time_sec = read_file(file_path, [metric])
                 scores_per_noise.append(score)
@@ -67,13 +70,13 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
 if __name__ == '__main__':
     plt.rcParams["font.size"] = 16
     os.chdir(sys.path[0] + "/../../")  # change working directory
-    plot_noise(result_dir="./out/syn/no_priv", dataset_name="syn", metric="Accuracy", n_round=5,
+    plot_noise(result_dir="./out/performance/syn/no_priv", dataset_name="syn", metric="Accuracy", n_round=5,
                algorithms=['Combine', 'FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'], decimal=1,
                noises=[0.0, 0.1, 0.2], save_path="fig/syn_noise.png")
-    plot_noise(result_dir="./out/boone/no_priv", dataset_name="boone", metric="Accuracy", n_round=5,
+    plot_noise(result_dir="./out/performance/boone/no_priv", dataset_name="boone", metric="Accuracy", n_round=5,
                algorithms=['Combine', 'FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
                noises=[0.0, 0.1, 0.2], save_path="fig/boone_noise.png", decimal=1)
-    plot_noise(result_dir="./out/frog/no_priv", dataset_name="frog", metric="Accuracy", n_round=5,
+    plot_noise(result_dir="./out/performance/frog/no_priv", dataset_name="frog", metric="Accuracy", n_round=5,
                algorithms=['Combine', 'FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
                noises=[0.0, 0.1, 0.2], save_path="fig/frog_noise.png", decimal=1)
 

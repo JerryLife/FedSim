@@ -23,7 +23,7 @@ def read_file(file_path, metrics: list):
                     break
                 else:
                     metric, test_value = line.split()[0], float(line.split()[-1])
-                    if metric in metrics:
+                    if metric is not None and metric in metrics:
                         metric_values[metrics.index(metric)] = test_value
 
         # # return a single value if there is only one metric
