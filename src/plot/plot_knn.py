@@ -99,7 +99,7 @@ if __name__ == '__main__':
     plot_knn(result_dir="./out/performance/ny/knn", dataset_name="ny", metric="R2_Score", n_round=5,
              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
              ks=[3, 5, 10, 20, 30, 40, 50], save_path="fig/ny_knn.png")
-    plot_knn(result_dir="./out/performance/boone/knn", dataset_name="boone", metric="Accuracy", n_round=1,
+    plot_knn(result_dir="./out/performance/boone/knn", dataset_name="boone", metric="Accuracy", n_round=5,
              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
              ks=[5, 10, 20, 40, 60, 80, 100], save_path="fig/boone_knn.png")
     plot_knn(result_dir="./out/performance/frog/knn", dataset_name="frog", metric="Accuracy", n_round=5,

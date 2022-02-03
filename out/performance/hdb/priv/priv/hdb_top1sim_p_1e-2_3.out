@@ -1,0 +1,1341 @@
+Loading house from data/hdb/hdb_clean.csv
+Loading airbnb from data/hdb/school_clean.csv
+Current hdb columns Index(['floor_area_sqm', 'lease_commence_year_before_2020', 'tn_BEDOK',
+       'tn_BISHAN', 'tn_BUKIT BATOK', 'tn_BUKIT MERAH', 'tn_BUKIT PANJANG',
+       'tn_BUKIT TIMAH', 'tn_CENTRAL AREA', 'tn_CHOA CHU KANG', 'tn_CLEMENTI',
+       'tn_GEYLANG', 'tn_HOUGANG', 'tn_JURONG EAST', 'tn_JURONG WEST',
+       'tn_KALLANG/WHAMPOA', 'tn_MARINE PARADE', 'tn_PASIR RIS', 'tn_PUNGGOL',
+       'tn_QUEENSTOWN', 'tn_SEMBAWANG', 'tn_SENGKANG', 'tn_SERANGOON',
+       'tn_TAMPINES', 'tn_TOA PAYOH', 'tn_WOODLANDS', 'tn_YISHUN', 'ft_2 ROOM',
+       'ft_3 ROOM', 'ft_4 ROOM', 'ft_5 ROOM', 'ft_EXECUTIVE',
+       'ft_MULTI-GENERATION', 'sr_04 TO 06', 'sr_07 TO 09', 'sr_10 TO 12',
+       'sr_13 TO 15', 'sr_16 TO 18', 'sr_19 TO 21', 'sr_22 TO 24',
+       'sr_25 TO 27', 'sr_28 TO 30', 'sr_31 TO 33', 'sr_34 TO 36',
+       'sr_37 TO 39', 'sr_40 TO 42', 'sr_43 TO 45', 'sr_46 TO 48',
+       'sr_49 TO 51', 'fm_Adjoined flat', 'fm_Apartment', 'fm_DBSS',
+       'fm_Improved', 'fm_Improved-Maisonette', 'fm_Maisonette', 'fm_Model A',
+       'fm_Model A-Maisonette', 'fm_Model A2', 'fm_Multi Generation',
+       'fm_New Generation', 'fm_Premium Apartment',
+       'fm_Premium Apartment Loft', 'fm_Premium Maisonette', 'fm_Simplified',
+       'fm_Standard', 'fm_Terrace', 'fm_Type S1', 'fm_Type S2', 'lon', 'lat'],
+      dtype='object')
+Current airbnb columns Index(['lon', 'lat', 'n_places_0', 'vacancy_rate_0', 'n_places_1',
+       'vacancy_rate_1', 'n_places_2', 'vacancy_rate_2', 'n_places_3',
+       'vacancy_rate_3'],
+      dtype='object')
+Loading data from cache
+Done
+Calculating noise scale
+Standard variance of sim_score: 670924.21
+Adding noise of scale 5.9460045848996864e-05 to sim_scores
+Adding noise of scale 5.9460045848996864e-05 to sim_scores
+Adding noise of scale 5.9460045848996864e-05 to sim_scores
+Generating top1 dataset
+Generating top1 dataset
+Generating top1 dataset
+Preparing time (sec): 10
+Loading data
+Prepare for training
+Start training
+================================================================================
+                                    Kernel Shape Output Shape  Params  \
+Layer                                                                   
+0_local_models.0.fc_layers.Linear_0    [68, 200]  [4096, 200]   13800   
+1_local_models.0.fc_layers.Linear_1   [200, 100]  [4096, 100]   20100   
+2_local_models.1.fc_layers.Linear_0     [8, 200]  [4096, 200]    1800   
+3_local_models.1.fc_layers.Linear_1   [200, 100]  [4096, 100]   20100   
+4_agg_model.fc_layers.Linear_0        [200, 100]  [4096, 100]   20100   
+5_agg_model.fc_layers.Linear_1          [100, 1]    [4096, 1]     101   
+
+                                     Mult-Adds  
+Layer                                           
+0_local_models.0.fc_layers.Linear_0      13600  
+1_local_models.0.fc_layers.Linear_1      20000  
+2_local_models.1.fc_layers.Linear_0       1600  
+3_local_models.1.fc_layers.Linear_1      20000  
+4_agg_model.fc_layers.Linear_0           20000  
+5_agg_model.fc_layers.Linear_1             100  
+--------------------------------------------------------------------------------
+                      Totals
+Total params           76001
+Trainable params       76001
+Non-trainable params       0
+Mult-Adds              75300
+================================================================================
+n_classes=2
+task=regression
+model_name=hdb_top1sim_2022-02-01-03-49-18
+sche_threshold=0.0001
+sche_patience=10
+sche_factor=0.1
+use_scheduler=False
+num_workers=0
+device=cuda:6
+test_batch_size=4096
+train_batch_size=4096
+learning_rate=0.01
+weight_decay=1e-05
+num_epochs=200
+model_save_path=ckp/hdb_top1sim_2022-02-01-03-49-18.pth
+test_rate=0.2
+val_rate=0.1
+multiprocess_context=None
+metrics=['r2_score', 'rmse']
+metrics_f=[<metric.r2_score.R2Score object at 0x7f2976ad5790>, <metric.rmse.RMSE object at 0x7f2976ad5fd0>]
+hidden_sizes=[200, 100]
+model=SplitNN(
+  (agg_model): MLP(
+    (fc_layers): ModuleList(
+      (0): Linear(in_features=200, out_features=100, bias=True)
+      (1): Linear(in_features=100, out_features=1, bias=True)
+    )
+  )
+  (local_models): ModuleList(
+    (0): MLP(
+      (fc_layers): ModuleList(
+        (0): Linear(in_features=68, out_features=200, bias=True)
+        (1): Linear(in_features=200, out_features=100, bias=True)
+      )
+    )
+    (1): MLP(
+      (fc_layers): ModuleList(
+        (0): Linear(in_features=8, out_features=200, bias=True)
+        (1): Linear(in_features=200, out_features=100, bias=True)
+      )
+    )
+  )
+)
+writer=<torch.utils.tensorboard.writer.SummaryWriter object at 0x7f2976ad59d0>
+dataset_type=real
+drop_key=True
+num_common_features=2
+tree_radius=0.01
+tree_leaf_size=1000
+knn_k=20
+grid_min=-10.0
+grid_max=10.0
+grid_width=1.5
+sim_scaler=StandardScaler()
+filter_top_k=None
+link_n_jobs=-1
+psig_p=7
+sim_leak_p=0.01
+link_threshold_t=0.01
+link_epsilon=0.005
+n_hash_lsh=20
+edit_distance_threshold=1
+n_hash_func=10
+collision_rate=0.05
+qgram_q=2
+link_delta=0.005
+feature_wise_sim=False
+blocking_method=knn_priv_float
+center_threshold=0.5
+n_clusters=100
+local_hidden_sizes=[[200], [200]]
+cut_dims=[100, 100]
+agg_hidden_sizes=[100]
+scale_analysis=<utils.privacy.SimNoiseScale object at 0x7f2976a83430>
+data1_shape=(92065, 70)
+data2_shape=(165, 10)
+Epoch 1: Loss:            : Train 0.0000, Val 0.0198, Test 0.0198
+          R2_Score         : Train -0.9592, Val 0.0398, Test 0.0231
+          RMSE             : Train 216.4189, Val 151.9493, Test 153.8207
+Best:
+          R2_Score         : Train -0.9592, Val 0.0398, Test 0.0231
+          RMSE             : Train 216.4189, Val 151.9493, Test 153.8207
+Epoch 2: Loss:            : Train 0.0000, Val 0.0067, Test 0.0069
+          R2_Score         : Train 0.4592, Val 0.6545, Test 0.6520
+          RMSE             : Train 113.7015, Val 91.1391, Test 91.8041
+Best:
+          R2_Score         : Train 0.4592, Val 0.6545, Test 0.6520
+          RMSE             : Train 113.7015, Val 91.1391, Test 91.8041
+Epoch 3: Loss:            : Train 0.0000, Val 0.0030, Test 0.0028
+          R2_Score         : Train 0.7949, Val 0.8478, Test 0.8560
+          RMSE             : Train 70.0196, Val 60.4904, Test 59.0552
+Best:
+          R2_Score         : Train 0.7949, Val 0.8478, Test 0.8560
+          RMSE             : Train 70.0196, Val 60.4904, Test 59.0552
+Epoch 4: Loss:            : Train 0.0000, Val 0.0022, Test 0.0020
+          R2_Score         : Train 0.8786, Val 0.8929, Test 0.8986
+          RMSE             : Train 53.8810, Val 50.7437, Test 49.5535
+Best:
+          R2_Score         : Train 0.8786, Val 0.8929, Test 0.8986
+          RMSE             : Train 53.8810, Val 50.7437, Test 49.5535
+Epoch 5: Loss:            : Train 0.0000, Val 0.0018, Test 0.0017
+          R2_Score         : Train 0.9043, Val 0.9101, Test 0.9157
+          RMSE             : Train 47.8324, Val 46.4951, Test 45.1868
+Best:
+          R2_Score         : Train 0.9043, Val 0.9101, Test 0.9157
+          RMSE             : Train 47.8324, Val 46.4951, Test 45.1868
+Epoch 6: Loss:            : Train 0.0000, Val 0.0016, Test 0.0016
+          R2_Score         : Train 0.9146, Val 0.9168, Test 0.9216
+          RMSE             : Train 45.1815, Val 44.7214, Test 43.5727
+Best:
+          R2_Score         : Train 0.9146, Val 0.9168, Test 0.9216
+          RMSE             : Train 45.1815, Val 44.7214, Test 43.5727
+Epoch 7: Loss:            : Train 0.0000, Val 0.0017, Test 0.0015
+          R2_Score         : Train 0.9216, Val 0.9203, Test 0.9252
+          RMSE             : Train 43.2999, Val 43.7883, Test 42.5689
+Best:
+          R2_Score         : Train 0.9216, Val 0.9203, Test 0.9252
+          RMSE             : Train 43.2999, Val 43.7883, Test 42.5689
+Epoch 8: Loss:            : Train 0.0000, Val 0.0015, Test 0.0014
+          R2_Score         : Train 0.9258, Val 0.9238, Test 0.9261
+          RMSE             : Train 42.1312, Val 42.7965, Test 42.3176
+Best:
+          R2_Score         : Train 0.9258, Val 0.9238, Test 0.9261
+          RMSE             : Train 42.1312, Val 42.7965, Test 42.3176
+Epoch 9: Loss:            : Train 0.0000, Val 0.0015, Test 0.0014
+          R2_Score         : Train 0.9306, Val 0.9262, Test 0.9313
+          RMSE             : Train 40.7449, Val 42.1351, Test 40.7821
+Best:
+          R2_Score         : Train 0.9306, Val 0.9262, Test 0.9313
+          RMSE             : Train 40.7449, Val 42.1351, Test 40.7821
+Epoch 10: Loss:            : Train 0.0000, Val 0.0017, Test 0.0015
+          R2_Score         : Train 0.9320, Val 0.9216, Test 0.9265
+          RMSE             : Train 40.3147, Val 43.4223, Test 42.1801
+Best:
+          R2_Score         : Train 0.9306, Val 0.9262, Test 0.9313
+          RMSE             : Train 40.7449, Val 42.1351, Test 40.7821
+Epoch 11: Loss:            : Train 0.0000, Val 0.0013, Test 0.0012
+          R2_Score         : Train 0.9349, Val 0.9359, Test 0.9397
+          RMSE             : Train 39.4510, Val 39.2460, Test 38.2053
+Best:
+          R2_Score         : Train 0.9349, Val 0.9359, Test 0.9397
+          RMSE             : Train 39.4510, Val 39.2460, Test 38.2053
+Epoch 12: Loss:            : Train 0.0000, Val 0.0014, Test 0.0013
+          R2_Score         : Train 0.9378, Val 0.9335, Test 0.9381
+          RMSE             : Train 38.5498, Val 39.9914, Test 38.7105
+Best:
+          R2_Score         : Train 0.9349, Val 0.9359, Test 0.9397
+          RMSE             : Train 39.4510, Val 39.2460, Test 38.2053
+Epoch 13: Loss:            : Train 0.0000, Val 0.0013, Test 0.0012
+          R2_Score         : Train 0.9401, Val 0.9343, Test 0.9384
+          RMSE             : Train 37.8285, Val 39.7554, Test 38.6399
+Best:
+          R2_Score         : Train 0.9349, Val 0.9359, Test 0.9397
+          RMSE             : Train 39.4510, Val 39.2460, Test 38.2053
+Epoch 14: Loss:            : Train 0.0000, Val 0.0013, Test 0.0012
+          R2_Score         : Train 0.9420, Val 0.9368, Test 0.9417
+          RMSE             : Train 37.2307, Val 38.9918, Test 37.5833
+Best:
+          R2_Score         : Train 0.9420, Val 0.9368, Test 0.9417
+          RMSE             : Train 37.2307, Val 38.9918, Test 37.5833
+Epoch 15: Loss:            : Train 0.0000, Val 0.0012, Test 0.0012
+          R2_Score         : Train 0.9410, Val 0.9360, Test 0.9388
+          RMSE             : Train 37.5690, Val 39.2431, Test 38.4905
+Best:
+          R2_Score         : Train 0.9420, Val 0.9368, Test 0.9417
+          RMSE             : Train 37.2307, Val 38.9918, Test 37.5833
+Epoch 16: Loss:            : Train 0.0000, Val 0.0013, Test 0.0012
+          R2_Score         : Train 0.9452, Val 0.9391, Test 0.9429
+          RMSE             : Train 36.2110, Val 38.2660, Test 37.1968
+Best:
+          R2_Score         : Train 0.9452, Val 0.9391, Test 0.9429
+          RMSE             : Train 36.2110, Val 38.2660, Test 37.1968
+Epoch 17: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9468, Val 0.9407, Test 0.9440
+          RMSE             : Train 35.6553, Val 37.7646, Test 36.8341
+Best:
+          R2_Score         : Train 0.9468, Val 0.9407, Test 0.9440
+          RMSE             : Train 35.6553, Val 37.7646, Test 36.8341
+Epoch 18: Loss:            : Train 0.0000, Val 0.0011, Test 0.0011
+          R2_Score         : Train 0.9467, Val 0.9394, Test 0.9426
+          RMSE             : Train 35.6863, Val 38.1805, Test 37.2750
+Best:
+          R2_Score         : Train 0.9468, Val 0.9407, Test 0.9440
+          RMSE             : Train 35.6553, Val 37.7646, Test 36.8341
+Epoch 19: Loss:            : Train 0.0000, Val 0.0014, Test 0.0013
+          R2_Score         : Train 0.9461, Val 0.9340, Test 0.9379
+          RMSE             : Train 35.9103, Val 39.8344, Test 38.7735
+Best:
+          R2_Score         : Train 0.9468, Val 0.9407, Test 0.9440
+          RMSE             : Train 35.6553, Val 37.7646, Test 36.8341
+Epoch 20: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9474, Val 0.9445, Test 0.9486
+          RMSE             : Train 35.4677, Val 36.5248, Test 35.2956
+Best:
+          R2_Score         : Train 0.9474, Val 0.9445, Test 0.9486
+          RMSE             : Train 35.4677, Val 36.5248, Test 35.2956
+Epoch 21: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9480, Val 0.9399, Test 0.9436
+          RMSE             : Train 35.2426, Val 38.0017, Test 36.9740
+Best:
+          R2_Score         : Train 0.9474, Val 0.9445, Test 0.9486
+          RMSE             : Train 35.4677, Val 36.5248, Test 35.2956
+Epoch 22: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9479, Val 0.9444, Test 0.9482
+          RMSE             : Train 35.3024, Val 36.5522, Test 35.4351
+Best:
+          R2_Score         : Train 0.9474, Val 0.9445, Test 0.9486
+          RMSE             : Train 35.4677, Val 36.5248, Test 35.2956
+Epoch 23: Loss:            : Train 0.0000, Val 0.0014, Test 0.0012
+          R2_Score         : Train 0.9474, Val 0.9348, Test 0.9396
+          RMSE             : Train 35.4623, Val 39.6032, Test 38.2357
+Best:
+          R2_Score         : Train 0.9474, Val 0.9445, Test 0.9486
+          RMSE             : Train 35.4677, Val 36.5248, Test 35.2956
+Epoch 24: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9489, Val 0.9457, Test 0.9492
+          RMSE             : Train 34.9568, Val 36.1199, Test 35.0652
+Best:
+          R2_Score         : Train 0.9489, Val 0.9457, Test 0.9492
+          RMSE             : Train 34.9568, Val 36.1199, Test 35.0652
+Epoch 25: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9509, Val 0.9444, Test 0.9469
+          RMSE             : Train 34.2779, Val 36.5759, Test 35.8529
+Best:
+          R2_Score         : Train 0.9489, Val 0.9457, Test 0.9492
+          RMSE             : Train 34.9568, Val 36.1199, Test 35.0652
+Epoch 26: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9520, Val 0.9426, Test 0.9470
+          RMSE             : Train 33.8856, Val 37.1475, Test 35.8178
+Best:
+          R2_Score         : Train 0.9489, Val 0.9457, Test 0.9492
+          RMSE             : Train 34.9568, Val 36.1199, Test 35.0652
+Epoch 27: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9518, Val 0.9425, Test 0.9461
+          RMSE             : Train 33.9619, Val 37.1694, Test 36.1169
+Best:
+          R2_Score         : Train 0.9489, Val 0.9457, Test 0.9492
+          RMSE             : Train 34.9568, Val 36.1199, Test 35.0652
+Epoch 28: Loss:            : Train 0.0000, Val 0.0010, Test 0.0010
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 29: Loss:            : Train 0.0000, Val 0.0011, Test 0.0011
+          R2_Score         : Train 0.9527, Val 0.9435, Test 0.9457
+          RMSE             : Train 33.6316, Val 36.8662, Test 36.2729
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 30: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9523, Val 0.9435, Test 0.9475
+          RMSE             : Train 33.7805, Val 36.8563, Test 35.6596
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 31: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9521, Val 0.9442, Test 0.9478
+          RMSE             : Train 33.8230, Val 36.6394, Test 35.5411
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 32: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9531, Val 0.9456, Test 0.9507
+          RMSE             : Train 33.4785, Val 36.1557, Test 34.5473
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 33: Loss:            : Train 0.0000, Val 0.0012, Test 0.0010
+          R2_Score         : Train 0.9530, Val 0.9459, Test 0.9500
+          RMSE             : Train 33.5336, Val 36.0739, Test 34.7914
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 34: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9518, Val 0.9456, Test 0.9479
+          RMSE             : Train 33.9452, Val 36.1801, Test 35.5143
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 35: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9532, Val 0.9417, Test 0.9443
+          RMSE             : Train 33.4604, Val 37.4461, Test 36.7292
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 36: Loss:            : Train 0.0000, Val 0.0012, Test 0.0011
+          R2_Score         : Train 0.9542, Val 0.9433, Test 0.9466
+          RMSE             : Train 33.0857, Val 36.9305, Test 35.9755
+Best:
+          R2_Score         : Train 0.9521, Val 0.9470, Test 0.9502
+          RMSE             : Train 33.8573, Val 35.6979, Test 34.7275
+Epoch 37: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9551, Val 0.9472, Test 0.9501
+          RMSE             : Train 32.7791, Val 35.6449, Test 34.7810
+Best:
+          R2_Score         : Train 0.9551, Val 0.9472, Test 0.9501
+          RMSE             : Train 32.7791, Val 35.6449, Test 34.7810
+Epoch 38: Loss:            : Train 0.0000, Val 0.0010, Test 0.0010
+          R2_Score         : Train 0.9547, Val 0.9491, Test 0.9517
+          RMSE             : Train 32.9146, Val 34.9688, Test 34.2044
+Best:
+          R2_Score         : Train 0.9547, Val 0.9491, Test 0.9517
+          RMSE             : Train 32.9146, Val 34.9688, Test 34.2044
+Epoch 39: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9546, Val 0.9495, Test 0.9526
+          RMSE             : Train 32.9521, Val 34.8455, Test 33.8852
+Best:
+          R2_Score         : Train 0.9546, Val 0.9495, Test 0.9526
+          RMSE             : Train 32.9521, Val 34.8455, Test 33.8852
+Epoch 40: Loss:            : Train 0.0000, Val 0.0012, Test 0.0010
+          R2_Score         : Train 0.9545, Val 0.9451, Test 0.9490
+          RMSE             : Train 32.9903, Val 36.3362, Test 35.1618
+Best:
+          R2_Score         : Train 0.9546, Val 0.9495, Test 0.9526
+          RMSE             : Train 32.9521, Val 34.8455, Test 33.8852
+Epoch 41: Loss:            : Train 0.0000, Val 0.0010, Test 0.0010
+          R2_Score         : Train 0.9551, Val 0.9487, Test 0.9522
+          RMSE             : Train 32.7739, Val 35.1067, Test 34.0247
+Best:
+          R2_Score         : Train 0.9546, Val 0.9495, Test 0.9526
+          RMSE             : Train 32.9521, Val 34.8455, Test 33.8852
+Epoch 42: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9539, Val 0.9480, Test 0.9512
+          RMSE             : Train 33.2086, Val 35.3712, Test 34.3962
+Best:
+          R2_Score         : Train 0.9546, Val 0.9495, Test 0.9526
+          RMSE             : Train 32.9521, Val 34.8455, Test 33.8852
+Epoch 43: Loss:            : Train 0.0000, Val 0.0013, Test 0.0011
+          R2_Score         : Train 0.9549, Val 0.9417, Test 0.9451
+          RMSE             : Train 32.8272, Val 37.4316, Test 36.4525
+Best:
+          R2_Score         : Train 0.9546, Val 0.9495, Test 0.9526
+          RMSE             : Train 32.9521, Val 34.8455, Test 33.8852
+Epoch 44: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9543, Val 0.9507, Test 0.9529
+          RMSE             : Train 33.0685, Val 34.4279, Test 33.7690
+Best:
+          R2_Score         : Train 0.9543, Val 0.9507, Test 0.9529
+          RMSE             : Train 33.0685, Val 34.4279, Test 33.7690
+Epoch 45: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9561, Val 0.9467, Test 0.9511
+          RMSE             : Train 32.4097, Val 35.8024, Test 34.4101
+Best:
+          R2_Score         : Train 0.9543, Val 0.9507, Test 0.9529
+          RMSE             : Train 33.0685, Val 34.4279, Test 33.7690
+Epoch 46: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9552, Val 0.9497, Test 0.9527
+          RMSE             : Train 32.7087, Val 34.7833, Test 33.8381
+Best:
+          R2_Score         : Train 0.9543, Val 0.9507, Test 0.9529
+          RMSE             : Train 33.0685, Val 34.4279, Test 33.7690
+Epoch 47: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9560, Val 0.9497, Test 0.9526
+          RMSE             : Train 32.4283, Val 34.7752, Test 33.8662
+Best:
+          R2_Score         : Train 0.9543, Val 0.9507, Test 0.9529
+          RMSE             : Train 33.0685, Val 34.4279, Test 33.7690
+Epoch 48: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9571, Val 0.9494, Test 0.9537
+          RMSE             : Train 32.0102, Val 34.8712, Test 33.4751
+Best:
+          R2_Score         : Train 0.9543, Val 0.9507, Test 0.9529
+          RMSE             : Train 33.0685, Val 34.4279, Test 33.7690
+Epoch 49: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9574, Val 0.9509, Test 0.9541
+          RMSE             : Train 31.9218, Val 34.3557, Test 33.3487
+Best:
+          R2_Score         : Train 0.9574, Val 0.9509, Test 0.9541
+          RMSE             : Train 31.9218, Val 34.3557, Test 33.3487
+Epoch 50: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9571, Val 0.9454, Test 0.9499
+          RMSE             : Train 32.0296, Val 36.2263, Test 34.8437
+Best:
+          R2_Score         : Train 0.9574, Val 0.9509, Test 0.9541
+          RMSE             : Train 31.9218, Val 34.3557, Test 33.3487
+Epoch 51: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9579, Val 0.9502, Test 0.9532
+          RMSE             : Train 31.7235, Val 34.5898, Test 33.6538
+Best:
+          R2_Score         : Train 0.9574, Val 0.9509, Test 0.9541
+          RMSE             : Train 31.9218, Val 34.3557, Test 33.3487
+Epoch 52: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9572, Val 0.9473, Test 0.9511
+          RMSE             : Train 31.9695, Val 35.5907, Test 34.3983
+Best:
+          R2_Score         : Train 0.9574, Val 0.9509, Test 0.9541
+          RMSE             : Train 31.9218, Val 34.3557, Test 33.3487
+Epoch 53: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9575, Val 0.9457, Test 0.9484
+          RMSE             : Train 31.8927, Val 36.1180, Test 35.3377
+Best:
+          R2_Score         : Train 0.9574, Val 0.9509, Test 0.9541
+          RMSE             : Train 31.9218, Val 34.3557, Test 33.3487
+Epoch 54: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 55: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9586, Val 0.9501, Test 0.9526
+          RMSE             : Train 31.4735, Val 34.6443, Test 33.8768
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 56: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9586, Val 0.9501, Test 0.9522
+          RMSE             : Train 31.4424, Val 34.6291, Test 34.0208
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 57: Loss:            : Train 0.0000, Val 0.0010, Test 0.0010
+          R2_Score         : Train 0.9585, Val 0.9488, Test 0.9508
+          RMSE             : Train 31.4828, Val 35.0943, Test 34.5203
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 58: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9579, Val 0.9509, Test 0.9542
+          RMSE             : Train 31.7303, Val 34.3724, Test 33.3203
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 59: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9577, Val 0.9503, Test 0.9519
+          RMSE             : Train 31.7953, Val 34.5768, Test 34.1178
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 60: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9575, Val 0.9488, Test 0.9524
+          RMSE             : Train 31.8684, Val 35.0793, Test 33.9407
+Best:
+          R2_Score         : Train 0.9578, Val 0.9514, Test 0.9544
+          RMSE             : Train 31.7601, Val 34.1809, Test 33.2296
+Epoch 61: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9590, Val 0.9515, Test 0.9542
+          RMSE             : Train 31.2980, Val 34.1629, Test 33.2971
+Best:
+          R2_Score         : Train 0.9590, Val 0.9515, Test 0.9542
+          RMSE             : Train 31.2980, Val 34.1629, Test 33.2971
+Epoch 62: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9596, Val 0.9515, Test 0.9540
+          RMSE             : Train 31.0657, Val 34.1379, Test 33.3962
+Best:
+          R2_Score         : Train 0.9596, Val 0.9515, Test 0.9540
+          RMSE             : Train 31.0657, Val 34.1379, Test 33.3962
+Epoch 63: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9589, Val 0.9504, Test 0.9532
+          RMSE             : Train 31.3408, Val 34.5312, Test 33.6646
+Best:
+          R2_Score         : Train 0.9596, Val 0.9515, Test 0.9540
+          RMSE             : Train 31.0657, Val 34.1379, Test 33.3962
+Epoch 64: Loss:            : Train 0.0000, Val 0.0010, Test 0.0010
+          R2_Score         : Train 0.9587, Val 0.9473, Test 0.9493
+          RMSE             : Train 31.4350, Val 35.5889, Test 35.0407
+Best:
+          R2_Score         : Train 0.9596, Val 0.9515, Test 0.9540
+          RMSE             : Train 31.0657, Val 34.1379, Test 33.3962
+Epoch 65: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9584, Val 0.9474, Test 0.9513
+          RMSE             : Train 31.5521, Val 35.5637, Test 34.3316
+Best:
+          R2_Score         : Train 0.9596, Val 0.9515, Test 0.9540
+          RMSE             : Train 31.0657, Val 34.1379, Test 33.3962
+Epoch 66: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 67: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9599, Val 0.9516, Test 0.9551
+          RMSE             : Train 30.9689, Val 34.1006, Test 32.9770
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 68: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9596, Val 0.9519, Test 0.9544
+          RMSE             : Train 31.0717, Val 33.9972, Test 33.2451
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 69: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9603, Val 0.9504, Test 0.9545
+          RMSE             : Train 30.8069, Val 34.5272, Test 33.1804
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 70: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9599, Val 0.9512, Test 0.9534
+          RMSE             : Train 30.9715, Val 34.2580, Test 33.5919
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 71: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9607, Val 0.9504, Test 0.9535
+          RMSE             : Train 30.6707, Val 34.5357, Test 33.5743
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 72: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9606, Val 0.9525, Test 0.9557
+          RMSE             : Train 30.6717, Val 33.7816, Test 32.7571
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 73: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9608, Val 0.9495, Test 0.9522
+          RMSE             : Train 30.5940, Val 34.8337, Test 34.0147
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 74: Loss:            : Train 0.0000, Val 0.0012, Test 0.0010
+          R2_Score         : Train 0.9600, Val 0.9453, Test 0.9487
+          RMSE             : Train 30.9262, Val 36.2596, Test 35.2460
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 75: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9592, Val 0.9527, Test 0.9559
+          RMSE             : Train 31.2344, Val 33.7076, Test 32.6792
+Best:
+          R2_Score         : Train 0.9599, Val 0.9529, Test 0.9559
+          RMSE             : Train 30.9812, Val 33.6385, Test 32.6782
+Epoch 76: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9598, Val 0.9533, Test 0.9557
+          RMSE             : Train 31.0166, Val 33.5030, Test 32.7396
+Best:
+          R2_Score         : Train 0.9598, Val 0.9533, Test 0.9557
+          RMSE             : Train 31.0166, Val 33.5030, Test 32.7396
+Epoch 77: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 78: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9610, Val 0.9514, Test 0.9546
+          RMSE             : Train 30.5400, Val 34.1819, Test 33.1641
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 79: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9609, Val 0.9515, Test 0.9547
+          RMSE             : Train 30.5693, Val 34.1506, Test 33.1371
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 80: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9605, Val 0.9512, Test 0.9533
+          RMSE             : Train 30.7148, Val 34.2458, Test 33.6235
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 81: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9596, Val 0.9494, Test 0.9528
+          RMSE             : Train 31.0736, Val 34.8745, Test 33.8159
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 82: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9581, Val 0.9506, Test 0.9539
+          RMSE             : Train 31.6387, Val 34.4691, Test 33.4174
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 83: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9597, Val 0.9505, Test 0.9542
+          RMSE             : Train 31.0547, Val 34.5164, Test 33.3019
+Best:
+          R2_Score         : Train 0.9610, Val 0.9534, Test 0.9565
+          RMSE             : Train 30.5390, Val 33.4648, Test 32.4759
+Epoch 84: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9611, Val 0.9535, Test 0.9564
+          RMSE             : Train 30.4825, Val 33.4198, Test 32.4811
+Best:
+          R2_Score         : Train 0.9611, Val 0.9535, Test 0.9564
+          RMSE             : Train 30.4825, Val 33.4198, Test 32.4811
+Epoch 85: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9617, Val 0.9523, Test 0.9549
+          RMSE             : Train 30.2653, Val 33.8612, Test 33.0371
+Best:
+          R2_Score         : Train 0.9611, Val 0.9535, Test 0.9564
+          RMSE             : Train 30.4825, Val 33.4198, Test 32.4811
+Epoch 86: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9616, Val 0.9527, Test 0.9555
+          RMSE             : Train 30.2808, Val 33.7136, Test 32.8473
+Best:
+          R2_Score         : Train 0.9611, Val 0.9535, Test 0.9564
+          RMSE             : Train 30.4825, Val 33.4198, Test 32.4811
+Epoch 87: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9621, Val 0.9517, Test 0.9550
+          RMSE             : Train 30.0817, Val 34.0745, Test 32.9961
+Best:
+          R2_Score         : Train 0.9611, Val 0.9535, Test 0.9564
+          RMSE             : Train 30.4825, Val 33.4198, Test 32.4811
+Epoch 88: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 89: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9622, Val 0.9539, Test 0.9559
+          RMSE             : Train 30.0799, Val 33.2925, Test 32.6805
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 90: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9624, Val 0.9540, Test 0.9567
+          RMSE             : Train 29.9821, Val 33.2600, Test 32.3737
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 91: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9618, Val 0.9535, Test 0.9557
+          RMSE             : Train 30.2065, Val 33.4421, Test 32.7521
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 92: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9620, Val 0.9536, Test 0.9561
+          RMSE             : Train 30.1554, Val 33.3970, Test 32.6099
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 93: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9628, Val 0.9541, Test 0.9562
+          RMSE             : Train 29.8121, Val 33.2084, Test 32.5634
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 94: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9629, Val 0.9530, Test 0.9552
+          RMSE             : Train 29.7794, Val 33.6238, Test 32.9459
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 95: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9621, Val 0.9535, Test 0.9567
+          RMSE             : Train 30.0927, Val 33.4538, Test 32.3998
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 96: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9622, Val 0.9543, Test 0.9571
+          RMSE             : Train 30.0746, Val 33.1317, Test 32.2428
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 97: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9626, Val 0.9528, Test 0.9561
+          RMSE             : Train 29.9030, Val 33.7029, Test 32.5959
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 98: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9632, Val 0.9522, Test 0.9548
+          RMSE             : Train 29.6508, Val 33.8894, Test 33.0833
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 99: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9628, Val 0.9534, Test 0.9565
+          RMSE             : Train 29.8213, Val 33.4854, Test 32.4473
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 100: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9636, Val 0.9507, Test 0.9530
+          RMSE             : Train 29.4866, Val 34.4407, Test 33.7262
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 101: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9621, Val 0.9511, Test 0.9537
+          RMSE             : Train 30.0880, Val 34.2760, Test 33.4952
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 102: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9626, Val 0.9535, Test 0.9559
+          RMSE             : Train 29.8848, Val 33.4471, Test 32.6784
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 103: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9629, Val 0.9519, Test 0.9539
+          RMSE             : Train 29.7788, Val 33.9989, Test 33.4153
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 104: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9629, Val 0.9536, Test 0.9563
+          RMSE             : Train 29.7808, Val 33.3936, Test 32.5191
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 105: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9631, Val 0.9513, Test 0.9541
+          RMSE             : Train 29.7146, Val 34.2343, Test 33.3289
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 106: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9624, Val 0.9541, Test 0.9567
+          RMSE             : Train 29.9635, Val 33.2270, Test 32.3990
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 107: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9634, Val 0.9543, Test 0.9569
+          RMSE             : Train 29.5658, Val 33.1609, Test 32.2925
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 108: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9639, Val 0.9528, Test 0.9558
+          RMSE             : Train 29.3593, Val 33.7035, Test 32.7120
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 109: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9638, Val 0.9538, Test 0.9571
+          RMSE             : Train 29.4321, Val 33.3320, Test 32.2389
+Best:
+          R2_Score         : Train 0.9617, Val 0.9545, Test 0.9575
+          RMSE             : Train 30.2740, Val 33.0833, Test 32.0887
+Epoch 110: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9637, Val 0.9549, Test 0.9567
+          RMSE             : Train 29.4601, Val 32.9238, Test 32.3974
+Best:
+          R2_Score         : Train 0.9637, Val 0.9549, Test 0.9567
+          RMSE             : Train 29.4601, Val 32.9238, Test 32.3974
+Epoch 111: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9640, Val 0.9541, Test 0.9569
+          RMSE             : Train 29.3498, Val 33.2035, Test 32.2964
+Best:
+          R2_Score         : Train 0.9637, Val 0.9549, Test 0.9567
+          RMSE             : Train 29.4601, Val 32.9238, Test 32.3974
+Epoch 112: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 113: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9638, Val 0.9543, Test 0.9558
+          RMSE             : Train 29.4211, Val 33.1473, Test 32.7320
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 114: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9640, Val 0.9543, Test 0.9569
+          RMSE             : Train 29.3516, Val 33.1401, Test 32.3133
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 115: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9647, Val 0.9548, Test 0.9573
+          RMSE             : Train 29.0627, Val 32.9841, Test 32.1501
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 116: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9639, Val 0.9548, Test 0.9569
+          RMSE             : Train 29.3651, Val 32.9624, Test 32.3108
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 117: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9634, Val 0.9543, Test 0.9564
+          RMSE             : Train 29.5976, Val 33.1636, Test 32.4921
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 118: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9644, Val 0.9542, Test 0.9563
+          RMSE             : Train 29.1639, Val 33.1671, Test 32.5404
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 119: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9640, Val 0.9549, Test 0.9573
+          RMSE             : Train 29.3393, Val 32.9135, Test 32.1447
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 120: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9646, Val 0.9542, Test 0.9570
+          RMSE             : Train 29.0775, Val 33.1721, Test 32.2872
+Best:
+          R2_Score         : Train 0.9629, Val 0.9551, Test 0.9571
+          RMSE             : Train 29.7844, Val 32.8643, Test 32.2154
+Epoch 121: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 122: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9649, Val 0.9551, Test 0.9569
+          RMSE             : Train 28.9573, Val 32.8431, Test 32.3002
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 123: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9644, Val 0.9552, Test 0.9572
+          RMSE             : Train 29.1774, Val 32.8221, Test 32.1944
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 124: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9643, Val 0.9548, Test 0.9570
+          RMSE             : Train 29.1966, Val 32.9649, Test 32.2604
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 125: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9649, Val 0.9541, Test 0.9570
+          RMSE             : Train 28.9829, Val 33.2136, Test 32.2623
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 126: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9645, Val 0.9548, Test 0.9571
+          RMSE             : Train 29.1281, Val 32.9791, Test 32.2175
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 127: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9646, Val 0.9547, Test 0.9574
+          RMSE             : Train 29.0885, Val 33.0084, Test 32.1175
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 128: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9640, Val 0.9527, Test 0.9556
+          RMSE             : Train 29.3559, Val 33.7116, Test 32.7775
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 129: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9643, Val 0.9556, Test 0.9577
+          RMSE             : Train 29.2213, Val 32.6886, Test 32.0216
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 130: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9644, Val 0.9556, Test 0.9581
+          RMSE             : Train 29.1773, Val 32.6570, Test 31.8575
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 131: Loss:            : Train 0.0000, Val 0.0011, Test 0.0010
+          R2_Score         : Train 0.9637, Val 0.9478, Test 0.9509
+          RMSE             : Train 29.4725, Val 35.4204, Test 34.4937
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 132: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9630, Val 0.9546, Test 0.9572
+          RMSE             : Train 29.7346, Val 33.0442, Test 32.2037
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 133: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9642, Val 0.9545, Test 0.9572
+          RMSE             : Train 29.2635, Val 33.0799, Test 32.1898
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 134: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9648, Val 0.9539, Test 0.9570
+          RMSE             : Train 28.9920, Val 33.2791, Test 32.2528
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 135: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9646, Val 0.9554, Test 0.9578
+          RMSE             : Train 29.0798, Val 32.7591, Test 31.9869
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 136: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9655, Val 0.9545, Test 0.9567
+          RMSE             : Train 28.7379, Val 33.0837, Test 32.4007
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 137: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9654, Val 0.9542, Test 0.9563
+          RMSE             : Train 28.7739, Val 33.1968, Test 32.5211
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 138: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9648, Val 0.9555, Test 0.9575
+          RMSE             : Train 29.0110, Val 32.7214, Test 32.0965
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 139: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9655, Val 0.9557, Test 0.9582
+          RMSE             : Train 28.7005, Val 32.6395, Test 31.8292
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 140: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9656, Val 0.9537, Test 0.9561
+          RMSE             : Train 28.6725, Val 33.3493, Test 32.6039
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 141: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9655, Val 0.9552, Test 0.9578
+          RMSE             : Train 28.7208, Val 32.8211, Test 31.9512
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 142: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9660, Val 0.9557, Test 0.9580
+          RMSE             : Train 28.5300, Val 32.6249, Test 31.9029
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 143: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9658, Val 0.9544, Test 0.9571
+          RMSE             : Train 28.6016, Val 33.1223, Test 32.2378
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 144: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9655, Val 0.9541, Test 0.9570
+          RMSE             : Train 28.7284, Val 33.2032, Test 32.2556
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 145: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9650, Val 0.9518, Test 0.9543
+          RMSE             : Train 28.9315, Val 34.0480, Test 33.2807
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 146: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9648, Val 0.9552, Test 0.9578
+          RMSE             : Train 29.0194, Val 32.8070, Test 31.9760
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 147: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9657, Val 0.9549, Test 0.9568
+          RMSE             : Train 28.6460, Val 32.9238, Test 32.3631
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 148: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9658, Val 0.9549, Test 0.9575
+          RMSE             : Train 28.6135, Val 32.9402, Test 32.0745
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 149: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9661, Val 0.9557, Test 0.9578
+          RMSE             : Train 28.4769, Val 32.6338, Test 31.9533
+Best:
+          R2_Score         : Train 0.9647, Val 0.9559, Test 0.9584
+          RMSE             : Train 29.0493, Val 32.5790, Test 31.7521
+Epoch 150: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 151: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9661, Val 0.9550, Test 0.9569
+          RMSE             : Train 28.4774, Val 32.8991, Test 32.3018
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 152: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9661, Val 0.9545, Test 0.9571
+          RMSE             : Train 28.4563, Val 33.0863, Test 32.2307
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 153: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9657, Val 0.9548, Test 0.9568
+          RMSE             : Train 28.6459, Val 32.9823, Test 32.3586
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 154: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9661, Val 0.9538, Test 0.9568
+          RMSE             : Train 28.4515, Val 33.3121, Test 32.3322
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 155: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9657, Val 0.9535, Test 0.9560
+          RMSE             : Train 28.6370, Val 33.4203, Test 32.6565
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 156: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9661, Val 0.9555, Test 0.9580
+          RMSE             : Train 28.4655, Val 32.7208, Test 31.9110
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 157: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9660, Val 0.9556, Test 0.9582
+          RMSE             : Train 28.4933, Val 32.6618, Test 31.8057
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 158: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9665, Val 0.9550, Test 0.9577
+          RMSE             : Train 28.3094, Val 32.9001, Test 32.0001
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 159: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9664, Val 0.9556, Test 0.9578
+          RMSE             : Train 28.3381, Val 32.6916, Test 31.9715
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 160: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9665, Val 0.9557, Test 0.9571
+          RMSE             : Train 28.3118, Val 32.6406, Test 32.2448
+Best:
+          R2_Score         : Train 0.9658, Val 0.9559, Test 0.9582
+          RMSE             : Train 28.5847, Val 32.5610, Test 31.8066
+Epoch 161: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9661, Val 0.9559, Test 0.9584
+          RMSE             : Train 28.4524, Val 32.5492, Test 31.7577
+Best:
+          R2_Score         : Train 0.9661, Val 0.9559, Test 0.9584
+          RMSE             : Train 28.4524, Val 32.5492, Test 31.7577
+Epoch 162: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 163: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9663, Val 0.9555, Test 0.9580
+          RMSE             : Train 28.3733, Val 32.7059, Test 31.9126
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 164: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9662, Val 0.9553, Test 0.9578
+          RMSE             : Train 28.4359, Val 32.7925, Test 31.9583
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 165: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9659, Val 0.9555, Test 0.9580
+          RMSE             : Train 28.5512, Val 32.7106, Test 31.8829
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 166: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9663, Val 0.9556, Test 0.9576
+          RMSE             : Train 28.3879, Val 32.6772, Test 32.0311
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 167: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9666, Val 0.9551, Test 0.9574
+          RMSE             : Train 28.2437, Val 32.8558, Test 32.1365
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 168: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9668, Val 0.9558, Test 0.9583
+          RMSE             : Train 28.1914, Val 32.6177, Test 31.7858
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 169: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9660, Val 0.9542, Test 0.9567
+          RMSE             : Train 28.5175, Val 33.1740, Test 32.3966
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 170: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9658, Val 0.9544, Test 0.9568
+          RMSE             : Train 28.6101, Val 33.1040, Test 32.3297
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 171: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9665, Val 0.9533, Test 0.9561
+          RMSE             : Train 28.2860, Val 33.5116, Test 32.6230
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 172: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9658, Val 0.9547, Test 0.9572
+          RMSE             : Train 28.5755, Val 33.0064, Test 32.2035
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 173: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9662, Val 0.9553, Test 0.9575
+          RMSE             : Train 28.4128, Val 32.7868, Test 32.0805
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 174: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9660, Val 0.9556, Test 0.9578
+          RMSE             : Train 28.4892, Val 32.6900, Test 31.9862
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 175: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9658, Val 0.9548, Test 0.9566
+          RMSE             : Train 28.6079, Val 32.9835, Test 32.4354
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 176: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9657, Val 0.9538, Test 0.9556
+          RMSE             : Train 28.6515, Val 33.3144, Test 32.7854
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 177: Loss:            : Train 0.0000, Val 0.0010, Test 0.0009
+          R2_Score         : Train 0.9658, Val 0.9531, Test 0.9561
+          RMSE             : Train 28.6016, Val 33.5762, Test 32.6004
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 178: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9659, Val 0.9556, Test 0.9580
+          RMSE             : Train 28.5712, Val 32.6560, Test 31.8820
+Best:
+          R2_Score         : Train 0.9662, Val 0.9560, Test 0.9580
+          RMSE             : Train 28.4244, Val 32.5124, Test 31.8892
+Epoch 179: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 180: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9671, Val 0.9551, Test 0.9581
+          RMSE             : Train 28.0551, Val 32.8706, Test 31.8458
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 181: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9670, Val 0.9551, Test 0.9582
+          RMSE             : Train 28.0802, Val 32.8674, Test 31.8080
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 182: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9666, Val 0.9559, Test 0.9575
+          RMSE             : Train 28.2495, Val 32.5555, Test 32.0981
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 183: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9668, Val 0.9549, Test 0.9575
+          RMSE             : Train 28.1902, Val 32.9226, Test 32.1012
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 184: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9666, Val 0.9561, Test 0.9590
+          RMSE             : Train 28.2401, Val 32.4788, Test 31.4989
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 185: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9669, Val 0.9560, Test 0.9592
+          RMSE             : Train 28.1340, Val 32.5254, Test 31.4308
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 186: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9670, Val 0.9556, Test 0.9585
+          RMSE             : Train 28.0834, Val 32.6567, Test 31.6888
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 187: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9668, Val 0.9567, Test 0.9589
+          RMSE             : Train 28.1787, Val 32.2841, Test 31.5353
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 188: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9672, Val 0.9556, Test 0.9586
+          RMSE             : Train 28.0095, Val 32.6654, Test 31.6539
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 189: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9674, Val 0.9551, Test 0.9567
+          RMSE             : Train 27.9312, Val 32.8520, Test 32.3810
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 190: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9673, Val 0.9565, Test 0.9587
+          RMSE             : Train 27.9498, Val 32.3404, Test 31.6203
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 191: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9674, Val 0.9558, Test 0.9586
+          RMSE             : Train 27.9118, Val 32.6092, Test 31.6681
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 192: Loss:            : Train 0.0000, Val 0.0009, Test 0.0009
+          R2_Score         : Train 0.9667, Val 0.9547, Test 0.9568
+          RMSE             : Train 28.2039, Val 32.9950, Test 32.3317
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 193: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9672, Val 0.9557, Test 0.9578
+          RMSE             : Train 28.0127, Val 32.6323, Test 31.9823
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 194: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9678, Val 0.9560, Test 0.9589
+          RMSE             : Train 27.7645, Val 32.5304, Test 31.5609
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 195: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9673, Val 0.9561, Test 0.9586
+          RMSE             : Train 27.9651, Val 32.4940, Test 31.6575
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 196: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9672, Val 0.9544, Test 0.9572
+          RMSE             : Train 27.9976, Val 33.1280, Test 32.1835
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 197: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9672, Val 0.9558, Test 0.9584
+          RMSE             : Train 28.0095, Val 32.5863, Test 31.7539
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 198: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9675, Val 0.9555, Test 0.9584
+          RMSE             : Train 27.8695, Val 32.7099, Test 31.7261
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 199: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9673, Val 0.9562, Test 0.9591
+          RMSE             : Train 27.9489, Val 32.4523, Test 31.4882
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Epoch 200: Loss:            : Train 0.0000, Val 0.0009, Test 0.0008
+          R2_Score         : Train 0.9676, Val 0.9562, Test 0.9591
+          RMSE             : Train 27.8417, Val 32.4472, Test 31.4915
+Best:
+          R2_Score         : Train 0.9671, Val 0.9567, Test 0.9587
+          RMSE             : Train 28.0544, Val 32.2772, Test 31.6363
+Training time (sec): 416

@@ -119,9 +119,9 @@ if __name__ == '__main__':
     plot_priv(result_dir="out/performance/game/priv", dataset_name="game", metric="Accuracy", n_round=5,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
               noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/game_perturb.png")
-    plot_priv(result_dir="out/performance/song/priv", dataset_name="song", metric="R2_Score", n_round=3,
+    plot_priv(result_dir="out/performance/song/priv", dataset_name="song", metric="R2_Score", n_round=4,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
               noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/song_perturb.png")
-    plot_priv(result_dir="out/performance/ny/priv", dataset_name="ny", metric="R2_Score", n_round=4,
+    plot_priv(result_dir="out/performance/ny/priv", dataset_name="ny", metric="R2_Score", n_round=5,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
               noises=[1e-0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 5e-6], save_path="fig/ny_perturb.png")
