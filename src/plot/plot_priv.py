@@ -66,6 +66,7 @@ def plot_priv(result_dir, dataset_name, metric, n_round, algorithms: list, noise
     # lgd = ax.legend()
 
     fig.tight_layout()
+    fig.set_size_inches(8, 5)
 
     plt.show()
     if save_path:
@@ -113,13 +114,13 @@ if __name__ == '__main__':
     plot_priv(result_dir="out/performance/beijing/priv", dataset_name="beijing", metric="R2_Score", n_round=5,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
               noises=[1e-0, 1e-1, 1e-2, 1e-3, 5e-4, 1e-4, 5e-5], save_path="fig/beijing_perturb.png")
-    plot_priv(result_dir="out/performance/hdb/priv", dataset_name="hdb", metric="R2_Score", n_round=1,
-              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'Solo'],
+    plot_priv(result_dir="out/performance/hdb/priv", dataset_name="hdb", metric="R2_Score", n_round=5,
+              algorithms=['FedSim', 'Top1Sim', 'FeatureSim', 'AvgSim', 'Solo'],
               noises=[1e-0, 1e-1, 1e-2, 1e-3, 5e-4, 1e-4, 5e-5], save_path="fig/hdb_perturb.png")
     plot_priv(result_dir="out/performance/game/priv", dataset_name="game", metric="Accuracy", n_round=5,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
               noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/game_perturb.png")
-    plot_priv(result_dir="out/performance/song/priv", dataset_name="song", metric="R2_Score", n_round=4,
+    plot_priv(result_dir="out/performance/song/priv", dataset_name="song", metric="R2_Score", n_round=5,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
               noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/song_perturb.png")
     plot_priv(result_dir="out/performance/ny/priv", dataset_name="ny", metric="R2_Score", n_round=5,

@@ -83,6 +83,7 @@ def plot_knn(result_dir, dataset_name, metric, n_round, algorithms: list, ks: li
 
 if __name__ == '__main__':
     plt.rcParams["font.size"] = 20
+    np.seterr(all='raise')
     os.chdir(sys.path[0] + "/../../")  # change working directory
     plot_knn(result_dir="./out/performance/beijing/knn", dataset_name="beijing", metric="R2_Score", n_round=5,
              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
@@ -93,9 +94,9 @@ if __name__ == '__main__':
     plot_knn(result_dir="./out/performance/game/knn", dataset_name="game", metric="Accuracy", n_round=5,
              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Exact', 'Solo'],
              ks=[3, 5, 10, 20, 30, 40, 50], save_path="fig/game_knn.png")
-    # plot_knn(result_dir="./out/performance/song/knn", dataset_name="song", metric="R2_Score", n_round=3,
-    #          algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
-    #          ks=[3, 5, 10, 20, 30, 40, 50], save_path="fig/song_knn.png")
+    plot_knn(result_dir="./out/performance/song/knn", dataset_name="song", metric="R2_Score", n_round=5,
+             algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+             ks=[3, 5, 10, 20, 30, 40, 50], save_path="fig/song_knn.png")
     plot_knn(result_dir="./out/performance/ny/knn", dataset_name="ny", metric="R2_Score", n_round=5,
              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
              ks=[3, 5, 10, 20, 30, 40, 50], save_path="fig/ny_knn.png")
