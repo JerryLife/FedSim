@@ -60,10 +60,11 @@ model = FeatureSimModel(num_common_features=num_common_features,
                         cut_dims=[50, 50],
 
                         # private link parameters
-                        link_epsilon=0.1,
-                        link_delta=0.1,
-                        link_threshold_t=0.1,
-                        sim_leak_p=args.leak_p
+                        link_epsilon=2e-3,
+                        link_delta=2e-3,
+                        link_threshold_t=1e-2,
+                        sim_leak_p=args.leak_p,
+                        link_n_jobs=-1,
                         )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_{:.1f}_p_base.pkl"
                     .format(noise_scale, args.leak_p))

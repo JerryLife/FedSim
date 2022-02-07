@@ -29,7 +29,7 @@ def plot_noise(result_dir, dataset_name, metric, n_round, algorithms: list, nois
             scores_per_noise = []
             for i in range(n_round):
                 if algo.lower() in ['all']:
-                    file_name = "../no_priv{}_{}_noise_{:.{prev}f}_{}.out".format(dataset_name, algo_id, noise, i, prev=decimal)
+                    file_name = "../no_priv/{}_{}_noise_{:.{prev}f}_{}.out".format(dataset_name, algo_id, noise, i, prev=decimal)
                 else:
                     file_name = "{}_{}_noise_{:.{prev}f}_{}.out".format(dataset_name, algo_id, noise, i, prev=decimal)
                 file_path = os.path.join(result_dir, file_name)

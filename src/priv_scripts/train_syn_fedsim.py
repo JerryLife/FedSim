@@ -38,8 +38,8 @@ model = FedSimModel(num_common_features=num_common_features,
                     grid_width=1.5,
                     knn_k=100,
                     filter_top_k=args.top_k,
-                    kd_tree_radius=2,
-                    tree_leaf_size=1000,
+                    kd_tree_radius=1e-2,
+                    tree_leaf_size=100,
                     model_name=name + "_" + now_string,
                     val_rate=0.1,
                     test_rate=0.2,
@@ -75,12 +75,11 @@ model = FedSimModel(num_common_features=num_common_features,
                     conv_kernel_v_size=7,
 
                     # private link parameters
-                    link_epsilon=5e-3,
-                    link_delta=5e-3,
-                    link_threshold_t=1e-2,
+                    link_epsilon=2e-3,
+                    link_delta=2e-3,
+                    link_threshold_t=5e-2,
                     sim_leak_p=args.leak_p,
                     link_n_jobs=-1,
                     )
-# model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}_p_base.pkl".format(noise_scale),
-#                     sim_model_path=None)
-model.train_splitnn(X1, X2, y)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/syn_sim_noise_{:.1f}_p_base.pkl".format(noise_scale))
+# model.train_splitnn(X1, X2, y)

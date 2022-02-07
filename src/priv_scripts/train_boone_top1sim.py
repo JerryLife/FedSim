@@ -62,9 +62,10 @@ model = Top1SimModel(num_common_features=num_common_features,
                      cut_dims=[50, 50],
 
                      # private link parameters
-                     link_epsilon=0.1,
-                     link_delta=0.1,
-                     link_threshold_t=0.1,
-                     sim_leak_p=args.leak_p
+                     link_epsilon=5e-3,
+                     link_delta=5e-3,
+                     link_threshold_t=5e-2,
+                     sim_leak_p=args.leak_p,
+                     link_n_jobs=-1,
                      )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/boone_sim_noise_{:.1f}_p_base.pkl".format(noise_scale))

@@ -83,7 +83,6 @@ def plot_knn(result_dir, dataset_name, metric, n_round, algorithms: list, ks: li
 
 if __name__ == '__main__':
     plt.rcParams["font.size"] = 20
-    np.seterr(all='raise')
     os.chdir(sys.path[0] + "/../../")  # change working directory
     plot_knn(result_dir="./out/performance/beijing/knn", dataset_name="beijing", metric="R2_Score", n_round=5,
              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],

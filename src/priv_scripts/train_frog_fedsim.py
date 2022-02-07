@@ -75,9 +75,9 @@ model = FedSimModel(num_common_features=num_common_features,
                     conv_kernel_v_size=7,
 
                     # private link parameters
-                    link_epsilon=0.1,
-                    link_delta=0.1,
-                    link_threshold_t=0.1,
+                    link_epsilon=2e-3,
+                    link_delta=2e-3,
+                    link_threshold_t=1e-2,
                     sim_leak_p=args.leak_p,
                     link_n_jobs=-1,
                     )

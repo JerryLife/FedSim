@@ -1,3 +1,5 @@
+import matplotlib.pylab
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
@@ -44,11 +46,44 @@ def plot_sim_distribution(data_cache_path, sim_dim=1, knn_k=100, threshold=20):
     pass
 
 
+def plot_metric_vs_accuracy(output_path):
+    params = {'legend.fontsize': 'xx-large',
+         'axes.labelsize': 'xx-large',
+         'axes.titlesize':'xx-large',
+         'xtick.labelsize':'xx-large',
+         'ytick.labelsize':'xx-large'}
+    matplotlib.pylab.rcParams.update(params)
+
+    delta = [34.05, 14.26, 20.69, 4.14, 1.24]
+    score_top1 = np.asarray([58.54, 256.19, 31.56, 92.71, 8.18])
+    score_fedsim = np.asarray([42.12, 236.28, 27.17, 92.87, 8])
+    dataset_name = ['house', 'taxi', 'hdb', 'game', 'song']
+    improve = np.abs(score_fedsim - score_top1) / score_top1 * 100
+    plt.scatter(delta, improve)
+    plt.annotate('house', (delta[0], improve[0]), fontsize=16,
+                 xytext=(delta[0]-3.5, improve[0]-2))
+    for i, name in enumerate(dataset_name):
+        if i == 0:
+            continue
+        plt.annotate(name, (delta[i], improve[i]), fontsize=16,
+                     xytext=(delta[i]+.5, improve[i]+.5))
+
+    plt.xlabel(r"$\Delta$(Top1Sim)")
+    plt.ylabel("Improvement on Top1Sim (%)")
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(output_path)
+
+
 if __name__ == '__main__':
-    for k in [1, 5, 10, 20, 30, 40, 50]:
+    for k in [1]:
         print(f"{k=}")
-        plot_sim_distribution("cache/beijing_sim.pkl", 1, knn_k=100, threshold=2*k)
-        plot_sim_distribution("cache/game_sim.pkl", 1, knn_k=50, threshold=k)
-        plot_sim_distribution("cache/hdb_sim.pkl", 1, knn_k=50, threshold=k)
-        plot_sim_distribution("cache/song_sim.pkl", 1, knn_k=50, threshold=k)
-        plot_sim_distribution("cache/ny_sim.pkl", 1, knn_k=50, threshold=k)
+        # plot_sim_distribution("cache/beijing_sim.pkl", 1, knn_k=100, threshold=2*k)
+        # plot_sim_distribution("cache/game_sim.pkl", 1, knn_k=50, threshold=k)
+        # plot_sim_distribution("cache/hdb_sim.pkl", 1, knn_k=50, threshold=k)
+        # plot_sim_distribution("cache/song_sim.pkl", 1, knn_k=50, threshold=k)
+        # plot_sim_distribution("cache/ny_sim.pkl", 1, knn_k=50, threshold=k)
+        # plot_sim_distribution("cache/syn_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+        # plot_sim_distribution("cache/boone_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+        # plot_sim_distribution("cache/frog_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+    plot_metric_vs_accuracy("fig/metric_vs_improve.png")

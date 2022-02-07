@@ -23,13 +23,14 @@ def plot_priv(result_dir, dataset_name, metric, n_round, algorithms: list, noise
 
         scores_per_algo = []
         errors_per_algo = [[], []]
+        full_dataset_name = dataset_name + "_noise_0.2" if dataset_name in ['syn', 'boone', 'frog'] else dataset_name
         for noise in noises:
             scores_per_noise = []
             for i in range(n_round):
                 if algo.lower() == 'solo':
-                    file_name = "../no_priv/{}_A_{}.out".format(dataset_name, i)
+                    file_name = "../no_priv/{}_A_{}.out".format(full_dataset_name, i)
                 elif algo.lower() == 'avgsim':
-                    file_name = "../no_priv/{}_avgsim_{}.out".format(dataset_name, i)
+                    file_name = "../no_priv/{}_avgsim_{}.out".format(full_dataset_name, i)
                 else:
                     b = -int(np.ceil(np.abs(np.log10(noise))))
                     a = int(noise / 10 ** b)
@@ -111,18 +112,22 @@ if __name__ == '__main__':
     #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
     #           noises=[1e-0, 1e-1, 1e-2], save_path="fig/frog_perturb.png")
 
-    plot_priv(result_dir="out/performance/beijing/priv", dataset_name="beijing", metric="R2_Score", n_round=5,
+    # plot_priv(result_dir="out/performance/beijing/priv", dataset_name="beijing", metric="R2_Score", n_round=5,
+    #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+    #           noises=[1e-0, 1e-1, 1e-2, 1e-3, 5e-4, 1e-4, 5e-5], save_path="fig/beijing_perturb.png")
+    # plot_priv(result_dir="out/performance/hdb/priv", dataset_name="hdb", metric="R2_Score", n_round=5,
+    #           algorithms=['FedSim', 'Top1Sim', 'FeatureSim', 'AvgSim', 'Solo'],
+    #           noises=[1e-0, 1e-1, 1e-2, 1e-3, 5e-4, 1e-4, 5e-5], save_path="fig/hdb_perturb.png")
+    # plot_priv(result_dir="out/performance/game/priv", dataset_name="game", metric="Accuracy", n_round=5,
+    #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+    #           noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/game_perturb.png")
+    # plot_priv(result_dir="out/performance/song/priv", dataset_name="song", metric="R2_Score", n_round=5,
+    #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+    #           noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/song_perturb.png")
+    # plot_priv(result_dir="out/performance/ny/priv", dataset_name="ny", metric="R2_Score", n_round=5,
+    #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+    #           noises=[1e-0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 5e-6], save_path="fig/ny_perturb.png")
+    plot_priv(result_dir="out/performance/frog/priv", dataset_name="frog", metric="R2_Score", n_round=5,
               algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
-              noises=[1e-0, 1e-1, 1e-2, 1e-3, 5e-4, 1e-4, 5e-5], save_path="fig/beijing_perturb.png")
-    plot_priv(result_dir="out/performance/hdb/priv", dataset_name="hdb", metric="R2_Score", n_round=5,
-              algorithms=['FedSim', 'Top1Sim', 'FeatureSim', 'AvgSim', 'Solo'],
-              noises=[1e-0, 1e-1, 1e-2, 1e-3, 5e-4, 1e-4, 5e-5], save_path="fig/hdb_perturb.png")
-    plot_priv(result_dir="out/performance/game/priv", dataset_name="game", metric="Accuracy", n_round=5,
-              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
-              noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/game_perturb.png")
-    plot_priv(result_dir="out/performance/song/priv", dataset_name="song", metric="R2_Score", n_round=5,
-              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
-              noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/song_perturb.png")
-    plot_priv(result_dir="out/performance/ny/priv", dataset_name="ny", metric="R2_Score", n_round=5,
-              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
-              noises=[1e-0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 5e-6], save_path="fig/ny_perturb.png")
+              noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 1e-3], save_path="fig/frog_perturb.png")
+

@@ -32,7 +32,7 @@ model = MergeSimModel(num_common_features=num_common_features,
                       task='multi_cls',
                       dataset_type='syn',
                       metrics=['accuracy'],
-                      blocking_method='knn',
+                      blocking_method='knn_priv_str',
                       n_classes=10,
                       grid_min=-10.0,
                       grid_max=10.0,
@@ -68,10 +68,11 @@ model = MergeSimModel(num_common_features=num_common_features,
                       cut_dims=[50, 50],
 
                       # private link parameters
-                      link_epsilon=0.1,
-                      link_delta=0.1,
-                      link_threshold_t=0.1,
-                      sim_leak_p=args.leak_p
+                      link_epsilon=2e-3,
+                      link_delta=2e-3,
+                      link_threshold_t=1e-2,
+                      sim_leak_p=args.leak_p,
+                      link_n_jobs=-1,
                       )
 model.train_splitnn(X1, X2, y, data_cache_path="cache/frog_sim_{:.1f}_noise_{:.1f}.pkl"
                     .format(noise_scale, args.leak_p))
