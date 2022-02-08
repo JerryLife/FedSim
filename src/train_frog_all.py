@@ -36,7 +36,8 @@ data_loader = TwoPartyLoader.from_pickle(root + dataset + "_scale_{:.1f}".format
 [X1, X2], y = data_loader.load_parties()
 
 # remove linked features
-X = np.concatenate([X1[:, :-num_common_features], X2[:, num_common_features:]], axis=1)
+# X = np.concatenate([X1[:, :-num_common_features], X2[:, num_common_features:]], axis=1)
+X = np.concatenate([X1, X2], axis=1)
 
 print("X got {} dimensions".format(X.shape[1]))
 name = "frog_all_noise_{:.1f}".format(noise_scale)

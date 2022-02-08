@@ -41,7 +41,8 @@ syn_generator = TwoPartyClsMany2ManyGenerator.from_pickle(
 [X1, X2], y = syn_generator.get_parties()
 
 # remove linked features
-X = np.concatenate([X1[:, :-num_common_features], X2[:, num_common_features:]], axis=1)
+# X = np.concatenate([X1[:, :-num_common_features], X2[:, num_common_features:]], axis=1)
+X = np.concatenate([X1, X2], axis=1)
 print("X got {} dimensions".format(X.shape[1]))
 
 name = "syn_all_noise_{:.1f}".format(noise_scale)
