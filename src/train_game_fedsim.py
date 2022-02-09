@@ -18,6 +18,8 @@ parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
 parser.add_argument('-k', '--top-k', type=int, default=None)
 parser.add_argument('--mlp-merge', action='store_true')
+parser.add_argument('-ds', '--disable-sort', action='store_true')
+parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 1
@@ -46,9 +48,9 @@ model = FedSimModel(num_common_features=num_common_features,
                     drop_key=True,
                     device='cuda:{}'.format(args.gpu),
                     hidden_sizes=[200, 100],
-                    train_batch_size=32,
+                    train_batch_size=128,
                     test_batch_size=1024 * 4,
-                    num_epochs=50,
+                    num_epochs=100,
                     learning_rate=1e-3,
                     weight_decay=1e-5,
                     update_sim_freq=1,
@@ -70,8 +72,10 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
                     merge_dropout_p=0.7,
                     conv_n_channels=8,
-                    conv_kernel_v_size=5,
+                    conv_kernel_v_size=7,
                     mlp_merge=[1600, 1000, 400] if args.mlp_merge else None,
+                    disable_sort=args.disable_sort,
+                    disable_weight=args.disable_weight,
 
                     # linkage parameters
                     edit_distance_threshold=1,

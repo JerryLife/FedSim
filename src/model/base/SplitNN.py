@@ -21,7 +21,7 @@ class SplitNN(nn.Module):
         :param dims: list of int
         :return:
         """
-        assert sum(dims) == x.shape[1]
+        assert sum(dims) == x.shape[1], f"{sum(dims)=}, {x.shape[1]=}"
         xs = []
         s_pos = 0
         for dim in dims:

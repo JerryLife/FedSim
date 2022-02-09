@@ -18,6 +18,8 @@ parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
 parser.add_argument('-k', '--top-k', type=int, default=None)
 parser.add_argument('--mlp-merge', action='store_true')
+parser.add_argument('-ds', '--disable-sort', action='store_true')
+parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 4
@@ -70,10 +72,12 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.3,
+                    merge_dropout_p=0.1,
                     conv_n_channels=8,
                     conv_kernel_v_size=5,
                     mlp_merge=[1600, 1000, 400] if args.mlp_merge else None,
+                    disable_sort=args.disable_sort,
+                    disable_weight=args.disable_weight,
 
                     # private link parameters
                     link_epsilon=1e-1,

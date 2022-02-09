@@ -88,7 +88,7 @@ if __name__ == '__main__':
     table_str = create_table(result_dir="./out/performance", priv_dir="no_priv",
                              dataset_names=['beijing', 'ny', 'hdb', 'game', 'song'],
                              metrics=[['R2_Score', 'RMSE'] for _ in range(3)] + [['Accuracy'], ['R2_Score', 'RMSE']], n_rounds=5,
-                             algorithms=reversed(['fedsim', 'mlp', 'top1sim', 'avgsim', 'featuresim', 'exact', 'A']))
+                             algorithms=reversed(['fedsim', 'mlp', 'disable_sort', 'disable_weight', 'top1sim', 'avgsim', 'featuresim', 'exact', 'A']))
     print(table_str)
     time_str = create_time_table(result_dir="./out/performance", priv_dir="no_priv",
                               dataset_names=['syn', 'boone', 'frog', 'beijing', 'ny', 'hdb', 'game', 'song'], n_rounds=5,

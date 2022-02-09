@@ -18,6 +18,8 @@ parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
 parser.add_argument('-k', '--top-k', type=int, default=None)
 parser.add_argument('--mlp-merge', action='store_true')
+parser.add_argument('-ds', '--disable-sort', action='store_true')
+parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 1

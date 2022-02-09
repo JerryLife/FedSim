@@ -6,6 +6,7 @@ import gc
 from datetime import datetime
 from queue import PriorityQueue
 from collections.abc import Iterable
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -1191,6 +1192,175 @@ class SimModel(TwoPartyBaseModel):
 
         return train_dataset, val_dataset, test_dataset, y_scaler
 
+    def prepare_train_party3(self, data1, data2, data3, labels, data_cache_path=None, scale=False):
+        if data_cache_path and os.path.isfile(data_cache_path):
+            print("Loading data from cache")
+            with open(data_cache_path, 'rb') as f:
+                train_dataset, val_dataset, test_dataset, y_scaler, self.sim_scaler = pickle.load(f)
+            print("Done")
+        else:
+            print("Splitting data")
+            train_data1, val_data1, test_data1, train_labels, val_labels, test_labels, train_idx1, val_idx1, test_idx1 = \
+                self.split_data(data1, labels, val_rate=self.val_rate, test_rate=self.test_rate)
+
+            if self.dataset_type == 'syn':
+                train_data2 = data2[train_idx1]
+                val_data2 = data2[val_idx1]
+                test_data2 = data2[test_idx1]
+                train_data3 = data3[train_idx1]
+                val_data3 = data3[val_idx1]
+                test_data3 = data3[test_idx1]
+            elif self.dataset_type == 'real':
+                train_data2 = data2
+                val_data2 = data2
+                test_data2 = data2
+                train_data3 = data3
+                val_data3 = data3
+                test_data3 = data3
+            else:
+                assert False, "Not supported dataset type"
+            print("Matching training set")
+            self.sim_scaler = None  # scaler will fit train_Xs and transform val_Xs, test_Xs
+            preserve_key = not self.drop_key
+            [_train_X2, _train_X3], _train_y, _train_idx = self.match(train_data2, train_data3, train_labels,
+                                                                      idx=train_idx1,
+                                                                      preserve_key=preserve_key, grid_min=self.grid_min,
+                                                                      grid_max=self.grid_max,
+                                                                      grid_width=self.grid_width,
+                                                                      knn_k=10,
+                                                                      tree_leaf_size=self.tree_leaf_size,
+                                                                      radius=self.tree_radius)
+            _train_X2_X3 = np.concatenate([_train_X2[:, -self.num_common_features:],
+                                           _train_X3[:, :1],
+                                           _train_X2[:, 1:-self.num_common_features],
+                                           _train_X3[:, 1:]], axis=1)
+            scaler1 = deepcopy(self.sim_scaler)
+            self.sim_scaler = None
+            [train_X1, train_X2_X3], train_y, train_idx = self.match(train_data1, _train_X2_X3, train_labels,
+                                                                     idx=train_idx1,
+                                                                     preserve_key=preserve_key, grid_min=self.grid_min,
+                                                                     grid_max=self.grid_max, grid_width=self.grid_width,
+                                                                     knn_k=self.knn_k,
+                                                                     tree_leaf_size=self.tree_leaf_size,
+                                                                     radius=self.tree_radius)
+            train_Xs = [np.concatenate([train_X2_X3[:, :2], train_X1[:, 1:]], axis=1), train_X2_X3]
+            # X1: sim1|data
+            # X2: sim1|sim2|data
+            # X3: sim2|data
+            assert self.sim_scaler is not None
+            print("Matching validation set")
+            scaler2 = deepcopy(self.sim_scaler)
+            self.sim_scaler = scaler1
+            [_val_X2, _val_X3], _val_y, _val_idx = self.match(val_data2, val_data3, val_labels,
+                                                                      idx=val_idx1,
+                                                                      preserve_key=preserve_key, grid_min=self.grid_min,
+                                                                      grid_max=self.grid_max,
+                                                                      grid_width=self.grid_width,
+                                                                      knn_k=10,
+                                                                      tree_leaf_size=self.tree_leaf_size,
+                                                                      radius=self.tree_radius)
+            _val_X2_X3 = np.concatenate([_val_X2, _val_X3], axis=1)
+            self.sim_scaler = scaler2
+            [val_X1, val_X2_X3], val_y, val_idx = self.match(val_data1, _val_X2_X3, val_labels,
+                                                                     idx=val_idx1,
+                                                                     preserve_key=preserve_key, grid_min=self.grid_min,
+                                                                     grid_max=self.grid_max, grid_width=self.grid_width,
+                                                                     knn_k=self.knn_k,
+                                                                     tree_leaf_size=self.tree_leaf_size,
+                                                                     radius=self.tree_radius)
+            val_X2, val_X3 = val_X2_X3[:, :-_val_X3.shape[1]], val_X2_X3[:, -_val_X3.shape[1]:]
+            val_Xs = [np.concatenate([val_X2[:, :2], val_X1[:, 1:]], axis=1), np.concatenate([val_X2, val_X3[:, 1:]], axis=1)]
+            assert self.sim_scaler is not None
+            print("Matching test set")
+            self.sim_scaler = scaler1
+            [_test_X2, _test_X3], _test_y, _test_idx = self.match(test_data2, test_data3, test_labels,
+                                                                      idx=test_idx1,
+                                                                      preserve_key=preserve_key, grid_min=self.grid_min,
+                                                                      grid_max=self.grid_max,
+                                                                      grid_width=self.grid_width,
+                                                                      knn_k=10,
+                                                                      tree_leaf_size=self.tree_leaf_size,
+                                                                      radius=self.tree_radius)
+            _test_X2_X3 = np.concatenate([_test_X2, _test_X3], axis=1)
+            self.sim_scaler = scaler2
+            [test_X1, test_X2_X3], test_y, test_idx = self.match(test_data1, _test_X2_X3, test_labels,
+                                                                     idx=test_idx1,
+                                                                     preserve_key=preserve_key, grid_min=self.grid_min,
+                                                                     grid_max=self.grid_max, grid_width=self.grid_width,
+                                                                     knn_k=self.knn_k,
+                                                                     tree_leaf_size=self.tree_leaf_size,
+                                                                     radius=self.tree_radius)
+            test_X2, test_X3 = test_X2_X3[:, :-_test_X3.shape[1]], test_X2_X3[:, -_test_X3.shape[1]:]
+            test_Xs = [np.concatenate([test_X2[:, :2], test_X1[:, 1:]], axis=1), np.concatenate([test_X2, test_X3[:, 1:]], axis=1)]
+
+            for train_X, val_X, test_X in zip(train_Xs, val_Xs, test_Xs):
+                print("Replace NaN with mean value")
+                col_mean = np.nanmean(train_X, axis=0)
+                train_indices = np.where(np.isnan(train_X))
+                train_X[train_indices] = np.take(col_mean, train_indices[1])
+                print("Train done.")
+                val_indices = np.where(np.isnan(val_X))
+                val_X[val_indices] = np.take(col_mean, val_indices[1])
+                print("Validation done.")
+                test_indices = np.where(np.isnan(test_X))
+                test_X[test_indices] = np.take(col_mean, test_indices[1])
+                print("Test done.")
+
+                if scale:
+                    sim_dim = self.num_common_features if self.feature_wise_sim else 2
+                    print("Scaling X")
+                    x_scaler = StandardScaler()
+                    train_X[:, sim_dim:] = x_scaler.fit_transform(train_X[:, sim_dim:])
+                    val_X[:, sim_dim:] = x_scaler.transform(val_X[:, sim_dim:])
+                    test_X[:, sim_dim:] = x_scaler.transform(test_X[:, sim_dim:])
+                    # train_X[:] = x_scaler.fit_transform(train_X)
+                    # val_X[:] = x_scaler.transform(val_X)
+                    # test_X[:] = x_scaler.transform(test_X)
+                    print("Scale done.")
+
+            y_scaler = None
+            if scale and self.task == 'regression':
+                print("Scaling y")
+                y_scaler = MinMaxScaler(feature_range=(0, 1))
+                train_y = y_scaler.fit_transform(train_y.reshape(-1, 1)).flatten()
+                val_y = y_scaler.transform(val_y.reshape(-1, 1)).flatten()
+                test_y = y_scaler.transform(test_y.reshape(-1, 1)).flatten()
+                print("Scale done")
+
+            sim_dim = self.num_common_features if self.feature_wise_sim else 2
+            train_dataset = SimDataset(train_Xs[0], train_Xs[1], train_y, train_idx, sim_dim=sim_dim)
+            val_dataset = SimDataset(val_Xs[0], val_Xs[1], val_y, val_idx, sim_dim=sim_dim)
+            test_dataset = SimDataset(test_Xs[0], test_Xs[1], test_y, test_idx, sim_dim=sim_dim)
+
+            if data_cache_path:
+                print("Saving data to cache")
+                with open(data_cache_path, 'wb') as f:
+                    pickle.dump([train_dataset, val_dataset, test_dataset, y_scaler, self.sim_scaler], f)
+                print("Saved")
+
+        print("Calculating noise scale")
+        if np.isclose(self.sim_leak_p, 1.0):
+            noise_scale = 0.0
+        else:
+            sim_std = self.sim_scaler.scale_.item()
+            print("Standard variance of sim_score: {:.2f}".format(sim_std))
+            self.scale_analysis = SimNoiseScale(sim_std, sim_leak_p=self.sim_leak_p)
+            noise_scale = self.scale_analysis.noise_scale
+
+        train_dataset.add_noise_to_sim_(noise_scale)
+        val_dataset.add_noise_to_sim_(noise_scale)
+        test_dataset.add_noise_to_sim_(noise_scale)
+
+        if self.filter_top_k is not None:
+            print("Filter dataset to top {}".format(self.filter_top_k))
+            train_dataset.filter_to_topk_dataset_(self.filter_top_k)
+            val_dataset.filter_to_topk_dataset_(self.filter_top_k)
+            test_dataset.filter_to_topk_dataset_(self.filter_top_k)
+
+            self.knn_k = self.filter_top_k
+
+        return train_dataset, val_dataset, test_dataset, y_scaler
+
     @staticmethod
     def var_collate_fn(batch):
         data = torch.cat([item[0] for item in batch], dim=0)
@@ -1212,7 +1382,7 @@ class SimModel(TwoPartyBaseModel):
             x = np.arange(-3, 3, 0.01)
             x_tensor = torch.tensor(x).float().reshape(-1, 1).to(self.device)
             z = model(x_tensor).detach().cpu().numpy()
-            assert ((0 <= z) & (z <= 1)).all(), "{}".format(z)
+            # assert ((0 <= z) & (z <= 1)).all()
             plt.plot(x, z)
             plt.xlabel(r"Similarity $s_{ij}$")
             plt.ylabel(r"Weight $w_{ij}$")
