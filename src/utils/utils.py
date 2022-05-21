@@ -70,3 +70,10 @@ class DroppingPriorityQueue:
 
     def __len__(self):
         return len(self._queue)
+
+
+def equal_split(n, k):
+    if n % k == 0:
+        return [n // k for _ in range(k)]
+    else:
+        return [n // k for _ in range(k - 1)] + [n % k]
