@@ -17,7 +17,9 @@ def read_file(file_path, metrics: list):
         metric_values = [np.nan for _ in metrics]
         with open(file_path, "r", encoding="ISO-8859-1") as f:
             for line in reversed(f.readlines()):
-                if "time" in line:
+                if line.isspace():
+                    continue
+                elif "time" in line:
                     time_sec = int(line.split()[-1])    # get the value of time in seconds (must be integer)
                 elif "Best" in line:
                     break
