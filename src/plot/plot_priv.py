@@ -3,9 +3,10 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.special import erf
 
 from plot.file_reader import read_file
-from plot.mapping import color_map, dataset_map, metric_map
+from plot.mapping import color_map, dataset_map, metric_map, marker_map
 
 
 def plot_priv(result_dir, dataset_name, metric, n_round, algorithms: list, noises: list, save_path=None):
@@ -56,7 +57,7 @@ def plot_priv(result_dir, dataset_name, metric, n_round, algorithms: list, noise
             else:
                 assert False
 
-        ax.errorbar(noises, scores_per_algo, marker='s', yerr=errors_per_algo, label=algo,
+        ax.errorbar(noises, scores_per_algo, marker=marker_map[algo], yerr=errors_per_algo, label=algo,
                     color=color_map[algo], capsize=3)
         print("Algorithm {} printed".format(algo))
 
@@ -81,6 +82,30 @@ def plot_priv(result_dir, dataset_name, metric, n_round, algorithms: list, noise
     # ax_leg.axis('off')
     #
     # fig_leg.savefig("fig/legend.png", bbox_inches='tight', pad_inches=.02)
+
+
+def plot_dp_tau(n, bf_dim ,bf_mean, bf_std, delta=1e-5):
+    sigma = np.array([1., 2., 4., 8., 16., 32.])
+    noise_to_p = lambda x: erf(np.sqrt(x ** 2 + 1) / (2 * np.sqrt(2) * x * bf_std))
+    tau = [noise_to_p(x) for x in sigma]
+    sensitivity = n * np.maximum(np.abs((bf_dim + bf_mean) / bf_std), np.abs((-bf_dim + bf_mean) / bf_std))
+    # eps = sensitivity * np.sqrt(2 * np.log(1.25/delta)) / sigma
+    eps = (sensitivity / sigma) ** 2 / 2
+
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    lns1 = ax1.plot(sigma, tau, color='C0', marker='^', label=r'$\tau$')
+    lns2 = ax2.plot(sigma, eps, color='C1', marker='s', label=r'$\epsilon$')
+    ax1.set_xlabel(r'$\sigma$')
+    ax1.set_ylabel(r'$\tau$')
+    ax2.set_ylabel(r'$\epsilon$')
+    fig.tight_layout()
+    lns = lns1 + lns2
+    labs = [l.get_label() for l in lns]
+    ax2.legend(lns, labs, loc=0)
+    fig.savefig("fig/dp_tau.jpg")
+
+    pass
 
 
 if __name__ == '__main__':
@@ -127,7 +152,13 @@ if __name__ == '__main__':
     # plot_priv(result_dir="out/performance/ny/priv", dataset_name="ny", metric="R2_Score", n_round=5,
     #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
     #           noises=[1e-0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 5e-6], save_path="fig/ny_perturb.png")
-    plot_priv(result_dir="out/performance/frog/priv", dataset_name="frog", metric="R2_Score", n_round=5,
-              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
-              noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 1e-3], save_path="fig/frog_perturb.png")
+    # plot_priv(result_dir="out/performance/frog/priv", dataset_name="frog", metric="R2_Score", n_round=5,
+    #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+    #           noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 1e-3], save_path="fig/frog_perturb.png")
+
+    bf_dim = 1575520 + 1164064
+    bf_mean = -46237.78
+    bf_std = 21178.86
+    n = 141051
+    plot_dp_tau(n, 1, bf_mean, bf_std)
 

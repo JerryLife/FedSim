@@ -8,6 +8,16 @@ color_map = {
     'Exact': 'C6'
 }
 
+marker_map = {
+    'Solo': '^',
+    'FedSim': 's',
+    'Top1Sim': 'o',
+    'FeatureSim': 'v',
+    'Combine': 'P',
+    'AvgSim': 'x',
+    'Exact': 'D'
+}
+
 dataset_map = {
     'beijing': 'house',
     'hdb': 'hdb',
@@ -16,7 +26,8 @@ dataset_map = {
     'game': 'game',
     'syn': 'sklearn',
     'frog': 'frog',
-    'boone': 'boone'
+    'boone': 'boone',
+    'company': 'company'
 }
 
 metric_map = {

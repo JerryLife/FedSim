@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-gpu=2
+gpu=3
 #for dataset in syn frog boone; do
 #  mkdir -p out/performance/"$dataset"/no_priv/
 #  for i in  $(seq 0 $(($1 - 1))); do
@@ -37,16 +37,27 @@ gpu=2
 
 
 
+#
+#for dataset in syn boone frog; do
+#  mkdir -p out/performance/"$dataset"/no_priv/
+#  for i in  $(seq 0 $(($1 - 1))); do
+#    for noise in 0.0 0.1 0.2; do
+#      for algo in all; do
+#        python src/train_"$dataset"_"$algo".py -g $gpu > out/performance/"$dataset"/no_priv/"$dataset"_"$algo"_noise_"$noise"_"$i".out &
+#      done
+#    done
+#    wait
+#  done
+#done
+#
 
-for dataset in syn boone frog; do
+
+for dataset in company; do
   mkdir -p out/performance/"$dataset"/no_priv/
   for i in  $(seq 0 $(($1 - 1))); do
-    for noise in 0.0 0.1 0.2; do
-      for algo in all; do
-        python src/train_"$dataset"_"$algo".py -g $gpu > out/performance/"$dataset"/no_priv/"$dataset"_"$algo"_noise_"$noise"_"$i".out &
-      done
+    for algo in top1sim featuresim; do
+      python src/train_"$dataset"_"$algo".py -g $gpu > out/performance/"$dataset"/no_priv/"$dataset"_"$algo"_"$i".out &
     done
-    wait
   done
+  wait
 done
-

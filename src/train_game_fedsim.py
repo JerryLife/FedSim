@@ -16,10 +16,6 @@ steam_dataset = root + "steam_clean.csv"
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
-parser.add_argument('-k', '--top-k', type=int, default=None)
-parser.add_argument('--mlp-merge', action='store_true')
-parser.add_argument('-ds', '--disable-sort', action='store_true')
-parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 1
@@ -33,13 +29,12 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='binary_cls',
                     metrics=['accuracy'],
                     dataset_type='real',
-                    blocking_method='knn_str',
+                    blocking_method='knn_priv_str',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
                     grid_width=1.5,
                     knn_k=50,
-                    filter_top_k=args.top_k,
                     kd_tree_radius=1e-2,
                     tree_leaf_size=1000,
                     model_name=name + "_" + now_string,
@@ -48,9 +43,9 @@ model = FedSimModel(num_common_features=num_common_features,
                     drop_key=True,
                     device='cuda:{}'.format(args.gpu),
                     hidden_sizes=[200, 100],
-                    train_batch_size=128,
+                    train_batch_size=32,
                     test_batch_size=1024 * 4,
-                    num_epochs=100,
+                    num_epochs=50,
                     learning_rate=1e-3,
                     weight_decay=1e-5,
                     update_sim_freq=1,
@@ -70,22 +65,19 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.7,
+                    merge_dropout_p=0.8,
                     conv_n_channels=8,
-                    conv_kernel_v_size=7,
-                    mlp_merge=[1600, 1000, 400] if args.mlp_merge else None,
-                    disable_sort=args.disable_sort,
-                    disable_weight=args.disable_weight,
+                    conv_kernel_v_size=5,
 
                     # linkage parameters
-                    edit_distance_threshold=1,
-                    n_hash_func=10,
-                    collision_rate=0.05,
+                    edit_distance_threshold=10,
+                    n_hash_func=50,
+                    collision_rate=0.01,
                     qgram_q=4,
-                    link_delta=0.1,
-                    n_hash_lsh=20,
-                    psig_p=7,
+                    link_delta=0.01,
+                    n_hash_lsh=50,
+                    psig_p=4,
                     sim_leak_p=args.leak_p,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim.pkl".format(name))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim_p_base.pkl".format(name))
 # model.train_splitnn(X1, X2, y)

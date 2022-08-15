@@ -16,10 +16,6 @@ school_dataset = root + "school_clean.csv"
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
-parser.add_argument('-k', '--top-k', type=int, default=None)
-parser.add_argument('--mlp-merge', action='store_true')
-parser.add_argument('-ds', '--disable-sort', action='store_true')
-parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 2
@@ -32,13 +28,12 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='regression',
                     metrics=['r2_score', 'rmse'],
                     dataset_type='real',
-                    blocking_method='knn',
+                    blocking_method='knn_priv_float',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
                     grid_width=1.5,
                     knn_k=50,
-                    filter_top_k=args.top_k,
                     kd_tree_radius=1e-2,
                     tree_leaf_size=1000,
                     model_name=name + "_" + now_string,
@@ -72,9 +67,6 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_dropout_p=0.2,
                     conv_n_channels=8,
                     conv_kernel_v_size=7,
-                    mlp_merge=[1600, 1000, 400] if args.mlp_merge else None,
-                    disable_sort=args.disable_sort,
-                    disable_weight=args.disable_weight,
 
                     # private link parameters
                     link_epsilon=5e-3,
@@ -83,5 +75,5 @@ model = FedSimModel(num_common_features=num_common_features,
                     sim_leak_p=args.leak_p,
                     link_n_jobs=-1,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/hdb_sim.pkl", scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/hdb_sim_p_base.pkl", scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import traceback
 
@@ -20,7 +21,7 @@ def read_file(file_path, metrics: list):
                 if line.isspace():
                     continue
                 elif "time" in line:
-                    time_sec = int(line.split()[-1])    # get the value of time in seconds (must be integer)
+                    time_sec = int(line.split()[-1])  # get the value of time in seconds (must be integer)
                 elif "Best" in line:
                     break
                 else:
@@ -36,3 +37,23 @@ def read_file(file_path, metrics: list):
     except ValueError:
         print("Failed to read {}".format(file_path))
         raise ValueError
+
+
+def read_n_params(file_path):
+    try:
+        n_params = []
+        with open(file_path, "r", encoding="ISO-8859-1") as f:
+            content = f.read()
+            raw_results = re.findall(r"Trainable params:?\s*((?:\d+|\d{1,3}(?:,\d{3})*)(?:\.\d+)?)\n", content)
+            # if not raw_results:
+            #     raw_results = re.findall(r"Trainable params:?\s*(\d+)\n", content)
+            results = []
+            for s in raw_results:
+                if ',' in s:
+                    results.append(int(s.replace(',', '')))
+                else:
+                    results.append(int(s))
+            return np.sum(results)
+    except ValueError or FileNotFoundError as e:
+        print("Failed to read {}".format(file_path))
+        raise e

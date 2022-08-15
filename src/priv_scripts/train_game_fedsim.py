@@ -8,7 +8,7 @@ from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.game import load_both
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../../")  # change working directory
+os.chdir(sys.path[0] + "/../")  # change working directory
 root = "data/game/"
 rawg_dataset = root + "rawg_clean.csv"
 steam_dataset = root + "steam_clean.csv"
@@ -29,7 +29,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='binary_cls',
                     metrics=['accuracy'],
                     dataset_type='real',
-                    blocking_method='knn_priv_str',
+                    blocking_method='knn_str',
                     n_classes=2,
                     grid_min=-10.0,
                     grid_max=10.0,
@@ -79,5 +79,5 @@ model = FedSimModel(num_common_features=num_common_features,
                     psig_p=4,
                     sim_leak_p=args.leak_p,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim_p_base.pkl".format(name))
+model.train_splitnn(X1, X2, y, data_cache_path="cache/game_sim.pkl".format(name))
 # model.train_splitnn(X1, X2, y)

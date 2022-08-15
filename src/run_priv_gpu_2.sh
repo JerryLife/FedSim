@@ -3,7 +3,7 @@
 
 
 
-gpu=1
+gpu=3
 export PYTHONPATH="$(realpath src)"
 
 #for dataset in beijing hdb; do
@@ -51,36 +51,36 @@ export PYTHONPATH="$(realpath src)"
 #    done
 #  done
 #done
-
-for dataset in game; do
-  mkdir -p out/performance/"$dataset"/priv
-  for i in  $(seq 0 $(($1 - 1))); do
-    for algo in fedsim featuresim top1sim avgsim; do
-      for tau in 1e-0 5e-1 1e-1 5e-2; do
-        if [[ ( "$dataset" = "syn" ) || ( "$dataset" = "frog" ) || ( "$dataset" = "boone" ) ]]; then
-          python src/priv_scripts/train_"$dataset"_"$algo".py -s 0.2 -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
-        else python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
-        fi
-      done
-      wait
-    done
-  done
-done
-
-for dataset in game; do
-  mkdir -p out/performance/"$dataset"/priv
-  for i in  $(seq 0 $(($1 - 1))); do
-    for algo in fedsim featuresim top1sim avgsim; do
-      for tau in 1e-2 5e-3 2e-3; do
-        if [[ ( "$dataset" = "syn" ) || ( "$dataset" = "frog" ) || ( "$dataset" = "boone" ) ]]; then
-          python src/priv_scripts/train_"$dataset"_"$algo".py -s 0.2 -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
-        else python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
-        fi
-      done
-      wait
-    done
-  done
-done
+#
+#for dataset in game; do
+#  mkdir -p out/performance/"$dataset"/priv
+#  for i in  $(seq 0 $(($1 - 1))); do
+#    for algo in fedsim featuresim top1sim avgsim; do
+#      for tau in 1e-0 5e-1 1e-1 5e-2; do
+#        if [[ ( "$dataset" = "syn" ) || ( "$dataset" = "frog" ) || ( "$dataset" = "boone" ) ]]; then
+#          python src/priv_scripts/train_"$dataset"_"$algo".py -s 0.2 -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
+#        else python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
+#        fi
+#      done
+#      wait
+#    done
+#  done
+#done
+#
+#for dataset in game; do
+#  mkdir -p out/performance/"$dataset"/priv
+#  for i in  $(seq 0 $(($1 - 1))); do
+#    for algo in fedsim featuresim top1sim avgsim; do
+#      for tau in 1e-2 5e-3 2e-3; do
+#        if [[ ( "$dataset" = "syn" ) || ( "$dataset" = "frog" ) || ( "$dataset" = "boone" ) ]]; then
+#          python src/priv_scripts/train_"$dataset"_"$algo".py -s 0.2 -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
+#        else python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
+#        fi
+#      done
+#      wait
+#    done
+#  done
+#done
 
 
 
@@ -112,6 +112,16 @@ done
 #  done
 #done
 #
-#
-#
-#
+
+
+for dataset in company; do
+  mkdir -p out/performance/"$dataset"/priv
+  for i in  $(seq 0 $(($1 - 1))); do
+    for algo in fedsim featuresim top1sim avgsim; do
+      for tau in 1e-1 1e-2 2e-3; do
+        python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
+      done
+      wait
+    done
+  done
+done

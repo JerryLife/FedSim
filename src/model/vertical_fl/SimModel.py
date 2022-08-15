@@ -678,7 +678,7 @@ class SimModel(TwoPartyBaseModel):
     def cal_sim_score_knn_str(self, key1, key2, knn_k=3, psig_p=8):
         key1 = key1.astype('str').flatten()
         key2 = key2.astype('str').flatten()
-        assert len(np.unique(key1)) == len(key1) and len(np.unique(key2)) == len(key2)
+        assert len(np.unique(key1)) == len(key1) and len(np.unique(key2)) == len(key2), "Duplicate keys found!"
 
         key1_to_idx1 = {k: v for k, v in zip(key1, range(key1.shape[0]))}
         key2_to_idx2 = {k: v for k, v in zip(key2, range(key2.shape[0]))}
@@ -778,7 +778,7 @@ class SimModel(TwoPartyBaseModel):
 
         return sim_scores
 
-    def cal_sim_score_knn_priv(self, key1, key2, key_type, knn_k=3):
+    def cal_sim_score_knn_priv(self, key1, key2, key_type, knn_k=3, n_jobs=40):
         """
         Calculate sim_scores based on the distance of bit-vectors/bloom-filters.
         Ref: FEDERAL: A Framework for Distance-Aware Privacy-Preserving Record Linkage
@@ -837,9 +837,15 @@ class SimModel(TwoPartyBaseModel):
         print("Indexing done. Got {} samples.".format(gpu_index.ntotal))
 
         print("KNN Query")
+        batch_size = 2000
+        # def search(i):
+        #     return gpu_index.search(bf1_vecs[i: i + batch_size], k=knn_k)
+        # dists_result, idx2_result = zip(*Parallel(n_jobs=n_jobs)(delayed(search)(i) for i in range(0, bf1_vecs.shape[0], batch_size)))
+        # dists = np.concatenate(dists_result, axis=0)
+        # idx2 = np.concatenate(idx2_result, axis=0)
+
         dists = np.empty([bf1_vecs.shape[0], knn_k])
         idx2 = np.empty([bf1_vecs.shape[0], knn_k])
-        batch_size = 2000
         for i in tqdm(range(0, bf1_vecs.shape[0], batch_size)):
             dists_i, idx2_i = gpu_index.search(bf1_vecs[i: i + batch_size], k=knn_k)
             dists[i: i + batch_size] = dists_i
@@ -874,7 +880,7 @@ class SimModel(TwoPartyBaseModel):
         return sim_scores
 
     def str_to_bloom_filter(self, key1, key2, edit_distance_threshold=1, n_hash_func=10, collision_rate=0.05,
-                            qgram_q=2, delta=0.1):
+                            qgram_q=2, delta=0.1, n_jobs=80):
         # Get the expected number of qgrams of each record
         n_qgrams = 0
         for k in np.concatenate([key1, key2]):
@@ -889,8 +895,8 @@ class SimModel(TwoPartyBaseModel):
         bf_size = int(np.ceil(bf_size / 8) * 8)  # Match binary index of faiss
         print("Size of bloom filter = {}".format(bf_size))
 
-        bf1_vecs = np.empty([key1.shape[0], np.sum(bf_size) // 8], dtype=np.uint8)
-        for i, k in enumerate(tqdm(key1, desc='BF of key1')):
+        print("Parsing BF for key1")
+        def fill_bf1_vec(i, k):
             # Generate q-grams
             qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
 
@@ -898,11 +904,14 @@ class SimModel(TwoPartyBaseModel):
             bf = BloomFilter(m=bf_size, k=n_hash_func)
             for gram in qgrams:
                 bf.add(gram)
-            bf1_vecs[i, :] = np.packbits(bf.vector, axis=-1).reshape(1, -1)
+            return np.packbits(bf.vector, axis=-1).reshape(-1)
+        bf1_list = Parallel(n_jobs=n_jobs)(delayed(fill_bf1_vec)(i, k) for i, k in enumerate(key1))
+        bf1_vecs = np.array(bf1_list)
 
-        bf2_vecs = np.empty([key2.shape[0], np.sum(bf_size) // 8],
-                            dtype=np.uint8)  # Allocate memory in advance to accelerate
-        for i, k in enumerate(tqdm(key2, desc='BF of key2')):
+        print("Parsing BF for key2")
+        # bf2_vecs = np.empty([key2.shape[0], np.sum(bf_size) // 8],
+        #                     dtype=np.uint8)  # Allocate memory in advance to accelerate
+        def fill_bf2_vec(i, k):
             # Generate q-grams
             qgrams = [''.join(s) for s in list(ngrams(''.join(k), qgram_q))]
 
@@ -910,7 +919,9 @@ class SimModel(TwoPartyBaseModel):
             bf = BloomFilter(m=bf_size, k=n_hash_func)
             for gram in qgrams:
                 bf.add(gram)
-            bf2_vecs[i, :] = np.packbits(bf.vector, axis=-1).reshape(1, -1)
+            return np.packbits(bf.vector, axis=-1).reshape(-1)
+        bf2_list = Parallel(n_jobs=n_jobs)(delayed(fill_bf2_vec)(i, k) for i, k in enumerate(key2))
+        bf2_vecs = np.array(bf2_list)
 
         return bf1_vecs, bf2_vecs
 
@@ -1174,7 +1185,8 @@ class SimModel(TwoPartyBaseModel):
             noise_scale = 0.0
         else:
             sim_std = self.sim_scaler.scale_.item()
-            print("Standard variance of sim_score: {:.2f}".format(sim_std))
+            mean = self.sim_scaler.mean_.item()
+            print("Standard variance of sim_score: {:.2f}, Mean: {:.2f}".format(sim_std, mean))
             self.scale_analysis = SimNoiseScale(sim_std, sim_leak_p=self.sim_leak_p)
             noise_scale = self.scale_analysis.noise_scale
 
@@ -1343,7 +1355,8 @@ class SimModel(TwoPartyBaseModel):
             noise_scale = 0.0
         else:
             sim_std = self.sim_scaler.scale_.item()
-            print("Standard variance of sim_score: {:.2f}".format(sim_std))
+            mean = self.sim_scaler.mean_.item()
+            print("Standard variance of sim_score: {:.2f}, Mean: {:.2f}".format(sim_std, mean))
             self.scale_analysis = SimNoiseScale(sim_std, sim_leak_p=self.sim_leak_p)
             noise_scale = self.scale_analysis.noise_scale
 
