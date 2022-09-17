@@ -7,6 +7,8 @@ from model.vertical_fl.FedSimModel import SimDataset
 from tqdm import tqdm
 
 import pickle
+import os
+import sys
 
 
 def plot_sim_distribution(data_cache_path, sim_dim=1, knn_k=100, threshold=20):
@@ -54,10 +56,13 @@ def plot_metric_vs_accuracy(output_path):
          'ytick.labelsize':'xx-large'}
     matplotlib.pylab.rcParams.update(params)
 
-    delta = [34.05, 14.26, 20.69, 4.14, 1.24]
-    score_top1 = np.asarray([58.54, 256.19, 31.56, 92.71, 8.18])
-    score_fedsim = np.asarray([42.12, 236.28, 27.17, 92.87, 8])
-    dataset_name = ['house', 'taxi', 'hdb', 'game', 'song']
+    # delta = [34.05, 14.26, 20.69, 4.14, 1.24]
+    # score_top1 = np.asarray([58.54, 256.19, 31.56, 92.71, 8.18])
+    # score_fedsim = np.asarray([42.12, 236.28, 27.17, 92.87, 8])
+    delta = [34.05, 14.26, 20.69, 4.14, 10.50]
+    score_top1 = np.asarray([58.54, 256.19, 31.56, 92.71, 42840.23])
+    score_fedsim = np.asarray([42.12, 236.28, 27.17, 92.87, 37083.72])
+    dataset_name = ['house', 'taxi', 'hdb', 'game', 'company']
     improve = np.abs(score_fedsim - score_top1) / score_top1 * 100
     plt.scatter(delta, improve)
     plt.annotate('house', (delta[0], improve[0]), fontsize=16,
@@ -76,14 +81,17 @@ def plot_metric_vs_accuracy(output_path):
 
 
 if __name__ == '__main__':
-    for k in [1]:
-        print(f"{k=}")
-        # plot_sim_distribution("cache/beijing_sim.pkl", 1, knn_k=100, threshold=2*k)
-        # plot_sim_distribution("cache/game_sim.pkl", 1, knn_k=50, threshold=k)
-        # plot_sim_distribution("cache/hdb_sim.pkl", 1, knn_k=50, threshold=k)
-        # plot_sim_distribution("cache/song_sim.pkl", 1, knn_k=50, threshold=k)
-        # plot_sim_distribution("cache/ny_sim.pkl", 1, knn_k=50, threshold=k)
-        # plot_sim_distribution("cache/syn_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
-        # plot_sim_distribution("cache/boone_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
-        # plot_sim_distribution("cache/frog_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+    os.chdir(sys.path[0] + "/../../")  # change working directory
+    # for k in [1]:
+    #     print(f"{k=}")
+    #     plot_sim_distribution("cache/beijing_sim.pkl", 1, knn_k=100, threshold=2*k)
+    #     plot_sim_distribution("cache/game_sim.pkl", 1, knn_k=50, threshold=k)
+    #     plot_sim_distribution("cache/hdb_sim.pkl", 1, knn_k=50, threshold=k)
+    #     plot_sim_distribution("cache/song_sim.pkl", 1, knn_k=50, threshold=k)
+    #     plot_sim_distribution("cache/ny_sim.pkl", 1, knn_k=50, threshold=k)
+    #     plot_sim_distribution("cache/syn_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+    #     plot_sim_distribution("cache/boone_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+    #     plot_sim_distribution("cache/frog_sim_noise_0.2.pkl", 1, knn_k=100, threshold=k)
+    #     plot_sim_distribution("cache/company_subset_sim_p_base_0.1.pkl", 1, knn_k=50, threshold=k)
+
     plot_metric_vs_accuracy("fig/metric_vs_improve.png")

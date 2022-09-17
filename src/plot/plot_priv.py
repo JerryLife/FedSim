@@ -156,9 +156,13 @@ if __name__ == '__main__':
     #           algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
     #           noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 1e-3], save_path="fig/frog_perturb.png")
 
-    bf_dim = 1575520 + 1164064
-    bf_mean = -46237.78
-    bf_std = 21178.86
-    n = 141051
-    plot_dp_tau(n, 1, bf_mean, bf_std)
+    # bf_dim = 1575520 + 1164064
+    # bf_mean = -46237.78
+    # bf_std = 21178.86
+    # n = 141051
+    # plot_dp_tau(n, 1, bf_mean, bf_std)
+
+    plot_priv(result_dir="out/performance/company/priv", dataset_name="company", metric="R2_Score", n_round=5,
+              algorithms=['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Solo'],
+              noises=[1e-0, 5e-1, 1e-1, 5e-2, 1e-2, 5e-3, 2e-3], save_path="fig/company_perturb.png")
 

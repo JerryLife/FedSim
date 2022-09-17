@@ -14,9 +14,9 @@ if __name__ == '__main__':
     # training time on empty RTX-3090 are directly recorded here
     algorithms = ['FedSim', 'Top1Sim', 'AvgSim', 'FeatureSim', 'Exact', 'Solo']
     time_record_sec = {
-        'sklearn': [2*60+7, 1, 1*60+20, 57, np.nan, 1],
-        'boone': [3*60+59, 1, 2*60+45, 2*60+12, np.nan, 1],
-        'frog': [10, 1, 6, 4, np.nan, 1],
+        # 'sklearn': [2*60+7, 1, 1*60+20, 57, np.nan, 1],
+        # 'boone': [3*60+59, 1, 2*60+45, 2*60+12, np.nan, 1],
+        # 'frog': [10, 1, 6, 4, np.nan, 1],
         'house': [4*60+6, 1, 2*60+35, 1*60+52, np.nan, 1],
         'taxi': [5*60+56, 2, 3*60+22, 2*60+34, np.nan, 1],
         'hdb': [2*60+22, 1, 1*60+40, 34, np.nan, 1],

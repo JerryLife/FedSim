@@ -58,12 +58,12 @@ model = Top1SimModel(num_common_features=num_common_features,
                      # linkage parameters
                      edit_distance_threshold=10,
                      n_hash_func=50,
-                     collision_rate=0.1,
+                     collision_rate=0.03,
                      qgram_q=4,
-                     link_delta=0.1,
+                     link_delta=0.03,
                      n_hash_lsh=50,
                      psig_p=4,
                      sim_leak_p=args.leak_p,
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.1.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.03.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

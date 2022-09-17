@@ -68,5 +68,5 @@ model = FeatureSimModel(num_common_features=num_common_features,
                         psig_p=4,
                         sim_leak_p=args.leak_p,
                         )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.01.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.03.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

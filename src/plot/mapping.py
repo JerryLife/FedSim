@@ -35,3 +35,16 @@ metric_map = {
     'Accuracy': 'Accuracy',
     'RMSE': 'RMSE'
 }
+
+# 'fedsim', 'mlp', 'disable_sort', 'disable_weight', 'avgsim', 'featuresim', 'top1sim', 'exact', 'A'
+algo_map = {
+    'fedsim': 'FedSim',
+    'mlp': 'FedSim (w/o CNN)',
+    'disable_sort': 'FedSim (w/o Sort)',
+    'disable_weight': 'FedSim (w/o Weight)',
+    'avgsim': 'AvgSim',
+    'featuresim': 'FeatureSim',
+    'top1sim': 'Top1Sim',
+    'exact': 'Exact',
+    'A': 'Solo'
+}

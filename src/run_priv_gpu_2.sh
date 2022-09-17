@@ -3,7 +3,7 @@
 
 
 
-gpu=3
+gpu=2
 export PYTHONPATH="$(realpath src)"
 
 #for dataset in beijing hdb; do
@@ -114,11 +114,23 @@ export PYTHONPATH="$(realpath src)"
 #
 
 
+#for dataset in company; do
+#  mkdir -p out/performance/"$dataset"/priv
+#  for i in  $(seq 0 $(($1 - 1))); do
+#    for algo in fedsim featuresim top1sim avgsim; do
+#      for tau in 1e-1 1e-2 2e-3; do
+#        python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
+#      done
+#      wait
+#    done
+#  done
+#done
+
 for dataset in company; do
   mkdir -p out/performance/"$dataset"/priv
   for i in  $(seq 0 $(($1 - 1))); do
     for algo in fedsim featuresim top1sim avgsim; do
-      for tau in 1e-1 1e-2 2e-3; do
+      for tau in 1e-0 1e-1 1e-2 2e-3; do
         python src/priv_scripts/train_"$dataset"_"$algo".py -p $tau -g $gpu > out/performance/"$dataset"/priv/"$dataset"_"$algo"_p_"$tau"_"$i".out &
       done
       wait

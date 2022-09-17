@@ -17,6 +17,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1.0)
 parser.add_argument('-g', '--gpu', type=int, default=0)
 parser.add_argument('-k', '--top-k', type=int, default=None)
+parser.add_argument('--mlp-merge', action='store_true')
+parser.add_argument('-ds', '--disable-sort', action='store_true')
+parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 1
@@ -67,19 +70,22 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[200],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.7,
+                    merge_dropout_p=0.3,
                     conv_n_channels=4,
                     conv_kernel_v_size=7,
+                    mlp_merge=[1600, 1000, 400] if args.mlp_merge else None,
+                    disable_sort=args.disable_sort,
+                    disable_weight=args.disable_weight,
 
                     # linkage parameters
                     edit_distance_threshold=10,
                     n_hash_func=50,
-                    collision_rate=1e-2,
+                    collision_rate=0.03,
                     qgram_q=4,
-                    link_delta=1e-2,
+                    link_delta=0.03,
                     n_hash_lsh=50,
                     psig_p=8,
                     sim_leak_p=args.leak_p,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.1.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, scale=True)
 # model.train_splitnn(X1, X2, y)

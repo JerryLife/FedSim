@@ -6,6 +6,7 @@ import numpy as np
 import tabulate
 
 from plot.file_reader import read_file, read_n_params
+from mapping import algo_map
 
 
 def create_table(result_dir, priv_dir, dataset_names, metrics, n_rounds, algorithms):
@@ -28,6 +29,9 @@ def create_table(result_dir, priv_dir, dataset_names, metrics, n_rounds, algorit
 
             mean_score = np.mean(scores_all_round, axis=0)
             std_score = np.std(scores_all_round, axis=0)
+            if dataset == 'company':    # change the order of metrics to k
+                mean_score /= 1000
+                std_score /= 1000
             if len(metric_list) == 2:
                 cell_str = "{:.2f}\\textpm {:.2f} & {:.4f}\\textpm {:.4f}".format(
                     mean_score[0], std_score[0], mean_score[1], std_score[1])
@@ -42,7 +46,7 @@ def create_table(result_dir, priv_dir, dataset_names, metrics, n_rounds, algorit
                 assert False
             row_cells.append(cell_str)
 
-        row_str = algo.capitalize() + "&" + "&".join(row_cells) + "\\\\"
+        row_str = algo_map[algo] + "&" + "&".join(row_cells) + "\\\\"
         table.append(row_str)
     table_str = "\n".join(table)
     return table_str
@@ -181,24 +185,25 @@ if __name__ == '__main__':
     #                           algorithms=reversed(['fedsim']))
     # print(table_str2)
 
-    table_str2 = create_table(result_dir="./out/performance", priv_dir="no_priv",
-                              dataset_names=['company'],
-                              metrics=[['R2_Score', 'RMSE']], n_rounds=5,
-                              algorithms=reversed(['fedsim', 'avgsim', 'featuresim', 'top1sim', 'exact', 'A']))
-    print(table_str2)
+    # table_str2 = create_table(result_dir="./out/performance", priv_dir="no_priv",
+    #                           dataset_names=['beijing', 'ny', 'hdb', 'game', 'company'],
+    #                           metrics=[['RMSE'], ['RMSE'], ['RMSE'], ['Accuracy'], ['RMSE']], n_rounds=5,
+    #                           algorithms=reversed(['fedsim', 'mlp', 'disable_sort', 'disable_weight', 'avgsim', 'featuresim', 'top1sim', 'exact', 'A']))
+    # print(table_str2)
+
 
     # table_str = create_table(result_dir="./out/performance", priv_dir="no_priv",
     #                          dataset_names=['beijing', 'ny', 'hdb', 'game', 'song'],
     #                          metrics=[['R2_Score', 'RMSE'] for _ in range(3)] + [['Accuracy'], ['R2_Score', 'RMSE']], n_rounds=5,
     #                          algorithms=reversed(['fedsim', 'mlp', 'disable_sort', 'disable_weight', 'top1sim', 'avgsim', 'featuresim', 'exact', 'A']))
     # print(table_str)
-    # time_str = create_time_table(result_dir="./out/performance", priv_dir="no_priv",
-    #                           dataset_names=['syn', 'boone', 'frog', 'beijing', 'ny', 'hdb', 'game', 'song'], n_rounds=5,
-    #                           algorithms=reversed(['fedsim', 'mlp', 'top1sim', 'avgsim', 'featuresim', 'exact']))
-    # print(time_str)
+    time_str = create_time_table(result_dir="./out/performance", priv_dir="no_priv",
+                              dataset_names=['beijing', 'ny', 'hdb', 'game', 'company'], n_rounds=5,
+                              algorithms=reversed(['fedsim', 'mlp', 'top1sim', 'avgsim', 'featuresim', 'exact']))
+    print(time_str)
 
     # n_params_str = create_param_table(result_dir="./out/performance", priv_dir="no_priv",
-    #                                  dataset_names=['beijing', 'ny', 'hdb', 'game', 'song'],
+    #                                  dataset_names=['beijing', 'ny', 'hdb', 'game', 'company'],
     #                                  n_rounds=5,
     #                                  algorithms=reversed(['fedsim', 'top1sim', 'avgsim', 'featuresim', 'exact', 'A']))
     # print(n_params_str)

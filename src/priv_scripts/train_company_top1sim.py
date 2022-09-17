@@ -51,19 +51,19 @@ model = Top1SimModel(num_common_features=num_common_features,
                      writer_path="runs/{}_{}".format(name, now_string),
                      model_save_path="ckp/{}_{}.pth".format(name, now_string),
                      # SplitNN parameters
-                     local_hidden_sizes=[[200], [200]],
-                     agg_hidden_sizes=[400],
+                     local_hidden_sizes=[[100], [100]],
+                     agg_hidden_sizes=[200],
                      cut_dims=[100, 100],
 
                      # linkage parameters
                      edit_distance_threshold=10,
                      n_hash_func=50,
-                     collision_rate=0.01,
+                     collision_rate=1e-2,
                      qgram_q=4,
-                     link_delta=0.01,
+                     link_delta=1e-2,
                      n_hash_lsh=50,
                      psig_p=4,
                      sim_leak_p=args.leak_p,
                      )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.01.pkl".format(name), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/company_subset_sim_p_base_0.03.pkl".format(name), scale=True)
 # model.train_splitnn(X1, X2, y, scale=True)

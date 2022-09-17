@@ -15,7 +15,10 @@ airbnb_dataset = root + "airbnb_clean.csv"
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--leak-p', type=float, default=1)
 parser.add_argument('-g', '--gpu', type=int, default=0)
-parser.add_argument('-k', '--top-k', type=int, default=20)
+parser.add_argument('-k', '--top-k', type=int, default=None)
+parser.add_argument('--mlp-merge', action='store_true')
+parser.add_argument('-ds', '--disable-sort', action='store_true')
+parser.add_argument('-dw', '--disable-weight', action='store_true')
 args = parser.parse_args()
 
 num_common_features = 2
@@ -28,7 +31,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     task='regression',
                     metrics=['r2_score', 'rmse'],
                     dataset_type='real',
-                    blocking_method='knn_priv_float',
+                    blocking_method='knn',
                     n_classes=2,
                     grid_min=(115.5, 39),
                     grid_max=(116.5, 40),
@@ -46,7 +49,7 @@ model = FedSimModel(num_common_features=num_common_features,
                     train_batch_size=128,
                     test_batch_size=1024 * 4,
                     num_epochs=100,
-                    learning_rate=3e-3,
+                    learning_rate=1e-3,
                     weight_decay=1e-5,
                     update_sim_freq=1,
                     num_workers=4 if sys.gettrace() is None else 0,
@@ -65,9 +68,12 @@ model = FedSimModel(num_common_features=num_common_features,
                     merge_hidden_sizes=[400],
                     sim_hidden_sizes=[10],
                     merge_model_save_path="ckp/{}_{}_merge.pth".format(name, now_string),
-                    merge_dropout_p=0.8,
+                    merge_dropout_p=0.3,
                     conv_n_channels=8,
                     conv_kernel_v_size=7,
+                    mlp_merge=[1600, 1000, 400] if args.mlp_merge else None,
+                    disable_sort=args.disable_sort,
+                    disable_weight=args.disable_weight,
 
                     # private link parameters
                     link_epsilon=3e-2,
@@ -76,5 +82,9 @@ model = FedSimModel(num_common_features=num_common_features,
                     sim_leak_p=args.leak_p,
                     link_n_jobs=-1,
                     )
-model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim_p_base.pkl".format(args.leak_p), scale=True)
+model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl", scale=True)
+# model.train_splitnn(X1, X2, y, data_cache_path="cache/beijing_sim.pkl", scale=True, torch_seed=0,
+#                     splitnn_model_path="ckp/beijing_fedsim_p_1E+00_2022-01-22-16-05-04.pth",
+#                     sim_model_path="ckp/beijing_fedsim_p_1E+00_2022-01-22-16-05-04_sim.pth",
+#                     merge_model_path="ckp/beijing_fedsim_p_1E+00_2022-01-22-16-05-04_merge.pth", evaluate_only=True)
 # model.train_splitnn(X1, X2, y, scale=True)

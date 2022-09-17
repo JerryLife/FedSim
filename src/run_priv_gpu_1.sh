@@ -3,7 +3,7 @@
 
 
 
-gpu=4
+gpu=1
 export PYTHONPATH="$(realpath src)"
 
 #for dataset in beijing hdb; do
