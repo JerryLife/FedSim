@@ -3,6 +3,9 @@ import sys
 from datetime import datetime
 import argparse
 
+os.chdir(sys.path[0] + "/../../")  # change working directory
+sys.path.append(os.path.join(os.getcwd(), "src"))
+
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 import sklearn.metrics as metrics
@@ -12,8 +15,6 @@ from model.vertical_fl.OnePartyModel import OnePartyModel
 from preprocess.hdb import load_hdb
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-
-os.chdir(sys.path[0] + "/../../")  # change working directory
 
 root = "data/hdb/"
 dataset = "hdb_clean.csv"

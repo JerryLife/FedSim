@@ -4,6 +4,9 @@ from datetime import datetime
 import argparse
 import numpy as np
 
+os.chdir(sys.path[0] + "/../../")  # change working directory
+sys.path.append(os.path.join(os.getcwd(), "src"))
+
 from model.vertical_fl.FedSimModel import FedSimModel
 from preprocess.hdb import load_both
 

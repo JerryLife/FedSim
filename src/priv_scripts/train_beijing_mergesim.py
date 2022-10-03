@@ -6,9 +6,10 @@ import argparse
 from model.vertical_fl.MergeSimModel import MergeSimModel
 from preprocess.beijing import load_both
 
+os.chdir(sys.path[0] + "/../../")  # change working directory
+sys.path.append(os.path.join(os.getcwd(), "src"))
 
 now_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-os.chdir(sys.path[0] + "/../../")  # change working directory
 root = "data/beijing/"
 house_dataset = root + "house_clean.csv"
 airbnb_dataset = root + "airbnb_clean.csv"
